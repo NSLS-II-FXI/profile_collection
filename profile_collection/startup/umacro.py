@@ -1,0 +1,406 @@
+import numpy as np
+import matplotlib.pylab as plt
+import h5py
+
+
+from bluesky.magics import BlueskyMagics
+from operator import attrgetter
+
+
+
+
+GLOBAL_MAG = 650 # total magnification
+GLOBAL_VLM_MAG = 10 # vlm magnification
+OUT_ZONE_WIDTH = 30 # 30 nm
+ZONE_DIAMETER = 100 # 200 um
+
+
+
+def list_fun():
+    import umacro
+    all_func = inspect.getmembers(umacro, inspect.isfunction)
+    return all_func     
+
+
+def check_eng_range(eng):
+    '''
+    check energy in range of 4000-12000
+    Inputs:
+    --------
+    eng: list
+        e.g. [6000,7500]
+    '''
+    eng = list(eng)
+    high_limit = 12000
+    low_limit = 4000
+    for i in range(len(eng)):
+        assert(eng[i] >= low_limit and eng[i] <= high_limit), 'Energy is outside the range (4000, 12000) eV'
+    return 
+        
+def cal_parameter(eng, print_flag=1):
+    '''
+    Calculate parameters for given X-ray energy
+    Use as: wave_length, focal_length, NA, DOF = energy_cal(Eng, print_flag=1):
+
+    Inputs:
+    -------
+    eng: float
+         X-ray energy, in unit of eV
+    print_flag: int
+        0: print outputs
+        1: no print
+        
+    Outputs:
+    -------- 
+    wave_length(nm), focal_length(mm), NA(rad if print_flag=1, mrad if print_flag=0), DOF(mm)
+    '''
+    
+    global OUT_ZONE_WIDTH 
+    global ZONE_DIAMETER 
+
+    h = 6.6261e-34
+    c = 3e8
+    ec = 1.602e-19
+
+    if eng < 4000:    eng = XEng.position * 1000 # current beam energy
+    check_eng_range([eng])
+
+    wave_length = h * c / (ec * eng) * 1e9 # nm
+    focal_length = OUT_ZONE_WIDTH * ZONE_DIAMETER / (wave_length) / 1000 # mm 
+    NA = wave_length / (2 * OUT_ZONE_WIDTH)
+    DOF = wave_length / NA**2 / 1000 # um
+    if  print_flag:
+        print ('Wave length: {0:2.2f} nm\nFocal_length: {1:2.2f} mm\nNA: {2:2.2f} mrad\nDepth of focus: {3:2.2f} um'.format(wave_length, focal_length, NA*1e3, DOF))
+    else:
+        return wave_length, focal_length, NA, DOF
+    
+
+def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
+
+    '''
+    calculate the delta amount of movement for zone_plate and CCD whit change energy from ene_ini to eng_new while keeping same magnification
+    E.g. delta_zp, delta_det, final_zp, final_det = cal_zp_ccd_with_const_mag(eng_new=8000, eng_ini=0)
+
+    Inputs:
+    -------
+    eng_new:  float 
+          User defined energy, in unit of eV
+    eng_ini:  float
+          if eng_ini < 4000 (eV), will eng_ini = current Xray energy 
+    print_flag: int
+          0: Do calculation without moving real stages
+          1: Will move stages
+
+
+    Outputs:
+    --------
+    zp_ini: float
+        initial position of zone_plate
+    det_ini: float
+        initial position of detector
+    zp_delta: float
+        delta amount of zone_plate movement
+        positive means move downstream, and negative means move upstream
+    det_delta: float
+        delta amount of CCD movement
+        positive means move downstream, and negative means move upstream
+    zp_final: float
+        final position of zone_plate
+    det_final: float
+        final position of detector
+
+    '''
+
+    global GLOBAL_MAG
+    global GLOBAL_VLM_MAG
+    
+    if eng_ini < 4000:    
+        eng_ini = XEng.position * 1000 # current beam energy
+    check_eng_range([eng_new, eng_ini])
+  
+    
+    h = 6.6261e-34
+    c = 3e8
+    ec = 1.602e-19
+  
+    det = DetU    # read current energy and motor position
+    mag = GLOBAL_MAG / GLOBAL_VLM_MAG
+
+    zp_ini = zp.z.position # zone plate position in unit of mm
+    zps_ini = zps.sz.position # sample position in unit of mm
+    det_ini = det.z.position # detector position in unit of mm
+
+    lamda_ini, fl_ini, _, _ = cal_parameter(eng_ini, print_flag=0)
+    lamda, fl, _, _ = cal_parameter(eng_new, print_flag=0)
+    
+    p_ini = fl_ini * (mag+1) / mag # sample distance (mm), relative to zone plate
+    q_ini = mag * p_ini  # ccd distance (mm), relative to zone plate
+
+    p_cal = fl * (mag+1) / mag
+    q_cal = mag * p_cal
+
+    zp_delta = p_cal - p_ini
+    det_delta = q_cal - q_ini + zp_delta
+
+    zp_final = zp_ini + zp_delta
+    det_final = det_ini + det_delta
+
+    if print_flag:    
+        print ('Calculation results:')
+        print ('Change energy from: {0:2.2f} eV to {1:2.2f} eV'.format(eng_ini, eng_new))
+        print ('Need to move zone plate by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'
+                .format(zp_delta, zp_ini, zp_final))
+        print ('Need to move CCD by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'
+                .format(det_delta, det_ini, det_final)) 
+    else:
+        return zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final
+
+
+def move_zp_ccd(eng_new, eng_ini=0, flag=1):
+    '''
+    move the zone_plate and ccd to the user-defined energy with constant magnification
+    use the function as:
+        move_zp_ccd_with_const_mag(eng_new=8000, eng_ini=9000, flag=1):
+
+    Inputs:
+    -------
+    eng_new:  float 
+          User defined energy, in unit of eV
+    eng_ini:  float
+          if eng_ini < 3000 (eV), will eng_ini = current Xray energy 
+    flag: int
+          0: Do calculation without moving real stages
+          1: Will move stages
+    '''
+
+    det = DetU # upstream detector
+    zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
+
+    assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
+
+    if flag: # move stages
+        print ('Now moving stages ....')
+        # RE(mv(XEng.position, Eng) # uncomment it when doing experiment        
+        RE(mvr(zp.z, zp_delta))
+        print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp.z.position))
+        RE(mvr(det.z, det_delta))
+        print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det.z.position))
+    else:
+        print ('This is calculation. No stages move') 
+        print ('will move zone plate down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(zp_delta, zp_ini, zp_final))
+        print ('will move CCD down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(det_delta, det_ini, det_final))
+    
+
+def cal_phase_ring_position(eng_new, eng_ini=0, print_flag=1):
+    '''
+    calculate delta amount of phase_ring movement:
+    positive means move down-stream, negative means move up-stream
+    
+    use as:
+        cal_phase_ring_with_const_mag(eng_new=8000, eng_ini=9000)
+
+    Inputs:
+    -------
+    eng_new: float
+        target energy, in unit of eV
+    eng_ini: float
+        initial energy, in unit of eV
+        it will read current Xray energy if eng_ini < 4000
+
+    '''
+
+    _, fl_ini, _, _ = cal_parameter(eng_ini, print_flag=0)
+    _, fl_new, _, _ = cal_parameter(eng_new, print_flag=0) 
+       
+    _, _, zp_delta, _, _, _ = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
+
+    delta_phase_ring = zp_delta + fl_new - fl_ini
+    if print_flag:    
+        print ('Need to move phase ring down-stream by: {0:2.2f} mm'.format(delta_phase_ring))
+        print ('Zone plate position changes by: {0:2.2f} mm'.format(zp_delta))
+        print ('Zone plate focal length changes by: {0:2.2f} mm'.format(fl_new - fl_ini))
+    else:    return delta_phase_ring
+
+
+def move_phase_ring(eng_new, eng_ini, flag=1):
+    '''
+    move the phase_ring when change the energy
+        
+    use as:
+        move_phase_ring_with_const_mag(eng_new=8000, eng_ini=9000, flag=1)
+
+    Inputs:
+    -------
+    eng_new: float
+        target energy, in unit of eV
+    eng_ini: float
+        initial energy, in unit of eV
+        it will read current Xray energy if eng_ini < 4000
+    flag: int
+         0: no move
+         1: move stage
+    '''
+
+    delta_phase_ring = cal_phase_ring_position(eng_new, eng_ini, print_flag=0)
+    if flag:    RE(mvr(phase_ring.z, delta_phase_ring))
+    else: 
+        print ('This is calculation. No stages move.')
+        print ('will move phase ring down stream by {0:2.2f} mm'.format(delta_phase_ring)) 
+    return 
+            
+
+def go_det(det):
+    if det == 'manta_u':
+        pos_x = -87.6
+        pos_y = 0.85
+        DetU.x.move(pos_x, wait = 'False')
+        DetU.y.move(pos_y, wait = 'False')
+        print('move DetU.x to {0:2.2f}\nmove DetU.y to {1:2.2f}'.format(pos_x, pos_y))
+    else:
+        print('Detector not defined...')
+
+
+
+def set_ic_dwell_time(dwell_time=1.):
+    if np.abs(dwell_time - 10) < 1e-2:
+        ic_rate.value = 3
+    elif np.abs(dwell_time - 5) < 1e-2:
+        ic_rate.value = 4
+    elif np.abs(dwell_time - 2) < 1e-2:
+        ic_rate.value = 5
+    elif np.abs(dwell_time - 1) < 1e-2:
+        ic_rate.value = 6
+    elif np.abs(dwell_time - 0.5) < 1e-2:
+        ic_rate.value = 7
+    elif np.abs(dwell_time - 0.2) < 1e-2:
+        ic_rate.value = 8
+    elif np.abs(dwell_time - 0.1) < 1e-2:
+        ic_rate.value = 9
+    else:
+        print('dwell_time not in list, set to default value: 1s')
+        ic_rate.value = 6
+
+def read_ic(ics, num, dwell_time=1.):
+    '''
+    read ion-chamber value
+    e.g. RE(read_ic([ic1, ic2], num = 10, dwell_time=0.5))
+
+    Inputs:
+    -------
+    ics: list of ion-chamber
+    num: int
+        number of points to record
+    dwell_time: float
+        in unit of seconds
+    '''
+
+    set_ic_dwell_time(dwell_time=dwell_time)
+
+    yield from count(ics, num, delay = dwell_time)
+
+    h = db[-1]
+    ic_num = len(ics)
+    fig = plt.figure()
+    x = np.linspace(1, num, num)
+    y = np.zeros([ic_num, num])
+    for i in range(ic_num):
+        y[i] = np.array(list(h.data(ics[i].name)))
+        ax = fig.add_subplot(ic_num, 1, i+1)
+        ax.title.set_text(ics[i].name)        
+        ax.plot(x, y[i], '.-')
+    fig.subplots_adjust(hspace=.5)
+    plt.show()
+    return y
+
+
+def go_eng(eng):
+    '''
+    Move DCM to specifc energy
+    E.g. RE(go_eng(9000)) # Note that: energy is in unit of eV
+    '''
+    check_eng_range([eng])
+    yield from abs_set(XEng, eng/1000, wait=True)
+
+#####################################################################
+def load_image(args):
+    '''
+    e.g. load_image() # case 1
+         load_image(120) # case 2
+         load_image([120,122,125]) # case 3: load three scans
+         load_image(120, 125)      # case 4: load scans from scan_120 to scan_125
+         load_image(120, 125, 2)   # case 5: load scans from scan_120 to scan_125 for every 2 scans
+    '''
+
+    scan_id = list(args) # case 2 and 3
+    if len(args) == 0:      scan_id = [-1] # case 1
+    elif len(args) == 2:    scan_id = np.arange(args[0], args[1]+1) # case 4
+    elif len(args) == 3:    scan_id = np.arange(args[0], args[1]+1, args[2]) # case 5
+    else: return 'Invalid input'
+    for item in scan_id:        
+       load_single_image(item)    
+
+def load_single_image(scan_id=-1):
+    header = db[scan_id]
+    h = header.start
+    scan_type = h['plan_name']
+    x_eng = h['x_ray_energy']
+    if scan_id == -1:
+        scan_id = h['scan_id']
+    
+    if scan_type == 'tomo_scan':
+        bkg_img_num = h['back_ground_images']
+        angle_i = h['plan_args']['start']
+        angle_e = h['plan_args']['stop']
+        angle_n = h['plan_args']['num'] 
+        exposure_t = h['plan_args']['exposure_time'] 
+        img = np.array(list(header.data('detA1_image')))
+        img = np.squeeze(img)
+
+        img_bkg = img[0 : bkg_img_num]
+        img_tomo = img[bkg_img_num :]
+        img_angle = np.linspace(angle_i, angle_e, angle_n)
+        
+        fname = scan_type + '_id_' + str(scan_id) + '.h5'
+        with h5py.File(fname, 'w') as hf:
+            hf.create_dataset('X_eng', data = x_eng)
+            hf.create_dataset('img_bkg', data = img_bkg)
+            hf.create_dataset('img_tomo', data = img_tomo)
+            hf.create_dataset('angle', data = img_angle)
+
+
+################################################################
+
+def new_user():
+    now = datetime.now()
+    year = np.str(now.year)
+    mon  = '{:02d}'.format(now.month)
+
+    if now.month >= 1 and now.month <=4:    qut = 'Q1'
+    elif now.month >= 5 and now.month <=8:  qut = 'Q2'
+    else: qut = 'Q3'
+
+    PI_name = input('PI\'s name:')  
+    PI_name = PI_name.replace(' ', '_').upper()
+
+    proposal_id = input('Proposal ID:')
+
+    pre = '/NSLS2/xf18id1/users/' + year + qut + '/'
+    try:        os.mkdir(pre)
+    except Exception:        pass
+    
+    fn = pre + PI_name + '_Proposal_' + proposal_id
+    try:        os.mkdir(fn)
+    except Exception:
+        print('Found (user, proposal) existed\nEntering folder: {}'.format(os.getcwd()))
+        os.chdir(fn)       
+        pass
+    os.chdir(fn)
+    print ('\nUser created successful!\nEntering folder: {}'.format(os.getcwd()))
+
+    
+
+
+
+
+    
+

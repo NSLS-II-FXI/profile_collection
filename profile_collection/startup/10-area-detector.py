@@ -21,7 +21,7 @@ class Manta(SingleTrigger, AreaDetector):
     image = Cpt(ImagePlugin, 'image1:')
     stats1 = Cpt(StatsPlugin, 'Stats1:')
     stats2 = Cpt(StatsPlugin, 'Stats2:')
-    stats3 = Cpt(StatsPlugin, 'Stats3:')
+#    stats3 = Cpt(StatsPlugin, 'Stats3:')
     stats4 = Cpt(StatsPlugin, 'Stats4:')
     stats5 = Cpt(StatsPlugin, 'Stats5:')
     trans1 = Cpt(TransformPlugin, 'Trans1:')
@@ -59,6 +59,7 @@ detA1 = Manta('XF:18IDB-BI{Det:A1}', name='detA1')
 detA1.hdf5.reg = db.reg
 detA1.hdf5._reg = db.reg
 detA1.read_attrs = ['hdf5', 'stats1', 'stats5']
+#detA1.read_attrs = ['hdf5', 'stats1']
 detA1.stats1.read_attrs = ['total']
 detA1.stats5.read_attrs = ['total']
 detA1.hdf5.read_attrs = []
