@@ -2,18 +2,13 @@ import numpy as np
 import matplotlib.pylab as plt
 import h5py
 
-
-from bluesky.magics import BlueskyMagics
 from operator import attrgetter
-
-
 
 
 GLOBAL_MAG = 650 # total magnification
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
 ZONE_DIAMETER = 100 # 200 um
-
 
 
 def list_fun():

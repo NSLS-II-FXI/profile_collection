@@ -3,7 +3,7 @@ import sys
 import time
 from functools import wraps
 from warnings import warn
-from bluesky.plans import mv, mvr
+from bluesky.plan_stubs import mv, mvr
 
 import numpy as np
 try:

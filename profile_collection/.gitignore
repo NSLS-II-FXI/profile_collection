@@ -1,2 +1,5 @@
 db/
 __pycache__
+startup/.00-startup.py
+tomo_ctrl/
+

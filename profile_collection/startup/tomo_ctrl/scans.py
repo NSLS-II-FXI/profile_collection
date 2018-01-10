@@ -3,7 +3,7 @@ import sys
 import time
 from functools import wraps
 from warnings import warn
-from bluesky.plans import mv, mvr
+from bluesky.plan_stubs import mv, mvr
 
 import numpy as np
 try:
@@ -12,6 +12,7 @@ except ImportError:
     from toolz import partition
 from bluesky import plan_patterns
 from bluesky.utils import (Msg, short_uid as _short_uid, make_decorator)
+from bluesky.preprocessors import stage_decorator, run_decorator
 
 
 def timeit(method):    
@@ -90,7 +91,6 @@ def tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10
     
     @stage_decorator(list(detectors) + [motor_rot, motor_x])
     @run_decorator(md=_md)
-
     def tomo_inner_scan():
 
         # move pi_x stage to motor_x_out
@@ -114,10 +114,10 @@ def tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10
     yield from tomo_inner_scan()
 
 def mv_stage(motor, pos):
-        grp = _short_uid('set')
-        yield Msg('checkpoint')
-        yield Msg('set', motor, pos, group=grp)
-        yield Msg('wait', None, group=grp)
+    grp = _short_uid('set')
+    yield Msg('checkpoint')
+    yield Msg('set', motor, pos, group=grp)
+    yield Msg('wait', None, group=grp)
 
 
 def eng_scan(eng_start, eng_end, steps, dwell_time=1.):
