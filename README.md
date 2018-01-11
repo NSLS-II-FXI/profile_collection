@@ -1,1 +1,1 @@
-# FXI beamline profile collection
+FXI beamline IPython profiles
