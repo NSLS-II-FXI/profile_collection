@@ -63,3 +63,15 @@ detA1.read_attrs = ['hdf5', 'stats1', 'stats5']
 detA1.stats1.read_attrs = ['total']
 detA1.stats5.read_attrs = ['total']
 detA1.hdf5.read_attrs = []
+
+
+
+Andor = Manta('XF:18IDB-BI{Det:Neo}', name = 'Andor')
+Andor.hdf5.reg = db.reg
+Andor.hdf5._reg = db.reg
+Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
+#Andor.read_attrs = ['hdf5', 'stats1']
+Andor.stats1.read_attrs = ['total']
+Andor.stats5.read_attrs = ['total']
+Andor.hdf5.read_attrs = []
+Andor.stage_sigs['cam.image_mode'] = 0

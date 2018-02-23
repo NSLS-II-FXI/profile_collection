@@ -47,6 +47,3 @@ get_ipython().register_magics(BlueskyMagics)
 BlueskyMagics.positioners = motor_txm + motor_optics
 
 
-
-
-

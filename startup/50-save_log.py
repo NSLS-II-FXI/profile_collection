@@ -207,11 +207,11 @@ def get_pzt_position(pzt_prefix, flag=''):
     
     return stat, pos, P_gain, I_gain, D_gain, Bender_force
 
-
+'''
 def str_convert(my_string, flag=1):
     tmp = str(my_string)
     fmt = '{:3.4f}'
     output = tmp[2:len(tmp)-1]
     if flag:        return fmt.format(float(output))
     else: return output
-'''
+

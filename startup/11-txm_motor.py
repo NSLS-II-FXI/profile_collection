@@ -1,4 +1,6 @@
 from ophyd import (EpicsMotor, EpicsSignalRO, Device, Component as Cpt)
+from ophyd import EpicsSignal
+
 
 class MyEpicsMotor(EpicsMotor):
     dial_readback = Cpt(EpicsSignalRO, '.DRBV')
@@ -48,6 +50,17 @@ class DetSupport(Device):
     y = Cpt(MyEpicsMotor, '-Ax:Y}Mtr')
     z = Cpt(MyEpicsMotor, '-Ax:Z}Mtr')
 
+class TXM_SSA(Device):
+    v_gap = Cpt(MyEpicsMotor, '-Ax:Vgap}Mtr')
+    v_cen = Cpt(MyEpicsMotor, '-Ax:Vctr}Mtr')
+    h_gap = Cpt(MyEpicsMotor, '-Ax:Hgap}Mtr')
+    h_cen = Cpt(MyEpicsMotor, '-Ax:Hctr}Mtr')
+
+
+
+
+ssa = TXM_SSA('XF:18IDB-OP{SSA:1', name='ssa')
+
 DetU = DetSupport('XF:18IDB-OP{DetS:U', name='DetU')
 DetD = DetSupport('XF:18IDB-OP{DetS:D', name='DetD')
 
@@ -59,6 +72,9 @@ betr = BetrandLens('XF:18IDB-OP', name='betr')
 zps = TXMSampleStage('XF:18IDB-OP', name='zps')
 XEng = MyEpicsMotor('XF:18IDA-OP{Mono:DCM-Ax:En}Mtr', name='XEng')
 
+shutter_open = EpicsSignal('XF:18IDA-PPS{PSh}Cmd:Opn-Cmd', name='shutter_open')
+shutter_close = EpicsSignal('XF:18IDA-PPS{PSh}Cmd:Cls-Cmd', name='shutter_close')
+
 motor_txm = [clens.x, clens.y1, clens.y2, clens.z1, clens.z2, clens.p,
              aper.x, aper.y, aper.z,
              zp.x, zp.y, zp.z,
@@ -67,5 +83,6 @@ motor_txm = [clens.x, clens.y1, clens.y2, clens.z1, clens.z2, clens.p,
              zps.sx, zps.sy, zps.sz, zps.pi_x, zps.pi_r,
              DetU.x, DetU.y, DetU.z,
              DetD.x, DetD.y, DetD.z,
+             ssa.v_gap, ssa.v_cen, ssa.h_gap, ssa.h_cen,
              XEng]
 

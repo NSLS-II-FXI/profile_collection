@@ -275,6 +275,33 @@ def set_ic_dwell_time(dwell_time=1.):
         print('dwell_time not in list, set to default value: 1s')
         ic_rate.value = 6
 
+def plot_ssa_ic(scan_id, ic='ic4'):
+    h = db[scan_id]
+    x = np.array(list(h.data('ssa_v_cen')))
+    if len(x) > 0:
+        xlabel = 'ssa_v_cen'
+        xdata = x
+    x = np.array(list(h.data('ssa_h_cen')))
+    if len(x) > 0:
+        xlabel = 'ssa_h_cen'
+        xdata = x
+    x = np.array(list(h.data('ssa_v_gap')))
+    if len(x) > 0:
+        xlabel = 'ssa_v_gap'
+        xdata = x
+    x = np.array(list(h.data('ssa_h_gap')))
+    if len(x) > 0:
+        xlabel = 'ssa_h_gap'
+        xdata = x
+    ydata = np.array(list(h.data(ic)))
+
+    plt.figure()
+    plt.plot(xdata, -ydata, 'r.-')
+    plt.xlabel(xlabel)
+    plt.ylabel(ic + ' counts')
+    plt.show()
+    
+
 def read_ic(ics, num, dwell_time=1.):
     '''
     read ion-chamber value
@@ -340,7 +367,7 @@ def load_single_image(scan_id=-1):
     scan_type = h['plan_name']
     x_eng = h['x_ray_energy']
     if scan_id == -1:
-        scan_id = h['scan_id']
+        scan_id = h.start['scan_id']
     
     if scan_type == 'tomo_scan':
         bkg_img_num = h['back_ground_images']
@@ -393,7 +420,109 @@ def new_user():
     print ('\nUser created successful!\nEntering folder: {}'.format(os.getcwd()))
 
     
+################################################
 
+def plot1d(scan_id = -1):
+    h = db[scan_id]
+    scan_id = h.start['scan_id']
+    num =  int(h.start['plan_args']['num'])
+    st = h.start['plan_args']['start']
+    en = h.start['plan_args']['stop']
+    x = np.linspace(st, en, num)
+    dets = h.start['detectors']
+    plt.figure()    
+    for det in dets:
+        data = np.array(list(h.data(det)))
+        plt.plot(x, data, '.-', label=det);
+        plt.legend()
+    plt.title('scan ID: ' + str(scan_id))
+    plt.show()
+
+
+def plot_ic(ics='ic3', scan_id=[-1]):
+    det = ics
+    plt.figure()
+    for sid in scan_id:
+        h = db[int(sid)]
+        num =  int(h.start['plan_args']['num'])
+        st = h.start['plan_args']['start']
+        en = h.start['plan_args']['stop']
+        x = np.linspace(st, en, num)
+        data = np.array(list(h.data(det)))
+        plt.plot(x, data, '-', label=str(sid))
+        plt.legend()
+    plt.title('reading of ic: ' + ics)
+    plt.show()
+
+    
+
+
+
+def plot2dsum(scan_id = -1, fn='Det_Image'):
+    h = db[scan_id]
+    if scan_id == -1:
+        scan_id = h.start['scan_id']
+    det = h.start['detectors'][0]
+    det = det + '_image'
+    img = np.squeeze(np.array(list(h.data(det))))
+    img[img<20] = 0
+    img_sum = np.sum(np.sum(img, axis=1), axis=1)
+    num =  int(h.start['plan_args']['num'])
+    st = h.start['plan_args']['start']
+    en = h.start['plan_args']['stop']
+    x = np.linspace(st, en, num)
+    plt.figure()
+    plt.plot(x, img_sum, 'r-.')
+    plt.title('scanID: ' + str(scan_id) + ':  ' + det + '_sum')
+
+#    with h5py.File(fn, 'w') as hf:
+ #       hf.create_dataset('data', data=img)
+
+from PIL import Image
+def readtiff(fn_pre='', num=1, x=[], bkg=0, roi=[]):
+    if len(x) == 0: 
+        x = np.arange(num) 
+    fn = fn_pre + '_' + '{:03d}'.format(1) + '.tif'
+    img = np.array(Image.open(fn))
+    s = img.shape
+    if len(roi) == 0:
+        roi = [0, s[0], 0 , s[1]]
+    img_stack = np.zeros([num, s[0], s[1]])
+    img_stack[0] = img
+    for i in range(1, num):
+        fn = fn_pre + '_' + '{:03d}'.format(i+1) + '.tif'
+        img_stack[i] = Image.open(fn)
+    bkg = bkg * s[0] * s[1]
+    img_stack_roi = img_stack[:, roi[0]:roi[1], roi[2]:roi[3]]
+    img_sum = np.sum(np.sum(img_stack_roi, axis=1), axis=1)
+    img_sum = img_sum - bkg
+    plt.figure()
+    plt.plot(x, img_sum, '.-')
+    return img_stack, img_stack_roi
+
+def save_hdf(img, fn='img.h5',f_dir='/home/xf18id/Documents/FXI_commision/'):
+    f = f_dir + fn
+    with h5py.File(f, 'w') as hf:
+        hf.create_dataset('data', data = img)
+
+
+#######################################
+'''
+f1 = '/home/xf18id/Documents/FXI_commision/DCM_scan/TM_bender_off/pzt_scan_9keV_ssaV_cen_'
+f2 = '_2018-02-22.csv'
+
+x, y = list([]), list([])
+vgap = np.arange(-5, 3.5, 0.5)
+
+for gap in vgap:
+    print(gap)
+    fn = f1 + str(gap) + f2
+    df = pd.read_csv(fn, sep='\t')
+    x.append(list(df['dcm_th2 #0']))
+    y.append(list(df['Vout2 #0']))
+'''
+
+    
 
 
 
