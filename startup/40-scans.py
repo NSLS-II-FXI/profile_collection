@@ -28,7 +28,7 @@ def timeit(method):
 
 
 
-def tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10, dark_num=10, out_pos=1, note='', md=None):
+def tomo_scan(start, stop, num, exposure_time=0.1, bkg_num=20, dark_num=20, out_pos=1, note='', md=None):
     '''
     Script for running Tomography scan
     Use as: RE(tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10, md=None))
@@ -45,8 +45,10 @@ def tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10
     out_pos: position of pi_x stage where sample is out (absolute position: mm)
     md: metadate (default: None)
     '''
-    yield from abs_set(detectors[0].cam.acquire_time, exposure_time)
     
+    yield from abs_set(detectors[0].cam.acquire_time, exposure_time)
+    yield from mv(Andor.cam.num_images, 1)
+    detectors=[Andor]
     motor_x = phase_ring.x
     # motor_x = zps.pi_x
     motor_x_ini = motor_x.position # initial position of motor_x
@@ -69,8 +71,9 @@ def tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10
            'plan_pattern': 'linspace',
            'plan_pattern_module': 'numpy',
            'hints': {},
-           'note': note,
-           'operator': 'FXI'
+           'operator': 'FXI',
+           'note': note if note else 'None',
+           'motor_pos': wh_pos(),
             }
     _md.update(md or {})
 
@@ -110,7 +113,7 @@ def tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10
         for num in range(bkg_num):    # take 10 background image when stage is at out position
             yield from trigger_and_read(list(detectors) + [motor_rot])
 
-        # close shutter, move in the sample
+        # close shutter, move in the sampleRE(fly_scan(exposure_time=exposure_t,  out_pos=out_pos_x, md=None, note=note)
 #        yield from mov(motor_x, motor_x_ini)   # move pi_x stage back to motor_x_start
 #        yield from abs_set(shutter_close, 1, wait=True)
 #        yield from abs_set(shutter_close, 1, wait=True)
@@ -120,7 +123,9 @@ def tomo_scan(start, stop, num, exposure_time=0.1, detectors=[detA1], bkg_num=10
 
 
 
-def xanes_scan(eng_list, exposure_time=0.1, detectors=[detA1], bkg_num=10, dark_num=10, out_pos=1, md=None):
+def xanes_scan(eng_list, exposure_time=0.1, bkg_num=10, dark_num=10, out_pos=1, note='', md=None):
+    detectors=[Andor]
+    yield from mv(Andor.cam.num_images, 1)
     yield from mv(detectors[0].cam.acquire_time, exposure_time)
     motor = XEng
     motor_x = zps.pi_x
@@ -136,7 +141,9 @@ def xanes_scan(eng_list, exposure_time=0.1, detectors=[detA1], bkg_num=10, dark_
                          'exposure_time': exposure_time},
            'plan_name': 'xanes_scan',
            'hints': {},
-           'operator': 'FXI'
+           'operator': 'FXI',
+           'note': note if note else 'None',
+           'motor_pos': wh_pos(),
             }
     _md.update(md or {})    
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -177,6 +184,7 @@ def eng_scan(eng_start, eng_end, steps, dwell_time=1.):
     '''
     eng_start, eng_end are in unit of eV !!
     '''
+    yield from mv(Andor.cam.num_images, 1)
     check_eng_range(eng_start, eng_end)
     set_ic_dwell_time(dwell_time=dwell_time)
     yield from scan([ic1, ic2], XEng, eng_start/1000, eng_end/1000, steps)
@@ -201,7 +209,7 @@ def eng_scan(eng_start, eng_end, steps, dwell_time=1.):
 
 
 
-def fly_scan(exposure_time=0.1, relative_rot_angle = 1000, chunk_size=20, note='', md=None):
+def fly_scan(exposure_time=0.1, relative_rot_angle = 1000, chunk_size=20, out_pos = 1, note='', md=None):
     # motor_rot = zps.pi_r
     motor_rot = zps.sx   
     # motor_x = zps.pi_x

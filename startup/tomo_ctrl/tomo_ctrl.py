@@ -702,7 +702,7 @@ def load_scan(h, cur_dir='.'):
 
 def load_tomo_scan(h, cur_dir='.'):
     os.chdir(cur_dir)
-    note = h.start['Note'] if h.start['Note'] else 'None'
+    note = h.start['note'] if h.start['note'] else 'no note'
     det = h.start['detectors'][0] + '_image'
     scan_id = str(h.start['scan_id'])
     eng = '{:5.1f}'.format(h.start['x_ray_energy']*1000)
@@ -710,26 +710,37 @@ def load_tomo_scan(h, cur_dir='.'):
     img = np.squeeze(img)
     num_angles = int(h.start['num_angles'])
     num_bkg = int(h.start['num_bkg_images'])
-    img_bkg = img[0:num_bkg]
-    img_tomo = img[num_bkg:]
+    num_dark = int(h.start['num_dark_images'])
+    
+    img_dark = img[0:num_dark]
+    img_tomo = img[num_dark:num_dark+num_angles]
+    img_bkg = img[-num_bkg:]
+
     img_bkg_avg = np.sum(img_bkg, 0)/num_bkg
+    img_dark_avg = np.sum(img_dark, 0)/num_dark
+
+    tomo_angles = np.array(list(h.data('zps_pi_r')))
+    tomo_angles = tomo_angles[num_dark:num_dark+num_angles]
 
     fn = 'scan_' + scan_id + '_XEng_' + eng + 'eV_tomo.h5'
     with h5py.File(fn, 'w') as f:
         f.create_dataset('scan_type', data = 'tomo')
         f.create_dataset('scan_id', data = scan_id)
+        f.create_dataset('img_tomo', data = img_tomo)
+        f.create_dataset('img_bkg_raw', data = img_bkg)
+        f.create_dataset('img_dark_raw', data = img_dark)
+        f.create_dataset('img_bkg_average', data = img_bkg_avg)        
+        f.create_dataset('img_dark_average', data = img_dark_avg)
         f.create_dataset('num_of_angles', data = num_angles)
         f.create_dataset('num_of_bkg_image', data = num_bkg)
-        f.create_dataset('img_tomo', data = img_tomo)
-        f.create_dataset('img_bkg_average', data = img_bkg_avg)
-        f.create_dataset('img_bkg_raw', data = img_bkg)
+        f.create_dataset('num_of_dark_image', data = num_dark)
         f.create_dataset('xray_energy', data = eng)
         f.create_dataset('note', data = note)
 
 def load_xanes_scan(h, cur_dir='./'):
 
     os.chdir(cur_dir)
-    note = h.start['Note'] if h.start['Note'] else 'None'
+    note = h.start['note'] if h.start['note'] else 'None'
     det = h.start['detectors'][0] + '_image'
     scan_id = str(h.start['scan_id'])
     eng = np.array(list(h.data('XEng')))

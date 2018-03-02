@@ -362,33 +362,98 @@ def load_image(args):
        load_single_image(item)    
 
 def load_single_image(scan_id=-1):
-    header = db[scan_id]
-    h = header.start
-    scan_type = h['plan_name']
-    x_eng = h['x_ray_energy']
-    if scan_id == -1:
-        scan_id = h.start['scan_id']
-    
+    h = db[scan_id]
+    scan_type = h.start['plan_name']
+    x_eng = h.start['x_ray_energy']
+     
     if scan_type == 'tomo_scan':
-        bkg_img_num = h['back_ground_images']
-        angle_i = h['plan_args']['start']
-        angle_e = h['plan_args']['stop']
-        angle_n = h['plan_args']['num'] 
-        exposure_t = h['plan_args']['exposure_time'] 
-        img = np.array(list(header.data('detA1_image')))
-        img = np.squeeze(img)
-
-        img_bkg = img[0 : bkg_img_num]
-        img_tomo = img[bkg_img_num :]
-        img_angle = np.linspace(angle_i, angle_e, angle_n)
+        load_tomo_scan(h)
+    elif scan_type == 'fly_scan':
+        load_fly_scan(h)
+    else: 
+        pass
         
-        fname = scan_type + '_id_' + str(scan_id) + '.h5'
-        with h5py.File(fname, 'w') as hf:
-            hf.create_dataset('X_eng', data = x_eng)
-            hf.create_dataset('img_bkg', data = img_bkg)
-            hf.create_dataset('img_tomo', data = img_tomo)
-            hf.create_dataset('angle', data = img_angle)
 
+def load_tomo_scan(h):
+    scan_type = 'tomo_scan'
+    scan_id = h.start['scan_id']
+    x_eng = h.start['x_ray_energy']
+    bkg_img_num = h.start['back_ground_images']
+    angle_i = h.start['plan_args']['start']
+    angle_e = h.start['plan_args']['stop']
+    angle_n = h.start['plan_args']['num'] 
+    exposure_t = h.start['plan_args']['exposure_time'] 
+    img = np.array(list(h.data('detA1_image')))
+    img = np.squeeze(img)
+
+    img_bkg = img[0 : bkg_img_num]
+    img_tomo = img[bkg_img_num :]
+    img_angle = np.linspace(angle_i, angle_e, angle_n)
+        
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    with h5py.File(fname, 'w') as hf:
+        hf.create_dataset('X_eng', data = x_eng)
+        hf.create_dataset('img_bkg', data = img_bkg)
+        hf.create_dataset('img_tomo', data = img_tomo)
+        hf.create_dataset('angle', data = img_angle)
+
+def load_fly_scan(h): 
+    scan_type = 'fly_scan'
+    scan_id = h.start['scan_id']    
+    x_eng = h.start['x_ray_energy']
+    chunk_size = h.start['chunk_size']
+    # sanity check: make sure we remembered the right stream name
+    assert 'zps_sx_monitor' in h.stream_names
+    pos = h.table('zps_sx_monitor')
+    imgs = np.array(list(h.data('Andor_image')))
+    img_dark = imgs[0]
+    img_bkg = imgs[-1]
+
+    s = imgs.shape
+    imgs =imgs.reshape([s[0]*s[1], s[2], s[3]])
+
+    with db.reg.handler_context({'AD_HDF5': AreaDetectorHDF5TimestampHandler}):
+        chunked_timestamps = list(h.data('Andor_image'))
+
+    raw_timestamps = []
+    for chunk in chunked_timestamps:
+        raw_timestamps.extend(chunk.tolist())
+
+    timestamps = convert_AD_timestamps(pd.Series(raw_timestamps))
+    pos['time'] = pos['time'].dt.tz_localize('US/Eastern')
+
+    img_day, img_hour = timestamps.dt.day, timestamps.dt.hour, 
+    img_min, img_sec, img_msec = timestamps.dt.minute, timestamps.dt.second, timestamps.dt.microsecond
+    img_time = img_day * 86400 + img_hour * 3600 + img_min * 60 + img_sec + img_msec * 1e-6
+    img_time = np.array(img_time)
+
+    mot_day, mot_hour = pos['time'].dt.day, pos['time'].dt.hour, 
+    mot_min, mot_sec, mot_msec = pos['time'].dt.minute, pos['time'].dt.second, pos['time'].dt.microsecond
+    mot_time = mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
+    mot_time =  np.array(mot_time)
+
+    mot_pos = np.array(pos['zps_sx'])
+    offset = np.min([np.min(img_time), np.min(mot_time)])
+    img_time -= offset
+    mot_time -= offset
+    mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
+    
+    mot_pos_min = np.min(mot_pos_interp)
+    mot_pos_max = np.max(mot_pos_interp)
+
+    pos1 = len(mot_pos_interp[np.abs(mot_pos_interp - mot_pos_min) < 0.1]) 
+    pos2 = len(mot_pos_interp[np.abs(mot_pos_interp - mot_pos_max) < 0.1]) 
+
+    img_angle = mot_pos_interp[pos1:-pos2] # rotation angles
+    img_tomo = imgs[pos1:-pos2]  # tomo images
+    
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    with h5py.File(fname, 'w') as hf:
+        hf.create_dataset('X_eng', data = x_eng)
+        hf.create_dataset('img_bkg', data = img_bkg)
+        hf.create_dataset('img_dark', data = img_dark)
+        hf.create_dataset('img_tomo', data = img_tomo)
+        hf.create_dataset('angle', data = img_angle)
 
 ################################################################
 
@@ -521,10 +586,49 @@ for gap in vgap:
     x.append(list(df['dcm_th2 #0']))
     y.append(list(df['Vout2 #0']))
 '''
+'''
+f = '/home/xf18id/Documents/FXI_commision/DCM_scan/pzt_scan_energy_summary.csv'
+df = pd.read_csv(f)
+var = np.arange(5, 13, 0.5)
+data = []
+data_max = []
+th2 = df['dcm_th2 #0']
+plt.figure()
+for x in var:
+    tmp = df[str(x) + ' keV']
+    data.append(tmp)
+    data_max.append(tmp.values.argmax())
+    plt.plot(th2, tmp)
+'''
 
-    
+#################### test image acquiring time ##############
+'''
+cap_img = 'XF:18IDB-BI{Det:Neo}TIFF1:WriteFile'
+trg_img = 'XF:18IDB-BI{Det:Neo}cam1:Acquire'
+st = time.time()
+for i in range(10):    
+#    print(i)
+    my_set_cmd = 'caput ' + trg_img + ' ' + 'Acquire' 
+    my_save_cmd = 'caput ' + cap_img + ' ' + 'Write'
+#    st = time.time()
+    subprocess.Popen(my_set_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#    print(time.time()-st)
+#    time.sleep(0.05)
+    while True:
+        r =subprocess.check_output(['caget', trg_img, '-t']).rstrip()
+        r = str(r)[2:-1]
+        if r == 'Done':
+            break
+    cost = time.time() - st
+#    st = time.time()
+    subprocess.Popen(my_save_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#    print(time.time()-st)
+#    time.sleep(0.05)
+    while True:
+        r =subprocess.check_output(['caget', cap_img, '-t']).rstrip()
+        r = str(r)[2:-1]
+        if r == 'Done':
+            break
 
-
-
-    
-
+cost = time.time() - st
+'''
