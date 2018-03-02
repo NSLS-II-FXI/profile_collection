@@ -156,11 +156,12 @@ def wh_pos(comment='', print_on_screen=1):
     for p in pzt_motors: # pzt_motors is defined in 13-pzt.py
         lines.append(LINE_FMT.format(p.name, p.stat, p.pos, p.p_gain, p.i_gain, p.d_gain, p.bender))
 
-    if print_on_screen:   
-        print('\n'.join(lines))
-        return 
-    else:
-        return lines
+#    if print_on_screen:   
+#        print('\n'.join(lines))
+#        return 
+#    else:
+#        return lines
+    return lines
 
 '''    
 def get_encoder(motor_prefix):
