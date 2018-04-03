@@ -6,3 +6,4 @@ tomo_ctrl/
 *.h5
 *.tif
 *.tiff
+history.sqlite
