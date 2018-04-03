@@ -12,5 +12,11 @@ sd.baseline = [
     cm,
     tm,
     pbsl,
+    pzt_dcm_chi2.pos,
+    pzt_dcm_th2.pos,
+    pzt_cm_loadcell,
+    pzt_tm_loadcell,
+    V4,
+    V5,
 ]
 bec.disable_baseline()

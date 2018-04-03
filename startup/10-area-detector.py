@@ -30,11 +30,11 @@ class Manta(SingleTrigger, AreaDetector):
 #    roi3 = Cpt(ROIPlugin, 'ROI3:')
 #    roi4 = Cpt(ROIPlugin, 'ROI4:')
     proc1 = Cpt(ProcessPlugin, 'Proc1:')
-
+    
     hdf5 = Cpt(HDF5PluginWithFileStore,
                suffix='HDF1:',
-               write_path_template='/NSLS2/xf18id1/DATA/detA1/commissioning',
-               root='/NSLS2/xf18id1/DATA/detA1/',
+               write_path_template='/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/',
+               root='/NSLS2/xf18id1/DATA/Andor',
                reg=None)  # placeholder to be set on instance as obj.hdf5.reg
 
     def stop(self):

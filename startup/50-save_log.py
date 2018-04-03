@@ -146,15 +146,21 @@ def wh_pos(comment='', print_on_screen=1):
     PZT_header = ['Positioner', 'status', 'position', 'P_gain', 'I_gain', 'D_gain', 'Bender_force']
     lines.append(LINE_FMT.format(*PZT_header))
 	
-    pzt_dcm_chi2 = pzt('XF:18IDA-OP{Mir:DCM-Ax:Chi2Fine}', name='pzt_dcm_chi2',)
-    pzt_dcm_th2  = pzt('XF:18IDA-OP{Mir:DCM-Ax:Th2Fine}', name='pzt_dcm_th2')
-    pzt_tm = pzt('XF:18IDA-OP{Mir:TM-Ax:Bender}', name='pzt_tm', flag=1)
-    pzt_cm = pzt('XF:18IDA-OP{Mir:CM-Ax:Bender}', name='pzt_cm', flag=1)
+#    pzt_dcm_chi2 = pzt('XF:18IDA-OP{Mir:DCM-Ax:Chi2Fine}', name='pzt_dcm_chi2',)
+#    pzt_dcm_th2  = pzt('XF:18IDA-OP{Mir:DCM-Ax:Th2Fine}', name='pzt_dcm_th2')
+#    pzt_tm = pzt('XF:18IDA-OP{Mir:TM-Ax:Bender}', name='pzt_tm', flag=1)
+#    pzt_cm = pzt('XF:18IDA-OP{Mir:CM-Ax:Bender}', name='pzt_cm', flag=1)
 
     pzt_motors = [pzt_dcm_chi2, pzt_dcm_th2, pzt_tm, pzt_cm]
 
+
+	
     for p in pzt_motors: # pzt_motors is defined in 13-pzt.py
-        lines.append(LINE_FMT.format(p.name, p.stat, p.pos, p.p_gain, p.i_gain, p.d_gain, p.bender))
+        pzt_pos = np.round(p.pos.get(), decimals=4)
+        pzt_p_gain = np.round(p.p_gain.get(), decimals=4)
+        pzt_i_gain = np.round(p.i_gain.get(), decimals=4)
+        pzt_d_gain = np.round(p.d_gain.get(), decimals=4)
+        lines.append(LINE_FMT.format(p.name, p.stat, pzt_pos, pzt_p_gain, pzt_i_gain, pzt_d_gain, p.bender))
 
 #    if print_on_screen:   
 #        print('\n'.join(lines))

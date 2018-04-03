@@ -5,10 +5,10 @@ import h5py
 from operator import attrgetter
 
 
-GLOBAL_MAG = 650 # total magnification
+GLOBAL_MAG = 380.1 # total magnification
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
-ZONE_DIAMETER = 100 # 200 um
+ZONE_DIAMETER = 200 # 200 um
 
 
 def list_fun():
@@ -151,7 +151,7 @@ def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
         return zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final
 
 
-def move_zp_ccd(eng_new, eng_ini=0, flag=1):
+def move_zp_ccd(eng_new, eng_ini=0, flag=1, info_flag=1):
     '''
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
@@ -167,19 +167,24 @@ def move_zp_ccd(eng_new, eng_ini=0, flag=1):
           0: Do calculation without moving real stages
           1: Will move stages
     '''
-
+    eng_new = float(eng_new) # eV, e.g. 9000
     det = DetU # upstream detector
     zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
-
+    eng_ini = XEng.position
     assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
 
     if flag: # move stages
         print ('Now moving stages ....')
         # RE(mv(XEng.position, Eng) # uncomment it when doing experiment        
-        RE(mvr(zp.z, zp_delta))
-        print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp.z.position))
-        RE(mvr(det.z, det_delta))
-        print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det.z.position))
+        yield from mvr(zp.z, zp_delta)
+        if info_flag: 
+            print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp.z.position))
+        yield from mvr(det.z, det_delta)
+        if info_flag: 
+            print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det.z.position))
+        yield from mv(XEng, eng_new/1000)
+        if info_flag: 
+            print ('Energy: {0:5.2f} eV --> {1:5.2f} eV'.format(eng_ini*1000, XEng.position*1000))
     else:
         print ('This is calculation. No stages move') 
         print ('will move zone plate down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(zp_delta, zp_ini, zp_final))
@@ -344,7 +349,7 @@ def go_eng(eng):
     yield from abs_set(XEng, eng/1000, wait=True)
 
 #####################################################################
-def load_image(args):
+def load_scan(args):
     '''
     e.g. load_image() # case 1
          load_image(120) # case 2
@@ -353,23 +358,31 @@ def load_image(args):
          load_image(120, 125, 2)   # case 5: load scans from scan_120 to scan_125 for every 2 scans
     '''
 
-    scan_id = list(args) # case 2 and 3
+    
     if len(args) == 0:      scan_id = [-1] # case 1
+    elif len(args) == 1:    scan_id = args # case 2
     elif len(args) == 2:    scan_id = np.arange(args[0], args[1]+1) # case 4
     elif len(args) == 3:    scan_id = np.arange(args[0], args[1]+1, args[2]) # case 5
     else: return 'Invalid input'
+    scan_id = list(args) # case 2 and 3
     for item in scan_id:        
-       load_single_image(item)    
+        load_single_image(item)  
+        
 
 def load_single_image(scan_id=-1):
     h = db[scan_id]
+    scan_id = h.start['scan_id']
     scan_type = h.start['plan_name']
     x_eng = h.start['x_ray_energy']
      
     if scan_type == 'tomo_scan':
+        print('loading tomo scan: #{}'.format(scan_id))
         load_tomo_scan(h)
+        print('tomo scan: #{} loading finished'.format(scan_id))
     elif scan_type == 'fly_scan':
+        print('loading fly scan: #{}'.format(scan_id))
         load_fly_scan(h)
+        print('fly scan: #{} loading finished'.format(scan_id))
     else: 
         pass
         
@@ -378,24 +391,36 @@ def load_tomo_scan(h):
     scan_type = 'tomo_scan'
     scan_id = h.start['scan_id']
     x_eng = h.start['x_ray_energy']
-    bkg_img_num = h.start['back_ground_images']
+    bkg_img_num = h.start['num_bkg_images']
+    dark_img_num = h.start['num_dark_images']
     angle_i = h.start['plan_args']['start']
     angle_e = h.start['plan_args']['stop']
     angle_n = h.start['plan_args']['num'] 
     exposure_t = h.start['plan_args']['exposure_time'] 
-    img = np.array(list(h.data('detA1_image')))
+    img = np.array(list(h.data('Andor_image')))
     img = np.squeeze(img)
+    img_dark = img[0:dark_img_num]
+    img_tomo = img[dark_img_num : -bkg_img_num]
+    img_bkg = img[-bkg_img_num:]
+    
 
-    img_bkg = img[0 : bkg_img_num]
-    img_tomo = img[bkg_img_num :]
+    s = img_dark.shape
+    img_dark_avg = np.mean(img_dark,axis=0).reshape(1, s[1], s[2])
+    img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
     img_angle = np.linspace(angle_i, angle_e, angle_n)
         
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
+        hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img_tomo', data = img_tomo)
         hf.create_dataset('angle', data = img_angle)
+
+    del img
+    del img_tomo
+    del img_dark
+    del img_bkg
 
 def load_fly_scan(h): 
     scan_type = 'fly_scan'
@@ -403,11 +428,14 @@ def load_fly_scan(h):
     x_eng = h.start['x_ray_energy']
     chunk_size = h.start['chunk_size']
     # sanity check: make sure we remembered the right stream name
-    assert 'zps_sx_monitor' in h.stream_names
-    pos = h.table('zps_sx_monitor')
+    assert 'zps_pi_r_monitor' in h.stream_names
+    pos = h.table('zps_pi_r_monitor')
     imgs = np.array(list(h.data('Andor_image')))
     img_dark = imgs[0]
     img_bkg = imgs[-1]
+    s = img_dark.shape
+    img_dark_avg = np.mean(img_dark, axis=0).reshape(1, s[1], s[2])
+    img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
 
     s = imgs.shape
     imgs =imgs.reshape([s[0]*s[1], s[2], s[3]])
@@ -432,7 +460,7 @@ def load_fly_scan(h):
     mot_time = mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
     mot_time =  np.array(mot_time)
 
-    mot_pos = np.array(pos['zps_sx'])
+    mot_pos = np.array(pos['zps_pi_r'])
     offset = np.min([np.min(img_time), np.min(mot_time)])
     img_time -= offset
     mot_time -= offset
@@ -452,9 +480,20 @@ def load_fly_scan(h):
         hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
+        hf.create_dataset('img_bkg_avg', data = img_bkg_avg)
+        hf.create_dataset('img_dark_avg', data = img_dark_avg)
         hf.create_dataset('img_tomo', data = img_tomo)
         hf.create_dataset('angle', data = img_angle)
-
+    del img_tomo
+    del img_dark
+    del img_bkg
+    del imgs
+    
+def load_count_img(scan_id):
+    h = db[scan_id]
+    img = get_img(h)
+    with h5py.File('img_test_01s_h5', 'w') as hf:
+        hf.create_dataset('img',data=img)
 ################################################################
 
 def new_user():
@@ -487,21 +526,21 @@ def new_user():
     
 ################################################
 
-def plot1d(scan_id = -1):
-    h = db[scan_id]
-    scan_id = h.start['scan_id']
-    num =  int(h.start['plan_args']['num'])
-    st = h.start['plan_args']['start']
-    en = h.start['plan_args']['stop']
-    x = np.linspace(st, en, num)
-    dets = h.start['detectors']
-    plt.figure()    
-    for det in dets:
-        data = np.array(list(h.data(det)))
-        plt.plot(x, data, '.-', label=det);
-        plt.legend()
-    plt.title('scan ID: ' + str(scan_id))
-    plt.show()
+#def plot1d(scan_id = -1):
+#    h = db[scan_id]
+#    scan_id = h.start['scan_id']
+#    num =  int(h.start['plan_args']['num'])
+#    st = h.start['plan_args']['start']
+#    en = h.start['plan_args']['stop']
+#    x = np.linspace(st, en, num)
+#    dets = h.start['detectors']
+#    plt.figure()    
+#    for det in dets:
+#        data = np.array(list(h.data(det)))
+#        plt.plot(x, data, '.-', label=det);
+#        plt.legend()
+#    plt.title('scan ID: ' + str(scan_id))
+#    plt.show()
 
 
 def plot_ic(ics='ic3', scan_id=[-1]):
@@ -514,7 +553,7 @@ def plot_ic(ics='ic3', scan_id=[-1]):
         en = h.start['plan_args']['stop']
         x = np.linspace(st, en, num)
         data = np.array(list(h.data(det)))
-        plt.plot(x, data, '-', label=str(sid))
+        plt.plot(x, data, '.-', label=str(sid))
         plt.legend()
     plt.title('reading of ic: ' + ics)
     plt.show()
@@ -572,6 +611,30 @@ def save_hdf(img, fn='img.h5',f_dir='/home/xf18id/Documents/FXI_commision/'):
 
 
 #######################################
+
+def plot1d(detectors, scan_id=-1):
+    n = len(detectors)
+    h = db[scan_id]
+    y = list(h.data(detectors[0].name))
+#    x = np.arange(len(y))
+    pos = h.table()
+    mot_day, mot_hour = pos['time'].dt.day, pos['time'].dt.hour, 
+    mot_min, mot_sec, mot_msec = pos['time'].dt.minute, pos['time'].dt.second, pos['time'].dt.microsecond
+    mot_time = mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
+    mot_time =  np.array(mot_time)   
+    x = mot_time - mot_time[0]   
+    
+    fig=plt.figure()
+    for i in range(n):
+        det_name = detectors[i].name
+        if detectors[i].name == 'detA1' or detectors[i].name == 'Andor':
+            det_name = det_name + '_stats1_total'
+        y = list(h.data(det_name))
+        ax=fig.add_subplot(n,1,i+1);ax.plot(x, y); ax.title.set_text(det_name)
+    plt.xlabel('time (s)')
+    fig.subplots_adjust(hspace=1)   
+    plt.show()
+
 '''
 f1 = '/home/xf18id/Documents/FXI_commision/DCM_scan/TM_bender_off/pzt_scan_9keV_ssaV_cen_'
 f2 = '_2018-02-22.csv'
@@ -599,7 +662,7 @@ for x in var:
     data.append(tmp)
     data_max.append(tmp.values.argmax())
     plt.plot(th2, tmp)
-'''
+''' 
 
 #################### test image acquiring time ##############
 '''
