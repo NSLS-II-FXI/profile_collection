@@ -7,7 +7,7 @@ get_ipython().register_magics(BlueskyMagics)
 
 from bluesky.preprocessors import stage_decorator, run_decorator
 
-nslsii.configure_base(get_ipython().user_ns, 'fxi')
+nslsii.configure_base(get_ipython().user_ns, 'fxi', mpl=False)
 from databroker.assets.handlers import AreaDetectorHDF5TimestampHandler
 import pandas as pd
 

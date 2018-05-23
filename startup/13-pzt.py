@@ -18,8 +18,8 @@ class pzt:
     def stat(self, pzt_prefix):
         return 'Enabled' if EpicsSignal(str(pzt_prefix) + 'GET_SERVO_STATE').value else 'Disabled'
 
-pzt_dcm_chi2 = pzt('XF:18IDA-OP{Mir:DCM-Ax:Chi2Fine}', name='pzt_dcm_chi2')
-pzt_dcm_th2  = pzt('XF:18IDA-OP{Mir:DCM-Ax:Th2Fine}', name='pzt_dcm_th2')
+pzt_dcm_chi2 = pzt('XF:18IDA-OP{Mono:DCM-Ax:Chi2Fine}', name='pzt_dcm_chi2')
+pzt_dcm_th2  = pzt('XF:18IDA-OP{Mono:DCM-Ax:Th2Fine}', name='pzt_dcm_th2')
 pzt_tm = pzt('XF:18IDA-OP{Mir:TM-Ax:Bender}', name='pzt_tm', flag=1)
 pzt_cm = pzt('XF:18IDA-OP{Mir:CM-Ax:Bender}', name='pzt_cm', flag=1)
 

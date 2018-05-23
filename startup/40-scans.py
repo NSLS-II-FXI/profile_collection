@@ -159,8 +159,11 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
 
     '''
     detectors=[Andor]
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(detectors[0].cam.acquire_time, exposure_time)
+    detectors[0].cam.acquire_period.put(exposure_time)
     motor = XEng
     eng_ini = XEng.position
     motor_ini = motor.position
@@ -177,6 +180,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
            'num_eng': len(eng_list),
            'num_bkg_images': chunk_size,
            'num_dark_images': chunk_size,
+           'chunk_size': chunk_size,
            'plan_args': {'detectors': list(map(repr, detectors)),
                          'motor': repr(motor),
                          'exposure_time': exposure_time},
@@ -204,7 +208,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
                
         print('\nopening shutter, and start xanes scan: {} images per each energy... '.format(chunk_size))
         yield from abs_set(shutter_open, 1, wait=True)
-        time.sleep(1)        
+        time.sleep(2)        
         yield from abs_set(shutter_open, 1, wait=True) 
         time.sleep(1)
         for eng in eng_list:
@@ -304,10 +308,8 @@ def eng_scan_delay(start, stop, num, delay_time=1, note='', md=None):
             yield from trigger_and_read(list(detectors) + [motor_x])
         yield from abs_set(motor_x, motor_x_ini, wait=True)
     return (yield from eng_inner_scan())
-    
-    
-    
-def fly_scan(exposure_time=0.1, relative_rot_angle = 180, chunk_size=20, out_x=0, out_y=2000, rs=1, note='', md=None):
+
+def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=0, out_y=2000, rs=1, parkpos=None, note='', md=None):
     motor_rot = zps.pi_r
     motor_x = zps.sx
     motor_y = zps.sy
@@ -316,7 +318,13 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, chunk_size=20, out_x=0
     motor_y_ini = motor_y.position
     motor_y_out = motor_y_ini + out_y
     detectors = [Andor, ic3]
+
+    offset_angle = -2.0 * rs
+    
     current_rot_angle = motor_rot.position
+    if parkpos == None:
+        parkpos = current_rot_angle
+    
     target_rot_angle = current_rot_angle + relative_rot_angle 
 
 #    assert (exposure_time <= 0.2), "Exposure time is too long, not suitable to run fly-scan. \nScan aborted."   
@@ -354,9 +362,12 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, chunk_size=20, out_x=0
 
     yield from abs_set(motor_rot.velocity, rs)
     print('set rotation speed: {} deg/sec'.format(rs))
-    yield from abs_set(Andor.cam.image_mode, 0) # fixed mode
-    yield from abs_set(Andor.cam.num_images, chunk_size)
-    yield from abs_set(detectors[0].cam.acquire_time, exposure_time, wait=True) 
+    yield from mv(detectors[0].cam.acquire, 0)
+    yield from mv(detectors[0].cam.image_mode, 0)
+    yield from mv(detectors[0].cam.num_images, chunk_size)
+    yield from abs_set(detectors[0].cam.acquire_time, exposure_time)
+#    yield from abs_set(detectors[0].cam.acquire_period, exposure_time)
+    detectors[0].cam.acquire_period.put(period)
 #    yield from abs_set(detectors[0].cam.acquire_period, exposure_time, wait=True) 
 
     @stage_decorator(list(detectors) + [motor_rot])
@@ -366,37 +377,39 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, chunk_size=20, out_x=0
 
         #close shutter, dark images: numer=chunk_size (e.g.20)
         print('\nshutter closed, taking dark images...')
-        yield from abs_set(shutter_close, 1, wait=True)
-        time.sleep(1)
-        yield from abs_set(shutter_close, 1, wait=True) 
-        time.sleep(1) 
+        yield from abs_set(shutter_close, 1)
+        yield from sleep(1)
+        yield from abs_set(shutter_close, 1) 
+        yield from sleep(2) 
         yield from trigger_and_read(list(detectors) + [motor_rot]) 
         
         #open shutter, tomo_images   
-        yield from abs_set(shutter_open, 1, wait=True)
-        time.sleep(1)
-        yield from abs_set(shutter_open, 1, wait=True)
-        time.sleep(1)
+        yield from abs_set(shutter_open, 1)
+        yield from sleep(2)
+        yield from abs_set(shutter_open, 1)
+        yield from sleep(1)
         print ('\nshutter opened, taking tomo images...')
+        yield from mv(motor_rot, current_rot_angle + offset_angle)
         status = yield from abs_set(motor_rot, target_rot_angle, wait=False)
-        time.sleep(5)
+        yield from sleep(2)
         while not status.done:
             yield from trigger_and_read(list(detectors) + [motor_rot])   
 
         #move out sample, taking bkg images
-        yield from mv_stage(motor_x, motor_x_out)    # move zps.sx stage to motor_x_out
-        yield from mv_stage(motor_y, motor_y_out)
         yield from abs_set(motor_rot.velocity, 30)
-        yield from mv(motor_rot, current_rot_angle) # move sample stage back to orginal position
+        yield from mv(motor_rot, parkpos) # move sample stage back to parkposition to take bkg image
+        yield from mv(motor_x, motor_x_out)    # move zps.sx stage to motor_x_out
+        yield from mv(motor_y, motor_y_out)
+
         print ('\nTaking background images...')
         #print('pi_x position: {0}'\n.format(motor_x.position))
         yield from trigger_and_read(list(detectors) + [motor_rot])
 
 
         #move sample in    
-        yield from abs_set(shutter_close, 1, wait=True)
-        time.sleep(1)
-        yield from abs_set(shutter_close, 1, wait=True)    
+        yield from abs_set(shutter_close, 1)
+        time.sleep(2)
+        yield from abs_set(shutter_close, 1)    
         
         yield from mv(motor_x, motor_x_ini)   # move zps.sx stage back to motor_x_start
         yield from mv(motor_y, motor_y_ini)        
@@ -797,8 +810,8 @@ def pzt_overnight_scan(moving_pzt, start, stop, steps, detectors=[dcm.th2, Vout2
         
 
 ####### 
-def test_scan(out_y=-100, out_x=-100, fn='/home/xf18id/zp_30nm_02s_Linear_off_rotary_on_20180402.h5'):
-    RE(count([Andor], 20))
+def test_scan(out_x=-100, out_y=-100, num=10, num_bd=10, fn='/home/xf18id/zp_30nm_02s_Linear_off_rotary_on_20180402.h5'):
+    RE(count([Andor], num))
     img = get_img(db[-1])
 
     y_ini = zps.sy.position
@@ -810,14 +823,14 @@ def test_scan(out_y=-100, out_x=-100, fn='/home/xf18id/zp_30nm_02s_Linear_off_ro
     RE(mv(zps.sx, x_out))
 
 
-    RE(count([Andor], 10))
+    RE(count([Andor], num_bd))
     img_bkg = get_img(db[-1])
 
     RE(abs_set(shutter_close, 1, wait=True))
     time.sleep(2) 
     RE(abs_set(shutter_close, 1, wait=True))
     time.sleep(2)
-    RE(count([Andor], 10))
+    RE(count([Andor], num_bd))
     img_dark = get_img(db[-1])
 
     img_dark_avg = np.mean(img_dark, axis=0)
@@ -827,16 +840,19 @@ def test_scan(out_y=-100, out_x=-100, fn='/home/xf18id/zp_30nm_02s_Linear_off_ro
     img_norm = (img - img_dark_avg)/(img_bkg_avg - img_dark_avg)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
+    img_norm_avg = np.mean(img_norm, axis=0).reshape(1, img_norm.shape[1], img_norm.shape[2])
     with h5py.File(fn, 'w') as hf:
         hf.create_dataset('img_norm', data = img_norm)
         hf.create_dataset('img_raw', data = img)
         hf.create_dataset('img_dark_avg', data = img_dark_avg)
         hf.create_dataset('img_bkg_avg', data = img_bkg_avg)
+        hf.create_dataset('img_norm_avg', data = img_norm_avg)
     RE(abs_set(shutter_open, 1, wait=True))
-    return img_norm, img, img_dark_avg, img_bkg_avg
+    return 0
 
 def z_scan(start=-0.03, end=0.03, step=25, out_y=-100, fn='/home/xf18id/Documents/FXI_commision/star_pattern/30nm_starpattern/z_scan_motor_on_1.h5'):
-    RE(scan([Andor], zp.z, start, end, step))
+    z_ini = zp.z.position    
+    RE(scan([Andor], zp.z, z_ini+start, z_ini+end, step))
     y_ini = zps.sy.position
     y_out = y_ini + out_y
     img = get_img(db[-1])
@@ -845,12 +861,16 @@ def z_scan(start=-0.03, end=0.03, step=25, out_y=-100, fn='/home/xf18id/Document
     img_bkg = get_img(db[-1])
     RE(abs_set(shutter_close, 1, wait=True))
     time.sleep(1)
+    RE(abs_set(shutter_close, 1))
     RE(count([Andor], 10))
     img_dark = get_img(db[-1])
     img_dark_avg = np.mean(img_dark, axis=0)
     img_bkg_avg = np.mean(img_bkg, axis=0)
     RE(mv(zps.sy, y_ini))
+    RE(mv(zp.z, z_ini))
     img_norm = (img - img_dark_avg)/(img_bkg_avg - img_dark_avg)
+    img_norm[np.isnan(img_norm)] = 0
+    img_norm[np.isinf(img_norm)] = 0
     with h5py.File(fn, 'w') as hf:
         hf.create_dataset('img_norm', data = img_norm)
         hf.create_dataset('img_raw', data = img)
@@ -1015,4 +1035,20 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
 def repeat_scan(detectors, motor, start, stop, steps, num=1, sleep_time=1.2):
     for i in range(num):
         yield from delay_scan(motor, start, stop, steps, detectors, sleep_time=1.2)
-       
+      
+
+def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_size=20, out_x=0, out_y=0, rs=3, parkpos=None, note=''):
+    '''
+    eng is in KeV
+    
+    '''
+    id_list=[]
+    
+    my_eng_list = eng_list * 1000.0
+    for eng in my_eng_list:
+        RE(move_zp_ccd(eng))
+        RE(fly_scan(exposure_time, relative_rot_angle, period, chunk_size, out_x, out_y, rs, parkpos, note))
+        scan_id=db[-1].start['scan_id']
+        id_list.append(int(scan_id))
+        print('current energy: {} --> scan_id: {}\n'.format(eng, scan_id))
+    return my_eng_list, id_list

@@ -5,7 +5,7 @@ sd.baseline = [
     clens,
     phase_ring,
     betr,
-    # zps,
+    zps,
     DetU,
     XEng,
     dcm,

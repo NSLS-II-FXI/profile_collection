@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pylab as plt
 import h5py
-
+import tomopy
 from operator import attrgetter
-
+#from image_binning import bin_ndarray
 
 GLOBAL_MAG = 380.1 # total magnification
 GLOBAL_VLM_MAG = 10 # vlm magnification
@@ -349,7 +349,7 @@ def go_eng(eng):
     yield from abs_set(XEng, eng/1000, wait=True)
 
 #####################################################################
-def load_scan(args):
+def load_scan(scan_id):
     '''
     e.g. load_image() # case 1
          load_image(120) # case 2
@@ -359,14 +359,14 @@ def load_scan(args):
     '''
 
     
-    if len(args) == 0:      scan_id = [-1] # case 1
-    elif len(args) == 1:    scan_id = args # case 2
-    elif len(args) == 2:    scan_id = np.arange(args[0], args[1]+1) # case 4
-    elif len(args) == 3:    scan_id = np.arange(args[0], args[1]+1, args[2]) # case 5
-    else: return 'Invalid input'
-    scan_id = list(args) # case 2 and 3
+#    if len(args) == 0:      scan_id = [-1] # case 1
+#    elif len(args) == 1:    scan_id = args # case 2
+#    elif len(args) == 2:    scan_id = np.arange(args[0], args[1]+1) # case 4
+#    elif len(args) == 3:    scan_id = np.arange(args[0], args[1]+1, args[2]) # case 5
+#    else: return 'Invalid input'
+#    scan_id = list(args) # case 2 and 3
     for item in scan_id:        
-        load_single_image(item)  
+        load_single_image(int(item))  
         
 
 def load_single_image(scan_id=-1):
@@ -383,7 +383,11 @@ def load_single_image(scan_id=-1):
         print('loading fly scan: #{}'.format(scan_id))
         load_fly_scan(h)
         print('fly scan: #{} loading finished'.format(scan_id))
-    else: 
+    elif scan_type == 'xanes_scan':
+        print('loading xanes scan: #{}'.format(scan_id))
+        load_xanes_scan(h)
+        print('xanes scan: #{} loading finished'.format(scan_id))
+    else:
         pass
         
 
@@ -422,9 +426,13 @@ def load_tomo_scan(h):
     del img_dark
     del img_bkg
 
+
 def load_fly_scan(h): 
+    uid = h.start['uid']
+    note = h.start['note']
     scan_type = 'fly_scan'
-    scan_id = h.start['scan_id']    
+    scan_id = h.start['scan_id']   
+    scan_time = h.start['time'] 
     x_eng = h.start['x_ray_energy']
     chunk_size = h.start['chunk_size']
     # sanity check: make sure we remembered the right stream name
@@ -437,12 +445,14 @@ def load_fly_scan(h):
     img_dark_avg = np.mean(img_dark, axis=0).reshape(1, s[1], s[2])
     img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
 
-    s = imgs.shape
-    imgs =imgs.reshape([s[0]*s[1], s[2], s[3]])
+    imgs = imgs[1:-1]
+    s1 = imgs.shape
+    imgs =imgs.reshape([s1[0]*s1[1], s1[2], s1[3]])
 
     with db.reg.handler_context({'AD_HDF5': AreaDetectorHDF5TimestampHandler}):
         chunked_timestamps = list(h.data('Andor_image'))
-
+    
+    chunked_timestamps = chunked_timestamps[1:-1]
     raw_timestamps = []
     for chunk in chunked_timestamps:
         raw_timestamps.extend(chunk.tolist())
@@ -466,17 +476,16 @@ def load_fly_scan(h):
     mot_time -= offset
     mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
     
-    mot_pos_min = np.min(mot_pos_interp)
-    mot_pos_max = np.max(mot_pos_interp)
-
-    pos1 = len(mot_pos_interp[np.abs(mot_pos_interp - mot_pos_min) < 0.1]) 
-    pos2 = len(mot_pos_interp[np.abs(mot_pos_interp - mot_pos_max) < 0.1]) 
-
-    img_angle = mot_pos_interp[pos1:-pos2] # rotation angles
-    img_tomo = imgs[pos1:-pos2]  # tomo images
+    pos2 = mot_pos_interp.argmax() + 1
+    img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
+    img_tomo = imgs[:pos2-chunk_size]  # tomo images
     
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
+        hf.create_dataset('note', data = note)
+        hf.create_dataset('uid', data = uid)
+        hf.create_dataset('scan_id', data = int(scan_id))
+        hf.create_dataset('scan_time', data = scan_time)
         hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
@@ -489,6 +498,59 @@ def load_fly_scan(h):
     del img_bkg
     del imgs
     
+
+def load_xanes_scan(h):
+
+    scan_type = 'xanes_scan'
+    uid = h.start['uid']
+    note = h.start['note']
+    scan_id = h.start['scan_id']  
+    scan_time = h.start['time']
+    x_eng = h.start['x_ray_energy']
+#    chunk_size = h.start['chunk_size']
+    chunk_size = h.start['num_bkg_images']
+    num_eng = h.start['num_eng']
+    
+    imgs = np.array(list(h.data('Andor_image')))
+    img_dark = imgs[0]
+    img_dark_avg = np.mean(img_dark, axis=0).reshape([1,img_dark.shape[1], img_dark.shape[2]])
+    eng_list = np.array(list(h.data('XEng')))[1:num_eng+1]
+    s = imgs.shape
+    img_xanes_avg = np.zeros([num_eng, s[2], s[3]])   
+    img_bkg_avg = np.zeros([num_eng, s[2], s[3]])  
+    for i in range(num_eng):
+        img_xanes = imgs[i+1]
+        img_xanes_avg[i] = np.mean(img_xanes, axis=0)
+        img_bkg = imgs[i+1 + num_eng]
+        img_bkg_avg[i] = np.mean(img_bkg, axis=0)
+
+    img_xanes_norm = (img_xanes_avg - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
+    img_xanes_norm[np.isnan(img_xanes_norm)] = 0
+    img_xanes_norm[np.isinf(img_xanes_norm)] = 0
+        
+    img_bkg = np.array(img_bkg, dtype=np.float32)
+    img_xanes_norm = np.array(img_xanes_norm, dtype=np.float32)
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    with h5py.File(fname, 'w') as hf:
+        hf.create_dataset('uid', data = uid)
+        hf.create_dataset('scan_id', data = scan_id)
+        hf.create_dataset('note', data = note)
+        hf.create_dataset('scan_time', data = scan_time)
+        hf.create_dataset('X_eng', data = eng_list)
+        hf.create_dataset('img_bkg', data = img_bkg_avg)
+        hf.create_dataset('img_dark', data = img_dark_avg)
+        hf.create_dataset('img_xanes', data = img_xanes_norm)
+    del img_xanes
+    del img_dark
+    del img_bkg
+    del img_xanes_avg
+    del img_dark_avg
+    del img_bkg_avg
+    del imgs
+    del img_xanes_norm
+
+
+ 
 def load_count_img(scan_id):
     h = db[scan_id]
     img = get_img(h)
@@ -695,3 +757,201 @@ for i in range(10):
 
 cost = time.time() - st
 '''
+
+
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
+   
+    f = h5py.File(fn)
+    tmp = np.array(f['img_bkg_avg'])
+    s = tmp.shape
+    if sli == 0: sli = int(s[1]/2)
+    img_tomo = np.array(f['img_tomo'][:, sli, :])
+    img_bkg = np.array(f['img_bkg_avg'][:, sli, :])
+    img_dark = np.array(f['img_dark_avg'][:, sli, :])
+    theta = np.array(f['angle']) / 180.0 * np.pi
+    f.close()
+    prj = (img_tomo - img_dark) / (img_bkg - img_dark)
+    prj_norm = -np.log(prj)
+    prj_norm[np.isnan(prj_norm)] = 0
+    prj_norm[np.isinf(prj_norm)] = 0
+    prj_norm[prj_norm < 0] = 0    
+    s = prj_norm.shape  
+    prj_norm = prj_norm.reshape(s[0], 1, s[1])
+    if start==None or stop==None or steps==None:
+        start = int(s[1]/2-50)
+        stop = int(s[1]/2+50)
+        steps = 31
+    cen = np.linspace(start, stop, steps)          
+    img = np.zeros([len(cen), s[1], s[1]])
+    for i in range(len(cen)):
+        print('{}: rotcen {}'.format(i+1, cen[i]))
+        img[i] = tomopy.recon(prj_norm, theta, center=cen[i], algorithm='gridrec')    
+    fout = 'center_test.h5'
+    with h5py.File(fout, 'w') as hf:
+        hf.create_dataset('img', data=img)
+        hf.create_dataset('rot_cen', data=cen)
+    
+    
+def recon(fn, rot_cen, algorithm='gridrec', sli=[], num_iter=5, binning=None, zero_flag=0):
+    '''
+    reconstruct 3D tomography
+    Inputs:
+    --------  
+    fn: string
+        filename of scan, e.g. 'fly_scan_0001.h5'
+    rot_cen: float
+        rotation center
+    algorithm: string
+        choose from 'gridrec' and 'mlem'
+    sli: list
+        a range of slice to recontruct, e.g. [100:300]
+    num_iter: int
+        iterations for 'mlem' algorithm
+    bingning: int
+        binning the reconstruted 3D tomographic image 
+    zero_flag: bool 
+        if 1: set negative pixel value to 0
+        if 0: keep negative pixel value
+        
+    '''
+    f = h5py.File(fn)
+    tmp = np.array(f['img_bkg_avg'])
+    s = tmp.shape
+    slice_info = ''
+    bin_info = ''
+    if len(sli) == 0:
+        sli = [0, s[1]]
+    elif len(sli) == 1 and sli[0] >=0 and sli[0] <= s[1]:
+        sli = [sli[0], sli[0]+1]
+        slice_info = '_slice_{}_'.format(sli[0])
+    elif len(sli) == 2 and sli[0] >=0 and sli[1] <= s[1]:
+        slice_info = '_slice_{}_{}_'.format(sli[0], sli[1])
+    else:
+        print('non valid slice id, will take reconstruction for the whole object')
+    
+        
+    scan_id = np.array(f['scan_id'])
+    img_tomo = np.array(f['img_tomo'][:, sli[0]:sli[1], :])
+    img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1], :])
+    img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1], :])
+    theta = np.array(f['angle']) / 180.0 * np.pi
+    f.close()
+    prj = (img_tomo - img_dark) / (img_bkg - img_dark)
+    prj_norm = -np.log(prj)
+    prj_norm[np.isnan(prj_norm)] = 0
+    prj_norm[np.isinf(prj_norm)] = 0
+    prj_norm[prj_norm < 0] = 0           
+    
+    s = prj_norm.shape
+    if not binning == None:
+        prj_norm = bin_ndarray(prj_norm, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
+        rot_cen = rot_cen * 1.0 / binning 
+        bin_info = '_bin{}_'.format(int(binning))
+
+    if algorithm == 'gridrec':
+        rec = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
+    elif algorithm == 'mlem' or algorithm == 'ospml_hybrid':
+        rec = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm=algorithm, num_iter=num_iter)
+    else:
+        print('algorithm not recognized')
+    rec = tomopy.misc.corr.remove_ring(rec, rwidth=3)
+    if zero_flag:
+        rec[rec<0] = 0    
+    fout = 'recon_scan_' + str(scan_id) + str(slice_info) + str(bin_info) + algorithm +'.h5'
+    with h5py.File(fout, 'w') as hf:
+        hf.create_dataset('img', data=rec)
+        hf.create_dataset('scan_id', data=scan_id)        
+    print('{} is saved.'.format(fout)) 
+
+
+
+def align3D(f_ref, f_ali, tag_ref='recon', tag_ali='recon'):
+    '''
+    align two sets of 3D reconstruction data with same image size
+
+    Inputs:
+    --------
+    f_ref: file name of 1st tomo-reconstruction, use as reference
+    
+    f_ali: file name of 2nd tomo-reconstruction, need to be aligned
+
+    tag_ref: tag of 3D data in .h5 file for 1st 3D data
+
+    tag_ali: tag of 3D data in .h5 file for 2nd 3D data
+
+    Outputs:
+    --------
+    3D array of aligned data
+    
+    '''
+    f = h5py.File(f_ref, 'r')
+    img_ref = np.array(f[tag_ref])
+    f.close()
+    f = h5py.File(f_ali)
+    img = np.array(f[tag_ali])  
+    f.close()
+    img_ali = deepcopy(img)
+    s = img_ref.shape
+
+ #   img[img < 0.01 * np.max(img)] = 0
+ #   img_ali[img_ali < 0.01 * np.max(img_ali)] = 0
+
+    img_ref_prj1 = np.sum(img_ref, axis=1) # project to front of cube
+    img_prj1 = np.sum(img, axis=1)
+    _, r1, c1 = align_img(img_ref_prj1, img_prj1)
+
+    img_ref_prj2 = np.sum(img_ref, axis=2) # project to right of cube
+    img_prj2 = np.sum(img, axis=2)
+    _, r2, c2 = align_img(img_ref_prj2, img_prj2)
+    
+    r = (r1 + r2) / 2
+    print('1st-dimension shift: {}\n2nd-dimension shift: {}\n3rd-dimension shift: {}'.format(r, c2, c1))
+    print('aligning 3d stack ...')   
+    for i in range(s[1]):
+#        if not i%20: print('{}'.format(i))
+        temp = np.squeeze(img[:,i,:])
+        temp = shift(temp, [r1, c1], mode='constant', cval=0)
+        img_ali[:, i, :] = temp
+
+    for i in range(s[2]):
+#        if not i%20: print('{}'.format(i))
+        temp = np.squeeze(img_ali[:,:, i])
+        temp = shift(temp, [0, c1], mode='constant', cval=0)
+        img_ali[:, :, i] = temp
+    return img_ali
+    
+
+def dif3D(f_ref, f_ali, tag_ref='recon', tag_ali='recon', output_name='dif3D.h5'):
+    '''
+    calculate the difference of two sets of 3D tomo-reconstruction
+
+    Inputs:
+    --------
+    f_ref: file name of 1st tomo-reconstruction, use as reference
+    
+    f_ali: file name of 2nd tomo-reconstruction, need to be aligned
+
+    tag_ref: tag of 3D data in .h5 file for 1st 3D data
+
+    tag_ali: tag of 3D data in .h5 file for 2nd 3D data
+
+    output_name: filename of output
+
+    --------
+    '''
+    
+    img_ali = align3D(f_ref, f_ali, tag_ref, tag_ali)
+    f = h5py.File(f_ref, 'r')
+    img_ref = np.array(f[tag_ref])
+    f.close()
+    img_dif = img_ali - img_ref
+    
+    with h5py.File(output_name, 'w') as hf:
+        hf.create_dataset('dif3D', data = img_dif)
+        hf.create_dataset('img_ref', data = f_ref)
+        hf.create_dataset('img_ali', data = f_ali)
+
+    print('\'{} \' saved.'. format(output_name))
+
+
+

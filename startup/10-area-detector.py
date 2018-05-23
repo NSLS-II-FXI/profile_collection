@@ -1,6 +1,7 @@
 from ophyd import AreaDetector, Component as Cpt
 from ophyd.areadetector.trigger_mixins import SingleTrigger
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
+from ophyd import EpicsSignal
 from ophyd import (ImagePlugin,
                    StatsPlugin,
                    TransformPlugin,
@@ -35,8 +36,11 @@ class Manta(SingleTrigger, AreaDetector):
                suffix='HDF1:',
                write_path_template='/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/',
                root='/NSLS2/xf18id1/DATA/Andor',
+               # write_path_template='/tmp/',
+               # root='/',
                reg=None)  # placeholder to be set on instance as obj.hdf5.reg
-
+    
+    ac_period = Cpt(EpicsSignal, 'cam1:AcquirePeriod')    
     def stop(self):
         self.hdf5.capture.put(0)
         return super().stop()
@@ -77,3 +81,4 @@ Andor.stats1.read_attrs = ['total']
 #Andor.stats5.read_attrs = ['total']
 Andor.hdf5.read_attrs = []
 Andor.stage_sigs['cam.image_mode'] = 0
+
