@@ -53,11 +53,6 @@ class Manta(SingleTrigger, AreaDetector):
         self.hdf5.capture.put(1)
         return super().resume()
 
-    @property
-    def hints(self):
-        return {'fields': [self.stats1.total.name,
-                           self.stats5.total.name]}
-
 
 detA1 = Manta('XF:18IDB-BI{Det:A1}', name='detA1')
 detA1.hdf5.reg = db.reg
@@ -81,4 +76,9 @@ Andor.stats1.read_attrs = ['total']
 #Andor.stats5.read_attrs = ['total']
 Andor.hdf5.read_attrs = []
 Andor.stage_sigs['cam.image_mode'] = 0
+
+for det in [detA1, Andor]:
+    det.stats1.total.kind = 'hinted'
+    # It does not work since it's not defined in the class, commenting out:
+    # det.stats5.total.kind = 'hinted'
 
