@@ -351,25 +351,13 @@ def go_eng(eng):
 #####################################################################
 def load_scan(scan_id):
     '''
-    e.g. load_image() # case 1
-         load_image(120) # case 2
-         load_image([120,122,125]) # case 3: load three scans
-         load_image(120, 125)      # case 4: load scans from scan_120 to scan_125
-         load_image(120, 125, 2)   # case 5: load scans from scan_120 to scan_125 for every 2 scans
+    e.g. load_scan([0001, 0002]) 
     '''
-
-    
-#    if len(args) == 0:      scan_id = [-1] # case 1
-#    elif len(args) == 1:    scan_id = args # case 2
-#    elif len(args) == 2:    scan_id = np.arange(args[0], args[1]+1) # case 4
-#    elif len(args) == 3:    scan_id = np.arange(args[0], args[1]+1, args[2]) # case 5
-#    else: return 'Invalid input'
-#    scan_id = list(args) # case 2 and 3
     for item in scan_id:        
-        load_single_image(int(item))  
+        load_single_scan(int(item))  
         
 
-def load_single_image(scan_id=-1):
+def load_single_scan(scan_id=-1):
     h = db[scan_id]
     scan_id = h.start['scan_id']
     scan_type = h.start['plan_name']
@@ -383,11 +371,12 @@ def load_single_image(scan_id=-1):
         print('loading fly scan: #{}'.format(scan_id))
         load_fly_scan(h)
         print('fly scan: #{} loading finished'.format(scan_id))
-    elif scan_type == 'xanes_scan':
+    elif scan_type == 'xanes_scan' or scan_type == 'xanes_scan2':
         print('loading xanes scan: #{}'.format(scan_id))
         load_xanes_scan(h)
         print('xanes scan: #{} loading finished'.format(scan_id))
     else:
+        print('Un-recognized scan type ......')
         pass
         
 
@@ -500,8 +489,8 @@ def load_fly_scan(h):
     
 
 def load_xanes_scan(h):
-
-    scan_type = 'xanes_scan'
+    scan_type = h.start['plan_name']
+#    scan_type = 'xanes_scan'
     uid = h.start['uid']
     note = h.start['note']
     scan_id = h.start['scan_id']  
@@ -518,18 +507,31 @@ def load_xanes_scan(h):
     s = imgs.shape
     img_xanes_avg = np.zeros([num_eng, s[2], s[3]])   
     img_bkg_avg = np.zeros([num_eng, s[2], s[3]])  
-    for i in range(num_eng):
-        img_xanes = imgs[i+1]
-        img_xanes_avg[i] = np.mean(img_xanes, axis=0)
-        img_bkg = imgs[i+1 + num_eng]
-        img_bkg_avg[i] = np.mean(img_bkg, axis=0)
+
+    if scan_type == 'xanes_scan':
+        for i in range(num_eng):
+            img_xanes = imgs[i+1]
+            img_xanes_avg[i] = np.mean(img_xanes, axis=0)
+            img_bkg = imgs[i+1 + num_eng]
+            img_bkg_avg[i] = np.mean(img_bkg, axis=0)
+    elif scan_type == 'xanes_scan2':
+        j = 1
+        for i in range(num_eng):
+            img_xanes = imgs[j]
+            img_xanes_avg[i] = np.mean(img_xanes, axis=0)
+            img_bkg = imgs[j+1]
+            img_bkg_avg[i] = np.mean(img_bkg, axis=0)
+            j = j+2
+    else:
+        print('un-recognized xanes scan......')
+        return 0
 
     img_xanes_norm = (img_xanes_avg - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
     img_xanes_norm[np.isnan(img_xanes_norm)] = 0
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0
         
     img_bkg = np.array(img_bkg, dtype=np.float32)
-    img_xanes_norm = np.array(img_xanes_norm, dtype=np.float32)
+#    img_xanes_norm = np.array(img_xanes_norm, dtype=np.float32)
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
@@ -550,7 +552,7 @@ def load_xanes_scan(h):
     del img_xanes_norm
 
 
- 
+
 def load_count_img(scan_id):
     h = db[scan_id]
     img = get_img(h)
@@ -588,22 +590,6 @@ def new_user():
     
 ################################################
 
-#def plot1d(scan_id = -1):
-#    h = db[scan_id]
-#    scan_id = h.start['scan_id']
-#    num =  int(h.start['plan_args']['num'])
-#    st = h.start['plan_args']['start']
-#    en = h.start['plan_args']['stop']
-#    x = np.linspace(st, en, num)
-#    dets = h.start['detectors']
-#    plt.figure()    
-#    for det in dets:
-#        data = np.array(list(h.data(det)))
-#        plt.plot(x, data, '.-', label=det);
-#        plt.legend()
-#    plt.title('scan ID: ' + str(scan_id))
-#    plt.show()
-
 
 def plot_ic(ics='ic3', scan_id=[-1]):
     det = ics
@@ -619,8 +605,6 @@ def plot_ic(ics='ic3', scan_id=[-1]):
         plt.legend()
     plt.title('reading of ic: ' + ics)
     plt.show()
-
-    
 
 
 
@@ -697,66 +681,6 @@ def plot1d(detectors, scan_id=-1):
     fig.subplots_adjust(hspace=1)   
     plt.show()
 
-'''
-f1 = '/home/xf18id/Documents/FXI_commision/DCM_scan/TM_bender_off/pzt_scan_9keV_ssaV_cen_'
-f2 = '_2018-02-22.csv'
-
-x, y = list([]), list([])
-vgap = np.arange(-5, 3.5, 0.5)
-
-for gap in vgap:
-    print(gap)
-    fn = f1 + str(gap) + f2
-    df = pd.read_csv(fn, sep='\t')
-    x.append(list(df['dcm_th2 #0']))
-    y.append(list(df['Vout2 #0']))
-'''
-'''
-f = '/home/xf18id/Documents/FXI_commision/DCM_scan/pzt_scan_energy_summary.csv'
-df = pd.read_csv(f)
-var = np.arange(5, 13, 0.5)
-data = []
-data_max = []
-th2 = df['dcm_th2 #0']
-plt.figure()
-for x in var:
-    tmp = df[str(x) + ' keV']
-    data.append(tmp)
-    data_max.append(tmp.values.argmax())
-    plt.plot(th2, tmp)
-''' 
-
-#################### test image acquiring time ##############
-'''
-cap_img = 'XF:18IDB-BI{Det:Neo}TIFF1:WriteFile'
-trg_img = 'XF:18IDB-BI{Det:Neo}cam1:Acquire'
-st = time.time()
-for i in range(10):    
-#    print(i)
-    my_set_cmd = 'caput ' + trg_img + ' ' + 'Acquire' 
-    my_save_cmd = 'caput ' + cap_img + ' ' + 'Write'
-#    st = time.time()
-    subprocess.Popen(my_set_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-#    print(time.time()-st)
-#    time.sleep(0.05)
-    while True:
-        r =subprocess.check_output(['caget', trg_img, '-t']).rstrip()
-        r = str(r)[2:-1]
-        if r == 'Done':
-            break
-    cost = time.time() - st
-#    st = time.time()
-    subprocess.Popen(my_save_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-#    print(time.time()-st)
-#    time.sleep(0.05)
-    while True:
-        r =subprocess.check_output(['caget', cap_img, '-t']).rstrip()
-        r = str(r)[2:-1]
-        if r == 'Done':
-            break
-
-cost = time.time() - st
-'''
 
 
 def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
