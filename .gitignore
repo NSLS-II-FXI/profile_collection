@@ -7,3 +7,6 @@ tomo_ctrl/
 *.tif
 *.tiff
 history.sqlite
+static/
+startup/Tomo_test/
+startup/temp/
