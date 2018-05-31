@@ -411,7 +411,7 @@ def eng_scan_delay(start, stop, num, delay_time=1, note='', md=None):
             yield from mv(motor_x, step)
             yield from bps.sleep(delay_time)
             yield from trigger_and_read(list(detectors) + [motor_x])
-        yield from abs_set(motor_x, motor_x_ini, wait=True)
+        yield from mv(motor_x, motor_x_ini)
     return (yield from eng_inner_scan())
 
 def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=0, out_y=2000, rs=1, parkpos=None, note='', md=None):
@@ -993,7 +993,7 @@ def load_cell_scan(bender_pos_list, pbsl_pos_list, num, eng_start, eng_end, step
 
     for bender_pos in bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
-        yield from bps.sleep(2)
+        yield from bps.sleep(1)
         load_cell_force = pzt_cm_loadcell.value
         fig = plt.figure()
         ax1 = fig.add_subplot(211)
