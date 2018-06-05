@@ -1033,7 +1033,7 @@ def ssa_scan(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
         ax2 = fig.add_subplot(312)
         ax3 = fig.add_subplot(313)
 #        yield from scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps)
-        yield from delay_scan(ssa_motor, ssa_start, ssa_end, ssa_steps, detectors=[ic3, ic4, Vout2], sleep_time=1.2, md=None)
+        yield from delay_scan(ssa_motor, ssa_start, ssa_end, ssa_steps, detectors=[ic3, ic4, Vout2], sleep_time=0.2, md=None)
         h = db[-1]
         y0 = np.array(list(h.data(ic3.name)))
         y1 = np.array(list(h.data(ic4.name)))
