@@ -56,16 +56,17 @@ def save_pos(print_flag = 0, comment=''):
     '''
     original = sys.stdout
     sys.stdout = Tee(sys.stdout, f)
-    print('\n{0} {1}:{2}'.format(current_date, np.str(now.hour), np.str(now.minute)))
-    wh_pos(comment)
+
     print('\nsaved to file: {}'.format(fn))
     sys.stdout = original
     '''
+    wh_pos(comment)
     f.write('\n{0} {1}:{2}\n'.format(current_date, hour, minu))
     lines = wh_pos(comment, 0)
     f.write('\n'.join(lines))
     f.write('\n\nsaved to file: {}'.format(fn))
     f.close()
+    print('\nsaved to file: {}'.format(fn))
 
     if print_flag:
         shutil.copyfile(fn,'/NSLS2/xf18id1/DATA/Motor_position_log/tmp.log')
@@ -162,12 +163,12 @@ def wh_pos(comment='', print_on_screen=1):
         pzt_d_gain = np.round(p.d_gain.get(), decimals=4)
         lines.append(LINE_FMT.format(p.name, p.stat, pzt_pos, pzt_p_gain, pzt_i_gain, pzt_d_gain, p.bender))
 
-#    if print_on_screen:   
-#        print('\n'.join(lines))
-#        return 
-#    else:
-#        return lines
-    return lines
+    if print_on_screen:   
+        print('\n'.join(lines))
+        return 
+    else:
+        return lines
+
 
 '''    
 def get_encoder(motor_prefix):
