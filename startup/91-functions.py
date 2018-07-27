@@ -1035,7 +1035,7 @@ def dif3D(f_ref, f_ali, tag_ref='recon', tag_ali='recon', output_name='dif3D.h5'
 ########################################################################
 ########################################################################
 
-def print_baseline_list()
+def print_baseline_list():
     a = list(db[-1].table('baseline'))
     with open('/home/xf18id/Documents/FXI_manual/FXI_baseline_record.txt', 'w') as tx:
          i=1
