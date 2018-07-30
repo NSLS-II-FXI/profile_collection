@@ -1,4 +1,7 @@
 
+class PZT(Device):
+    pos = Cpt(EpicsSignal, 'GET_POSTION')
+
 class pzt:
     def __init__(self, pzt_prefix, name, flag=0):
         self.name = name
