@@ -201,6 +201,9 @@ Andor.stage_sigs['cam.image_mode'] = 0
 for k in ('image', 'stats1', 'trans1', 'roi1', 'proc1'):
     getattr(Andor, k).ensure_nonblocking()
 
+
+
+
 for det in [detA1, Andor]:
     det.stats1.total.kind = 'hinted'
     # It does not work since it's not defined in the class, commenting out:
