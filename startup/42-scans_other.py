@@ -4,7 +4,7 @@ def test_test():
     print(h.start['scan_id'])
 
 
-def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num=10, num_bkg=10, note='', fn='/home/xf18id/tmp/tmp.h5', md=None):
+def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_bkg=10, note='', fn='/home/xf18id/tmp/tmp.h5', md=None):
     '''
     Take multiple images (Andor camera)
 
@@ -26,6 +26,7 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num=10, num_bkg=10, not
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, 1)
+    yield from mv(Andor.cam.acquire_time, exposure_time)
     Andor.cam.acquire_period.put(exposure_time)    
     detectors = [Andor]
     y_ini = zps.sy.position
@@ -37,8 +38,8 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num=10, num_bkg=10, not
            'plan_args': {'exposure_time': exposure_time,
                          'out_x': out_x,
                          'out_y': out_y,
-                         'num': num, 'num_bkg': num_bkg,
-                         'fn': f'"{fn}"',
+                         'num_bkg': num_bkg,
+                         'fn': f'{fn}',
                          'note': note if note else 'None',
                         },
            'plan_name': 'test_scan',
@@ -55,7 +56,7 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num=10, num_bkg=10, not
     @stage_decorator(list(detectors))
     @run_decorator(md=_md)
     def inner_scan():
-        for i in range(num):
+        for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         # taking out sample and take background image
         yield from mv(zps.sx, x_out, zps.sy, y_out)
@@ -74,12 +75,12 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num=10, num_bkg=10, not
     txt = get_scan_parameter()
     insert_text(txt)
     print(txt)
-    print('loading z_scan and save file to current directory')
-    load_test_scan(db[-1])
+#    print('loading test_scan and save file to current directory')
+#    load_test_scan(db[-1])
     return uid
 
 
-def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, fn='/home/xf18id/Documents/tmp/z_scan.h5', note='', md=None):
+def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, fn='/home/xf18id/Documents/tmp/', note='', md=None):
     '''
     scan the zone-plate to find best focus
     use as:
@@ -145,16 +146,16 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
         yield from abs_set(shutter_open, 1, wait=True)
         for x in my_var:
             yield from mv(motor, x)
-            yield from trigger_and_read(list(detectors))
+            yield from trigger_and_read(list(detectors)+[motor])
         # backgroud images
         yield from mv(zps.sx, x_out)
         yield from mv(zps.sy, y_out)
-        yield from trigger_and_read(list(detectors))
+        yield from trigger_and_read(list(detectors)+[motor])
         # dark images
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
         yield from abs_set(shutter_close, 1)
-        yield from trigger_and_read(list(detectors))        
+        yield from trigger_and_read(list(detectors)+[motor])        
         # move back zone_plate and sample y 
         yield from mv(zps.sx, x_ini)
         yield from mv(zps.sy, y_ini)
@@ -274,7 +275,7 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
         ax2 = fig.add_subplot(312)
         ax3 = fig.add_subplot(313)
 #        yield from scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps)
-        yield from delay_scan(ssa_motor, ssa_start, ssa_end, ssa_steps, detectors=[ic3, ic4, Vout2], sleep_time=0.2, md=None)
+        yield from delay_scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps,  sleep_time=0.2, md=None)
         h = db[-1]
         y0 = np.array(list(h.data(ic3.name)))
         y1 = np.array(list(h.data(ic4.name)))
@@ -311,7 +312,7 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
         ax2 = fig.add_subplot(312)
         ax3 = fig.add_subplot(313)
 #        yield from scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps)
-        yield from delay_scan(ssa_motor, ssa_start, ssa_end, ssa_steps, detectors=[ic3, ic4, Vout2], sleep_time=1.2, md=None)
+        yield from delay_scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps, sleep_time=1.2, md=None)
         h = db[-1]
         y0 = np.array(list(h.data(ic3.name)))
         y1 = np.array(list(h.data(ic4.name)))
@@ -350,7 +351,7 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         ax2 = fig.add_subplot(312)
         ax3 = fig.add_subplot(313)
 #        yield from scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps)
-        yield from delay_scan(ssa_motor, ssa_start, ssa_end, ssa_steps, detectors=[ic3, ic4, Vout2], sleep_time=1.2, md=None)
+        yield from delay_scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps,  sleep_time=1.2, md=None)
         h = db[-1]
         y0 = np.array(list(h.data(ic3.name)))
         y1 = np.array(list(h.data(ic4.name)))
@@ -388,7 +389,7 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         ax2 = fig.add_subplot(312)
         ax3 = fig.add_subplot(313)
 #        yield from scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps)
-        yield from delay_scan(ssa_motor, ssa_start, ssa_end, ssa_steps, detectors=[ic3, ic4, Vout2], sleep_time=1.2, md=None)
+        yield from delay_scan([ic3, ic4, Vout2], ssa_motor, ssa_start, ssa_end, ssa_steps,  sleep_time=1.2, md=None)
         h = db[-1]
         y0 = np.array(list(h.data(ic3.name)))
         y1 = np.array(list(h.data(ic4.name)))
@@ -415,10 +416,10 @@ def repeat_scan(detectors, motor, start, stop, steps, num=1, sleep_time=1.2):
     det_name = '[' + det_name[:-2] + ' ]'
     txt1 = 'repeat_scan(detectors=detectors, motor={motor.name}, start={start}, stop={stop}, steps={steps}, num={num}, sleep_time={sleep_time})'
     txt2 = 'detectors={det_name}'
-    txt = txt1 + '\n' + txt2
+    txt = txt1 + '\n' + txt2 + '\n  Consisting of:\n'
     print(txt)
     for i in range(num):
-        yield from delay_scan(motor, start, stop, steps, detectors, sleep_time=1.2)
+        yield from delay_scan(detectors, motor, start, stop, steps,  sleep_time=1.2)
 
 
 

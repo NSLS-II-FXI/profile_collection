@@ -494,6 +494,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
     motor_y_ini = motor_y.position
     motor_y_out = motor_y_ini + out_y
     detectors = [Andor, ic3]
+#    detectors = [detA1, ic3]
     offset_angle = -2.0 * rs
     current_rot_angle = motor_rot.position
     if parkpos == None:
@@ -504,7 +505,6 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
            'motors': [motor_rot.name],
            'XEng': XEng.position,
            'ion_chamber': ic3.name,
-           'detectors': list(map(repr, detectors)),
            'plan_args': {'exposure_time': exposure_time,
                          'relative_rot_angle': relative_rot_angle,
                          'period': period,
@@ -596,6 +596,50 @@ def overnight_scan():
 
 
 ###############################################
+
+def delay_count(detectors, num=1, delay=None, *, md=None):
+    """
+    same function as the default "count", 
+    re_write it in order to add auto-logging
+    """
+    if num is None:
+        num_intervals = None
+    else:
+        num_intervals = num - 1
+    _md = {'detectors': [det.name for det in detectors],
+           'num_points': num,
+           'XEng': XEng.position,
+           'num_intervals': num_intervals,
+           'plan_args': {'detectors': 'detectors', 'num': num, 'delay': delay},
+           'plan_name': 'delay_count',
+           'hints': {}
+           }
+    _md.update(md or {})
+    _md['hints'].setdefault('dimensions', [(('time',), 'primary')])
+
+    @bpp.stage_decorator(detectors)
+    @bpp.run_decorator(md=_md)
+    def inner_count():
+        return (yield from bps.repeat(partial(bps.trigger_and_read, detectors),
+                                      num=num, delay=delay))
+    uid = yield from inner_count()
+    h = db[-1]
+    scan_id = h.start['scan_id']
+    det = [det.name for det in detectors]
+    det_name = ''
+    for i in range(len(det)):
+        det_name += det[i]
+        det_name += ', '
+    det_name = '[' + det_name[:-2] + ']'
+
+    txt1 = get_scan_parameter()
+    txt2 = f'detectors = {det_name}'
+    txt = txt1 + '\n' + txt2
+    insert_text(txt)
+    print(txt)
+    return uid    
+
+
 def delay_scan(detectors, motor, start, stop, steps,  sleep_time=1.0, plot_flag=0, note='', md=None):
     '''
     add sleep_time to regular 'scan' for each scan_step

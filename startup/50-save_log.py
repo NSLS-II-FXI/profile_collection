@@ -83,7 +83,8 @@ def wh_pos(comment='', print_on_screen=1):
         except Exception as exc:
             values.append(exc)
 
-    headers = ['Positioner', 'Value', 'Unit', 'Low Limit', 'High Limit', 'Offset', 'Offset_dir', 
+    headers = ['Positioner', 'Value', 'Unit', 'Low Limit', 'High Limit', 'Offset'
+, 'Offset_dir', 
                     'Encoder Dial', 'Encoder Cnt.', 'Encoder Res', 'Motor Res', 'Motor Status']
     LINE_FMT = '{: <16} {: <12} {: <6} {: <12} {: <12} {: <12} {: <12} {: <14} {: <14} {: <14} {: <14} {: <12}'
     lines = []
@@ -139,7 +140,20 @@ def wh_pos(comment='', print_on_screen=1):
 
 
 #       encoder, counts = get_encoder(p.prefix)
-        lines.append(LINE_FMT.format(p.name, value, motor_unit, low_limit, high_limit, offset, offset_dir,
+
+#        tmp = p.name.split('_')
+#        pname = ''
+#        for i in range(len(tmp)):
+#            pname += tmp[i]
+#            pname += '.'
+#        pname = pname[:-1] 
+
+        if p.parent: 
+            len_dif = len(p.name) - len(p.parent.name)
+            parent_name = p.parent.name
+            child_name = p.name[-(len_dif-1):]
+        pname = parent_name + '.' + child_name
+        lines.append(LINE_FMT.format(pname, value, motor_unit, low_limit, high_limit, offset, offset_dir,
                     encoder, counts, encoder_res, motor_res, motor_stat))
     lines.append('\n##########\nPZT STATUS:\n')
     

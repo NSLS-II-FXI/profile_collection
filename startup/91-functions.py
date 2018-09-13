@@ -692,12 +692,13 @@ def load_count_img(scan_id, fn='img_test.h5'):
 ################################################################
 
 
-def plot_ic(ics=[ic3, ic4], scan_id=[-1]):
+def plot_ic(scan_id=[-1], ics=[ic3, ic4]):
     '''
     plot ic reading from single/multiple scan(s),
-    e.g. plot_ic(['ic3', 'ic4'], [-1, -2])
+    e.g. plot_ic([-1, -2],['ic3', 'ic4'])
     '''
-
+    if type(scan_id) == int:
+        scan_id = [scan_id]
     plt.figure()
     for sid in scan_id:
         h = db[int(sid)]
@@ -725,38 +726,69 @@ def plot_ic(ics=[ic3, ic4], scan_id=[-1]):
 
 
 def plot2dsum(scan_id = -1, fn='Det_Image', save_flag=0):
+    '''
+    valid only if the scan using Andor or detA1 camera
+    '''
     h = db[scan_id]
     if scan_id == -1:
         scan_id = h.start['scan_id']
-    det = h.start['detectors'][0]
-    det = det + '_image'
-    img = np.squeeze(np.array(list(h.data(det))))
-    img[img<20] = 0
-    img_sum = np.sum(np.sum(img, axis=1), axis=1)
-    num =  int(h.start['plan_args']['num'])
-    st = h.start['plan_args']['start']
-    en = h.start['plan_args']['stop']
-    x = np.linspace(st, en, num)
-    plt.figure()
-    plt.plot(x, img_sum, 'r-.')
-    plt.title('scanID: ' + str(scan_id) + ':  ' + det + '_sum')
+    if 'Andor' in h.start['detectors']:
+        det = 'Andor_image'
+        find_areaDet = 1
+    elif 'detA1' in h.start['detectors']:
+        det = 'detA1_image'
+        find_areaDet = 1
+    else:
+        find_areaDet = 0
 
-    if save_flag:
-        with h5py.File(fn, 'w') as hf:
-            hf.create_dataset('data', data=img)
+    if find_areaDet:        
+        img = np.array(list(h.data(det)))
+        if len(img.shape) == 4:
+            img = np.mean(img, axis=1)
+        img[img<20] = 0
+        img_sum = np.sum(np.sum(img, axis=1), axis=1)
+        num =  int(h.start['plan_args']['steps'])
+        st = h.start['plan_args']['start']
+        en = h.start['plan_args']['stop']
+        x = np.linspace(st, en, num)
+        plt.figure()
+        plt.plot(x, img_sum, 'r-.')
+        plt.title('scanID: ' + str(scan_id) + ':  ' + det + '_sum')
+
+        if save_flag:
+            with h5py.File(fn, 'w') as hf:
+                hf.create_dataset('data', data=img)
+    else:
+        print('AreaDetector is not used in the scan')
+       
 
 
-def plot1d(detectors, scan_id=-1):
-    n = len(detectors)
+def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0):
     h = db[scan_id]
-    y = list(h.data(detectors[0].name))
+    scan_id = h.start['scan_id']
+    n = len(detectors)
+    if n == 0:
+        detectors = h.start['detectors']
+        n = len(detectors)
+    
+#    y = list(h.data(detectors[0].name))
 #    x = np.arange(len(y))
     pos = h.table()
-    mot_day, mot_hour = pos['time'].dt.day, pos['time'].dt.hour, 
-    mot_min, mot_sec, mot_msec = pos['time'].dt.minute, pos['time'].dt.second, pos['time'].dt.microsecond
-    mot_time = mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
-    mot_time =  np.array(mot_time)   
-    x = mot_time - mot_time[0]   
+    try:
+        st = h.start['plan_args']['start']
+        en = h.start['plan_args']['stop']
+        num =  int(h.start['plan_args']['steps'])
+        flag = 0
+    except:
+        flag = 1
+    if flag or plot_time_stamp:
+        mot_day, mot_hour = pos['time'].dt.day, pos['time'].dt.hour, 
+        mot_min, mot_sec, mot_msec = pos['time'].dt.minute, pos['time'].dt.second, pos['time'].dt.microsecond
+        mot_time = mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
+        mot_time =  np.array(mot_time)   
+        x = mot_time - mot_time[0]   
+    else:
+        x = np.linspace(st, en, num)
     
     fig=plt.figure()
     for i in range(n):
