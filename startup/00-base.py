@@ -23,8 +23,9 @@ def convert_AD_timestamps(ts):
     return pd.to_datetime(ts, unit='s', origin=EPICS_EPOCH, utc=True).dt.tz_convert('US/Eastern')
 
 # subscribe the zmq plotter
-from bluesky.callbacks.zmq import Publisher
-Publisher('xf18id-ca1:5577', RE=RE)
+
+#from bluesky.callbacks.zmq import Publisher
+#Publisher('xf18id-ca1:5577', RE=RE)
 
 #nslsii.configure_base(get_ipython().user_ns, 'fxi', bec=False)
 
