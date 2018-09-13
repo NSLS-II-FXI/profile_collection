@@ -47,7 +47,7 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num=10, num_bkg=10, not
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos': wh_pos(),
+           'motor_pos': wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     _md['hints'].setdefault('dimensions', [(('time',), 'primary')])
@@ -124,14 +124,14 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
            'plan_args': {'start': start, 'stop': stop, 'steps': steps,
                          'out_x': out_x, 'out_y': out_y, 'chunk_size':chunk_size,                            
                          'exposure_time': exposure_time,
-                         'fn': f'"{fn}"', 
+                         'fn': f'{fn}', 
                          'note': note if note else 'None'},
            'plan_name': 'z_scan',
            'plan_pattern': 'linspace',
            'plan_pattern_module': 'numpy',
            'hints': {},
            'operator': 'FXI',
-           'motor_pos': wh_pos(),
+           'motor_pos': wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     my_var = np.linspace(start, stop, steps)
@@ -232,7 +232,7 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
         fig = plt.figure()
         ax1 = fig.add_subplot(211)
         ax2 = fig.add_subplot(212)
-        for pbsl_pos in pbsl_pos_list:
+        for pbsl_pos in pbsl_y_pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
                 yield from eng_scan_delay(eng_start, eng_end, steps, delay_time=delay_time)

@@ -84,7 +84,7 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos': wh_pos(),
+           'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:  dimensions = [(motor_rot.hints['fields'], 'primary')]
@@ -195,7 +195,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos': wh_pos(),
+           'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -323,7 +323,7 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos': wh_pos(),
+           'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -458,7 +458,7 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos': wh_pos(),
+           'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:  dimensions = [(motor_x.hints['fields'], 'primary')]
@@ -530,7 +530,8 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos': wh_pos(),
+           'motor_pos': wh_pos(print_on_screen=0),
+#            'detectors': list(map(repr, detectors)),
             }
     _md.update(md or {})
     try:  dimensions = [(motor_rot.hints['fields'], 'primary')]
@@ -632,7 +633,7 @@ def delay_scan(detectors, motor, start, stop, steps,  sleep_time=1.0, plot_flag=
                          },
            'plan_name': 'delay_scan',
            'hints': {},
-           'motor_pos': wh_pos(),
+           'motor_pos':  wh_pos(print_on_screen=0),
            'operator': 'FXI'
             }
     _md.update(md or {})
