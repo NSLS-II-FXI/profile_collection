@@ -1,6 +1,23 @@
 
 class PZT(Device):
-    pos = Cpt(EpicsSignal, 'GET_POSTION')
+    pos = Cpt(EpicsSignalRO, 'GET_POSITION', kind='hinted')
+    p_gain = Cpt(EpicsSignal, 'GET_SERVO_PGAIN', kind='config')
+    i_gain = Cpt(EpicsSignal, 'GET_SERVO_IGAIN', kind='config')
+    d_gain = Cpt(EpicsSignal, 'GET_SERVO_DGAIN', kind='config')
+    setpos = Cpt(EpicsSignal, 'SET_POSITION.A', kind='normal')
+
+    @property
+    def bender(self):
+        print("stop using PZT.bender")
+        return 'None'
+
+class PZTwForce(PZT):
+    loadcell = Cpt(EpicsSignalRO, 'W-I', kind='hinted')
+
+    @property
+    def bender(self):
+        print("stop using PZT.bender")
+        return self.loadcell.get()
 
 class pzt:
     def __init__(self, pzt_prefix, name, flag=0):
@@ -21,13 +38,19 @@ class pzt:
     def stat(self, pzt_prefix):
         return 'Enabled' if EpicsSignal(str(pzt_prefix) + 'GET_SERVO_STATE').value else 'Disabled'
 
-pzt_dcm_chi2 = pzt('XF:18IDA-OP{Mono:DCM-Ax:Chi2Fine}', name='pzt_dcm_chi2')
-pzt_dcm_th2  = pzt('XF:18IDA-OP{Mono:DCM-Ax:Th2Fine}', name='pzt_dcm_th2')
-pzt_tm = pzt('XF:18IDA-OP{Mir:TM-Ax:Bender}', name='pzt_tm', flag=1)
-pzt_cm = pzt('XF:18IDA-OP{Mir:CM-Ax:Bender}', name='pzt_cm', flag=1)
 
-pzt_cm_loadcell = EpicsSignal('XF:18IDA-OP{Mir:CM-Ax:Bender}W-I', name='pzt_cm_loadcell')
-pzt_tm_loadcell = EpicsSignal('XF:18IDA-OP{Mir:TM-Ax:Bender}W-I', name='pzt_tm_loadcell')
+
+pzt_dcm_chi2 = PZT('XF:18IDA-OP{Mono:DCM-Ax:Chi2Fine}', name='pzt_dcm_chi2')
+pzt_dcm_th2  = PZT('XF:18IDA-OP{Mono:DCM-Ax:Th2Fine}', name='pzt_dcm_th2')
+pzt_tm = PZTwForce('XF:18IDA-OP{Mir:TM-Ax:Bender}', name='pzt_tm')
+pzt_cm = PZTwForce('XF:18IDA-OP{Mir:CM-Ax:Bender}', name='pzt_cm')
+
+pzt_cm_loadcell = pzt_cm.loadcell
+pzt_tm_loadcell = pzt_tm.loadcell
+
+# TODO this should be fixed at the IOC level
+EpicsSignal(pzt_tm.loadcell.pvname + ".PREC", name='').put(3)
+EpicsSignal(pzt_cm.loadcell.pvname + ".PREC", name='').put(3)
 
 '''
 pzt_motors = [pzt_dcm_chi2, pzt_dcm_th2, pzt_tm, pzt_cm]
