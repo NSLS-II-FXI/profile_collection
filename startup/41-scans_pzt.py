@@ -60,6 +60,7 @@ def pzt_scan(pzt_motor, start, stop, steps, detectors=[Vout2], sleep_time=1, md=
     txt1 = get_scan_parameter()
     txt2 = f'detectors = {det_name}'
     txt = txt1 + '\n' + txt2
+    insert_text(txt)
     print(txt)
     return uid
 
@@ -164,6 +165,16 @@ def pzt_scan_multiple(moving_pzt, start, stop, steps, detectors=[Vout2], repeat_
         directory to save files and images
 
     '''
+
+    det = [det.name for det in detectors]
+    det_name = ''
+    for i in range(len(det)):
+        det_name += det[i]
+        det_name += ', '
+    det_name = '[' + det_name[:-2] + ']'
+    txt = f'pzt_scan_multiple(moving_pzt={moving_pzt.name}, start={start}, stop={stop}, steps={steps}, detectors={det_name}, repeat_num={repeat_num}, sleep_time={sleep_time}, fn={fn})\n  Consisting of:\n'
+    insert_text(txt)
+
     current_eng = XEng.position
     df = pd.DataFrame(data = [])
 
@@ -216,6 +227,8 @@ def pzt_scan_multiple(moving_pzt, start, stop, steps, detectors=[Vout2], repeat_
     df.to_csv(fn_file, sep = '\t')
     fig.savefig(fn_fig)
     print('save to: ' + fn_file)
+    txt_finish='## "pzt_scan_multiple()" finished'
+    insert_text(txt_finish)
 
 
 
@@ -246,6 +259,14 @@ def pzt_energy_scan(moving_pzt, start, stop, steps, eng_list, detectors=[dcm.th2
         directory to save files and images
 
     '''
+    det = [det.name for det in detectors]
+    det_name = ''
+    for i in range(len(det)):
+        det_name += det[i]
+        det_name += ', '
+    det_name = '[' + det_name[:-2] + ']'
+    txt = f'pzt_energy_scan(moving_pzt={moving_pzt.name}, start={start}, stop={stop}, steps={steps}, eng_list, detectors={det_name}, repeat_num={repeat_num}, sleep_time={sleep_time}, fn={fn})\neng+list={eng_list}\n  Consisting of:\n'
+    insert_text(txt)
     eng_ini = XEng.position
     yield from abs_set(shutter_open, 1)
     yield from bps.sleep(1)
@@ -261,6 +282,9 @@ def pzt_energy_scan(moving_pzt, start, stop, steps, eng_list, detectors=[dcm.th2
     yield from abs_set(shutter_close, 1)
     yield from bps.sleep(1)
     yield from abs_set(shutter_close, 1)
+    txt_finish='## "pzt_energy_scan()" finished'
+    insert_text(txt_finish)
+
 
 def pzt_overnight_scan(moving_pzt, start, stop, steps, detectors=[dcm.th2, Vout2], repeat_num=10, sleep_time=1, night_sleep_time=3600, scan_num=12, fn='/home/xf18id/Documents/FXI_commision/DCM_scan/'):
     '''

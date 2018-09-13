@@ -242,14 +242,10 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
         time.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
     yield from xanes_inner_scan()
-#    h = db[-1]
-#    scan_id = h.start['scan_id']
-#    txt0 = f'#{scan_id}    (uid: {h.start["uid"][:6]},     X_eng: {XEng.position:2.4f} keV)\n'
-#    txt1 = f'xanes_scan(eng_list, exposure_time={exposure_time}, chunk_size={chunk_size}, out_x={out_x}, out_y={out_y}, note={note})'
-#    txt = txt0 + txt1
     txt1 = get_scan_parameter()
     txt2 = f'eng_list: {eng_list}'
     txt = txt1 + '\n' + txt2
+    insert_text(txt)
     print(txt)
     
 
@@ -365,13 +361,10 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
         time.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
     yield from xanes_inner_scan()
-#    h = db[-1]
-#    scan_id = h.start['scan_id']
-#    txt0 = f'#{scan_id}    (uid: {h.start["uid"][:6]},     X_eng: {XEng.position:2.4f})\n'
-#    txt1 = f'xanes_scan2(eng_list, exposure_time={exposure_time}, chunk_size={chunk_size}, out_x={out_x}, out_y={out_y}, note={note})\n'
     txt1 = get_scan_parameter()
     txt2 = f'eng_list: {eng_list}'
     txt = txt1 + '\n' + txt2
+    insert_text(txt)
     print(txt)
 
 
@@ -405,7 +398,8 @@ def eng_scan(eng_start, eng_end, steps, num=10, detectors=[ic3, ic4], delay_time
         det_name += det[i]
         det_name += ', '
     det_name = '[' + det_name[:-2] + ']'
-    txt = f'eng_scan(eng_start={eng_start}, eng_end={eng_end}, steps={steps}, num={num}, detectors={det_name}, delay_time={delay_time})\nconsisting of:\n'
+    txt = f'eng_scan(eng_start={eng_start}, eng_end={eng_end}, steps={steps}, num={num}, detectors={det_name}, delay_time={delay_time})\n  Consisting of:\n'
+    insert_text(txt)
     print(txt)
 
 
@@ -434,6 +428,8 @@ def eng_scan(eng_start, eng_end, steps, num=10, detectors=[ic3, ic4], delay_time
     ax2.title.set_text('differential of: {0}/{1}'.format(ic3.name, ic4.name))
     fig.subplots_adjust(hspace=.5)
     plt.show()
+    txt_finish='## "eng_scan()" finished'
+    insert_text(txt_finish)
 
     
 
@@ -482,12 +478,10 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
         det_name += det[i]
         det_name += ', '
     det_name = '[' + det_name[:-2] + ']'
-#    txt0 = f'#{scan_id}    (uid: {h.start["uid"][:6]},     X_eng: {XEng.position:2.4f} keV)\n'
-#    txt1 = f'eng_scan_delay(start={start}, stop={stop}, num={num}, detectors={det_name}, delay_time={delay_time}, note={note})'
-#    txt = txt0 + txt1
     txt1 = get_scan_parameter()
     txt2 = f'detectors = {det_name}'
     txt = txt1 + '\n' + txt2
+    insert_text(txt)
     print(txt) 
 
 
@@ -584,12 +578,8 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
         yield from mv(motor_y, motor_y_ini)
     uid = yield from fly_inner_scan()
     print('scan finished')
-#    h = db[-1]
-#    scan_id = h.start['scan_id']    
-#    txt0 = f'#{scan_id}    (uid: {h.start["uid"][:6]},     X_eng: {XEng.position:2.4f} keV)\n'
-#    txt1 = f'fly_scan(exposure_time={exposure_time}, relative_rot_angle={relative_rot_angle}, period={period}, chunk_size={chunk_size}, out_x={out_x}, out_y={rs}, rs={rs}, parkpos={parkpos}, note={note})'
-#    txt = txt0 + txt1
     txt = get_scan_parameter()
+    insert_text(txt)
     print(txt)
     return uid
 
@@ -668,13 +658,12 @@ def delay_scan(detectors, motor, start, stop, steps,  sleep_time=1.0, plot_flag=
     for i in range(len(det)):
         det_name += det[i]
         det_name += ', '
-    det_name = '[' + det_name[:-2] + ' ]'
-#    txt0 = f'#{scan_id}    (uid: {h.start["uid"][:6]},     X_eng: {XEng.position:2.4f} keV)\n'
-#    txt1 = f'delay_scan(motor={motor}, start={start}, stop={stop}, steps={steps}, detectors={det_name}, sleep_time={sleep_time}, plot_flag={plot_flag})'
-#    txt = txt0 + txt1
+    det_name = '[' + det_name[:-2] + ']'
+
     txt1 = get_scan_parameter()
     txt2 = f'detectors = {det_name}'
     txt = txt1 + '\n' + txt2
+    insert_text(txt)
     print(txt)
     return uid
 
@@ -689,6 +678,7 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
     txt1 = f'xanes_3d_scan(eng_list=eng_list, exposure_time={exposure_time}, relative_rot_angle={relative_rot_angle}, period={period}, chunk_size={chunk_size}, out_x={out_x}, out_y={out_y}, rs={rs}, parkpos={park_pos}, note={note if note else "None"})'
     txt2 = f'eng_list = {eng_list}'
     txt = tx11 + txt2
+    insert_text(txt)
     print(txt)
 
    

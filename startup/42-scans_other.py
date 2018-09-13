@@ -72,6 +72,7 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num=10, num_bkg=10, not
         yield from abs_set(shutter_open, 1, wait=True)
     uid = yield from inner_scan()
     txt = get_scan_parameter()
+    insert_text(txt)
     print(txt)
     print('loading z_scan and save file to current directory')
     load_test_scan(db[-1])
@@ -162,6 +163,7 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
     uid = yield from inner_scan()
 
     txt = get_scan_parameter()
+    insert_text(txt)
     print(txt)
     print('loading z_scan and save file to current directory')
     load_z_scan(db[-1])
@@ -219,8 +221,8 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
     txt1 = f'load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num={num}, eng_start={eng_start}, eng_end={eng_end}, steps={steps}, delay_time={delay_time})'
     txt2 = f'pzt_cm_bender_pos_list = {pzt_cm_bender_pos_list}'
     txt3 = f'pbsl_y_pos_list = {pbsl_y_pos_list}'
-    txt = txt1 + '\n' + txt2 + '\n' + txt3
-    print(txt)
+    txt = '##' + txt1 + '\n' + txt2 + '\n' + txt3 + '\n  Consisting of:\n'
+    insert_text(txt)
 
     check_eng_range([eng_start, eng_end])
     num_pbsl_pos = len(pbsl_y_pos_list)
@@ -243,21 +245,23 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
                 x = np.linspace(eng_start, eng_end, steps)
                 ax1.plot(x, r, '.-')
                 r_dif = np.array([0] + list(np.diff(r)))
-                ax2.plot(x, r_dif, '.-')#
+                ax2.plot(x, r_dif, '.-')
         ax1.title.set_text('scan_id: {}-{}, ratio of: {}/{}'.format(h.start['scan_id']-num*num_pbsl_pos+1, h.start['scan_id'], ic3.name, ic4.name))
         ax2.title.set_text('load_cell: {}, bender_pos: {}'.format(load_cell_force, bender_pos))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    txt_finish = '## "load_cell_scan()" finished'
+    insert_text(txt_finish)
 
 ###########################
 def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     '''
     scanning ssa, with different pzt_tm_bender position
     '''
-    txt1 = f'ssa_scan_tm_bender(bender_pos_list=bender_pos_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})' 
+    txt1 = f'ssa_scan_tm_bender(bender_pos_list=bender_pos_list, ssa_motor={ssa_motor.name}, ssa_start={ssa_start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})' 
     txt2 = f'bender_pos_list = {bender_pos_list}'
-    txt = txt1 + '\n' + txt2
-    print(txt)    
+    txt = '## ' + txt1 + '\n' + txt2 + '\n  Consisting of:\n'
+    insert_text(txt)    
 
     pzt_motor = pzt_tm.setpos
     x = np.linspace(ssa_start, ssa_end, ssa_steps)
@@ -284,6 +288,8 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
         ax3.title.set_text('Vout2')
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    txt_finish='## "ssa_scan_tm_bender()" finished'
+    insert_text(txt_finish)
 
 
 def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
@@ -292,8 +298,8 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     '''
     txt1 = f'ssa_scan_tm_yaw(tm_yaw_pos_list=tm_yaw_pos_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})'
     txt2 = f'tm_yaw_pos_list = {tm_yaw_pos_list}'
-    txt = txt1 + '\n' + txt2
-    print(txt)
+    txt = '## ' + txt1 + '\n' + txt2 + '\n  Consisting of:\n'
+    insert_text(txt)
     motor = tm.yaw
     x = np.linspace(ssa_start, ssa_end, ssa_steps)
     for tm_yaw_pos in tm_yaw_pos_list:
@@ -319,6 +325,9 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
         ax3.title.set_text('Vout2, tm_yaw = {}'.format(tm_yaw_pos))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    txt_finish='## "ssa_scan_tm_yaw()" finished'
+    insert_text(txt_finish)
+
 
 def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     '''
@@ -327,8 +336,9 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
 
     txt1 = f'ssa_scan_pbsl_x_gap(pbsl_x_gap_list=pbsl_x_gap_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})'
     txt2 = f'pbsl_x_gap_list = {pbsl_x_gap_list}'
-    txt = txt1 + '\n' + txt2
-    print(txt)
+    txt = '## ' + txt1 + '\n' + txt2 + '\n  Consisting of:\n'
+    insert_text(txt)
+    
     motor = pbsl.x_gap
     x = np.linspace(ssa_start, ssa_end, ssa_steps)
     for pbsl_x_gap in pbsl_x_gap_list:
@@ -354,6 +364,8 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         ax3.title.set_text('Vout2, pbsl_x_gap = {}'.format(pbsl_x_gap))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    txt_finish='## "ssa_scan_pbsl_x_gap()" finished'
+    insert_text(txt_finish)
 
 
 def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
@@ -362,8 +374,9 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     '''
     txt1 = f'ssa_scan_pbsl_y_gap(pbsl_y_gap_list=pbsl_y_gap_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})'
     txt2 = f'pbsl_y_gap_list = {pbsl_y_gap_list}'
-    txt = txt1 + '\n' + txt2
-    print(txt)
+    txt = '## ' + txt1 + '\n' + txt2 + '\n  Consisting of:\n'
+    insert_text(txt)
+    
     motor = pbsl.y_gap
     x = np.linspace(ssa_start, ssa_end, ssa_steps)
     for pbsl_y_gap in pbsl_y_gap_list:
@@ -389,6 +402,9 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         ax3.title.set_text('Vout2, pbsl_y_gap = {}'.format(pbsl_y_gap))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    txt_finish='## "ssa_scan_pbsl_y_gap()" finished'
+    insert_text(txt_finish)
+
 
 def repeat_scan(detectors, motor, start, stop, steps, num=1, sleep_time=1.2):
     det = [det.name for det in detectors]
