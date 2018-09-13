@@ -52,9 +52,9 @@ class DetSupport(Device):
 
 class TXM_SSA(Device):
     v_gap = Cpt(MyEpicsMotor, '-Ax:Vgap}Mtr')
-    v_cen = Cpt(MyEpicsMotor, '-Ax:Vctr}Mtr')
+    v_ctr = Cpt(MyEpicsMotor, '-Ax:Vctr}Mtr')
     h_gap = Cpt(MyEpicsMotor, '-Ax:Hgap}Mtr')
-    h_cen = Cpt(MyEpicsMotor, '-Ax:Hctr}Mtr')
+    h_ctr = Cpt(MyEpicsMotor, '-Ax:Hctr}Mtr')
 
 
 
@@ -65,7 +65,7 @@ DetU = DetSupport('XF:18IDB-OP{DetS:U', name='DetU')
 DetD = DetSupport('XF:18IDB-OP{DetS:D', name='DetD')
 
 clens = Condenser('XF:18IDB-OP', name='clens')
-aper = Aperture('XF:18IDB-OP', name='p_hole')
+aper = Aperture('XF:18IDB-OP', name='aper')
 zp = Zoneplate('XF:18IDB-OP', name='zp')
 phase_ring = PhaseRing('XF:18IDB-OP', name='phase_ring')
 betr = BetrandLens('XF:18IDB-OP', name='betr')
@@ -83,6 +83,6 @@ motor_txm = [clens.x, clens.y1, clens.y2, clens.z1, clens.z2, clens.p,
              zps.sx, zps.sy, zps.sz, zps.pi_x, zps.pi_r,
              DetU.x, DetU.y, DetU.z,
              DetD.x, DetD.y, DetD.z,
-             ssa.v_gap, ssa.v_cen, ssa.h_gap, ssa.h_cen,
+             ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr,
              XEng]
 
