@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
 import h5py
-import tomopy
 from operator import attrgetter
 from PIL import Image
 #from image_binning import bin_ndarray
@@ -874,6 +873,8 @@ def find_rot(fn, thresh=0.05):
 
 def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
    
+   
+    import tomopy 
     f = h5py.File(fn)
     tmp = np.array(f['img_bkg_avg'])
     s = tmp.shape
@@ -927,6 +928,7 @@ def recon(fn, rot_cen, algorithm='gridrec', sli=[], num_iter=5, binning=None, ze
         if 0: keep negative pixel value
         
     '''
+    import tomopy
     f = h5py.File(fn)
     tmp = np.array(f['img_bkg_avg'])
     s = tmp.shape
