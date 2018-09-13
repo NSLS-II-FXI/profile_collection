@@ -143,6 +143,27 @@ class Manta(SingleTrigger, AreaDetector):
         return super().resume()
 
 
+WPFS = Manta('XF:18IDA-BI{WPFS:1}', name='WPFS')
+WPFS.hdf5.reg = db.reg
+WPFS.hdf5._reg = db.reg
+WPFS.read_attrs = ['hdf5', 'stats1']
+WPFS.stats1.read_attrs = ['total']
+WPFS.hdf5.read_attrs = []
+
+PMFS = Manta('XF:18IDA-BI{PMFS:1}', name='PMFS')
+PMFS.hdf5.reg = db.reg
+PMFS.hdf5._reg = db.reg
+PMFS.read_attrs = ['hdf5', 'stats1']
+PMFS.stats1.read_attrs = ['total']
+PMFS.hdf5.read_attrs = []
+
+MFS = Manta('XF:18IDA-BI{MFS:1}', name='MFS')
+MFS.hdf5.reg = db.reg
+MFS.hdf5._reg = db.reg
+MFS.read_attrs = ['hdf5', 'stats1']
+MFS.stats1.read_attrs = ['total']
+MFS.hdf5.read_attrs = []
+
 detA1 = Manta('XF:18IDB-BI{Det:A1}', name='detA1')
 detA1.hdf5.reg = db.reg
 detA1.hdf5._reg = db.reg
