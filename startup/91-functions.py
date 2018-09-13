@@ -89,6 +89,27 @@ def get_scan_parameter(scan_id=-1):
     txt = txt0 + scan_type + '(' + txt[:-2] + ')'
     return txt
 
+from bluesky.callbacks import CallbackBase
+
+class PdfMaker(CallbackBase):
+    def start(self, doc):
+        self._last_start = doc
+
+    def stop(self, stop):
+        doc = self._last_start
+        exit
+        scan_id = doc['scan_id']
+        uid = doc['uid']
+        X_eng = f'{h.start["XEng"]:2.4f}'
+        scan_type = doc['plan_name']
+        txt = ''
+        for key, val in doc['plan_args'].items():
+            txt += f'{key}={val}, '
+        txt0 = f'#{scan_id}  (uid: {uid[:6]},  X_Eng: {X_eng} keV)\n'
+        txt = txt0 + scan_type + '(' + txt[:-2] + ')'
+        insert_text(txt)
+
+     
 
 def check_eng_range(eng):
     '''
