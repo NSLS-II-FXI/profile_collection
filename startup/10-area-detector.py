@@ -16,52 +16,23 @@ from ophyd.areadetector.cam import AreaDetectorCam
 from ophyd.areadetector.detectors import DetectorBase
 from ophyd.device import Staged
 import time as ttime
+from nslsii.ad33 import SingleTriggerV33, StatsPluginV33, CamV33Mixin
 
-class v33_plugin_mixin(Device):
-    adcore_version = Cpt(EpicsSignalRO, 'ADCoreVersion_RBV', string=True, kind='config')
-    driver_version = Cpt(EpicsSignalRO, 'DriverVersion_RBV', string=True, kind='config')
-
-    
-class v33_cam_mixin(v33_plugin_mixin):
-    wait_for_plugins = Cpt(EpicsSignal, 'WaitForPlugins', string=True, kind='config')
-
-    
-class v33_file_mixin(v33_plugin_mixin):
-    create_directories = Cpt(EpicsSignal, 'CreateDirectory', kind='config')
-
-    
-class ProcessPlugin33(ProcessPlugin, v33_plugin_mixin):
-    ...
-
-class AndorCam(v33_cam_mixin, AreaDetectorCam):
+class AndorCam(CamV33Mixin, AreaDetectorCam):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        AreaDetectorCam.__init__(self, *args, **kwargs)
         self.stage_sigs['wait_for_plugins'] = 'Yes'
 
-class SingleTrigger33(TriggerBase):
-    _status_type = ADTriggerStatus
+    def ensure_nonblocking(self):
+        self.stage_sigs['wait_for_plugins'] = 'Yes'
+        for c in self.parent.component_names:
+            cpt = getattr(self.parent, c)
+            if cpt is self:
+                continue
+            if hasattr(cpt, 'ensure_nonblocking'):
+                cpt.ensure_nonblocking()
 
-    def __init__(self, *args, image_name=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if image_name is None:
-            image_name = '_'.join([self.name, 'image'])
-        self._image_name = image_name
 
-    def trigger(self):
-        "Trigger one acquisition."
-        if self._staged != Staged.yes:
-            raise RuntimeError("This detector is not ready to trigger."
-                               "Call the stage() method before triggering.")
-
-        self._status = self._status_type(self)
-
-        def _acq_done(*args, **kwargs):
-            # TODO sort out if anything useful in here
-            self._status._finished()
-
-        self._acquisition_signal.put(1, use_complete=True, callback=_acq_done)
-        self.dispatch(self._image_name, ttime.time())
-        return self._status
 
 class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
     # AD v2.2.0 (at least) does not have this. It is present in v1.9.1.
@@ -71,7 +42,7 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
         return self.parent.cam.num_images.get()
 
 
-class AndorKlass(SingleTrigger33, DetectorBase):
+class AndorKlass(SingleTriggerV33, DetectorBase):
     cam = Cpt(AndorCam, 'cam1:')
     image = Cpt(ImagePlugin, 'image1:')
     stats1 = Cpt(StatsPlugin, 'Stats1:')
@@ -84,7 +55,7 @@ class AndorKlass(SingleTrigger33, DetectorBase):
 #    roi2 = Cpt(ROIPlugin, 'ROI2:')
 #    roi3 = Cpt(ROIPlugin, 'ROI3:')
 #    roi4 = Cpt(ROIPlugin, 'ROI4:')
-    proc1 = Cpt(ProcessPlugin33, 'Proc1:')
+    proc1 = Cpt(ProcessPlugin, 'Proc1:')
     
     hdf5 = Cpt(HDF5PluginWithFileStore,
                suffix='HDF1:',
@@ -189,6 +160,7 @@ Andor.hdf5.read_attrs = []
 
 
 Andor = AndorKlass('XF:18IDB-BI{Det:Neo}', name = 'Andor')
+Andor.cam.ensure_nonblocking()
 Andor.hdf5.reg = db.reg
 Andor.hdf5._reg = db.reg
 #Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
