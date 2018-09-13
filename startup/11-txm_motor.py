@@ -2,12 +2,19 @@ from ophyd import (EpicsMotor, EpicsSignalRO, Device, Component as Cpt)
 from ophyd import EpicsSignal
 
 
-class MyEpicsMotor(EpicsMotor):
+class MyBaseMotor(EpicsMotor):
     dial_readback = Cpt(EpicsSignalRO, '.DRBV')
     dial_counts = Cpt(EpicsSignalRO, '.RRBV')
     motor_res = Cpt(EpicsSignalRO, '.MRES')
     encoder_res = Cpt(EpicsSignalRO, '.ERES')
     motor_stat = Cpt(EpicsSignalRO, '.STAT')
+
+class MyEpicsMotor(MyBaseMotor):
+    
+    def stop(self, success=False):
+        self.user_setpoint.set(self.user_readback.get())
+        Device.stop(self, success=success)   
+	
 
 class Condenser(Device):
     x = Cpt(MyEpicsMotor, '{CLens:1-Ax:X}Mtr')
@@ -20,41 +27,41 @@ class Condenser(Device):
 class Zoneplate(Device):
     x = Cpt(MyEpicsMotor, '{ZP:1-Ax:X}Mtr')
     y = Cpt(MyEpicsMotor, '{ZP:1-Ax:Y}Mtr')
-    z = Cpt(MyEpicsMotor, '{TXM-ZP:1-Ax:Z}Mtr')
+    z = Cpt(MyBaseMotor, '{TXM-ZP:1-Ax:Z}Mtr')
 
 class Aperture(Device):
     x = Cpt(MyEpicsMotor, '{Aper:1-Ax:X}Mtr')
     y = Cpt(MyEpicsMotor, '{Aper:1-Ax:Y}Mtr')
-    z = Cpt(MyEpicsMotor, '{TXM-Aper:1-Ax:Z}Mtr')
+    z = Cpt(MyBaseMotor, '{TXM-Aper:1-Ax:Z}Mtr')
 
 class PhaseRing(Device):
     x = Cpt(MyEpicsMotor, '{PR:1-Ax:X}Mtr')
     y = Cpt(MyEpicsMotor, '{PR:1-Ax:Y}Mtr')
-    z = Cpt(MyEpicsMotor, '{TXM-PH:1-Ax:Z}Mtr')
+    z = Cpt(MyBaseMotor, '{TXM-PH:1-Ax:Z}Mtr')
 
 class BetrandLens(Device):
     x = Cpt(MyEpicsMotor, '{BLens:1-Ax:X}Mtr')
     y = Cpt(MyEpicsMotor, '{BLens:1-Ax:Y}Mtr')
-    z = Cpt(MyEpicsMotor, '{BLens:1-Ax:Z}Mtr')
+    z = Cpt(MyBaseMotor, '{BLens:1-Ax:Z}Mtr')
 
 class TXMSampleStage(Device):
     sx = Cpt(MyEpicsMotor, '{Env:1-Ax:Xl}Mtr')
     sy = Cpt(MyEpicsMotor, '{Env:1-Ax:Yl}Mtr')
     sz = Cpt(MyEpicsMotor, '{Env:1-Ax:Zl}Mtr')
-    pi_x = Cpt(MyEpicsMotor, '{TXM:1-Ax:X}Mtr')
+    pi_x = Cpt(MyBaseMotor, '{TXM:1-Ax:X}Mtr')
     pi_r = Cpt(MyEpicsMotor, '{TXM:1-Ax:R}Mtr')
 
 
 class DetSupport(Device):
     x = Cpt(MyEpicsMotor, '-Ax:X}Mtr')
     y = Cpt(MyEpicsMotor, '-Ax:Y}Mtr')
-    z = Cpt(MyEpicsMotor, '-Ax:Z}Mtr')
+    z = Cpt(MyBaseMotor, '-Ax:Z}Mtr')
 
 class TXM_SSA(Device):
-    v_gap = Cpt(MyEpicsMotor, '-Ax:Vgap}Mtr')
-    v_ctr = Cpt(MyEpicsMotor, '-Ax:Vctr}Mtr')
-    h_gap = Cpt(MyEpicsMotor, '-Ax:Hgap}Mtr')
-    h_ctr = Cpt(MyEpicsMotor, '-Ax:Hctr}Mtr')
+    v_gap = Cpt(MyBaseMotor, '-Ax:Vgap}Mtr')
+    v_ctr = Cpt(MyBaseMotor, '-Ax:Vctr}Mtr')
+    h_gap = Cpt(MyBaseMotor, '-Ax:Hgap}Mtr')
+    h_ctr = Cpt(MyBaseMotor, '-Ax:Hctr}Mtr')
 
 
 
