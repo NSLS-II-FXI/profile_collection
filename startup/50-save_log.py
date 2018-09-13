@@ -178,10 +178,11 @@ def wh_pos(comment='', print_on_screen=1):
         lines.append(LINE_FMT.format(p.name, p.stat, pzt_pos, pzt_p_gain, pzt_i_gain, pzt_d_gain, p.bender))
 
     if print_on_screen:   
-        print('\n'.join(lines))
-        return 
+        print('\n'.join(lines))        
+        
     else:
         return lines
+        pass
 
 
 '''    

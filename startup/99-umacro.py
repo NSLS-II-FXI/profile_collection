@@ -1,7 +1,7 @@
 
 new_user()
 show_global_para()
-
+run_pdf()
 
     
 ###################################

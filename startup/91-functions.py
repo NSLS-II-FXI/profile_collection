@@ -436,7 +436,7 @@ def load_single_scan(scan_id=-1):
     h = db[scan_id]
     scan_id = h.start['scan_id']
     scan_type = h.start['plan_name']
-    x_eng = h.start['x_ray_energy']
+#    x_eng = h.start['XEng']
      
     if scan_type == 'tomo_scan':
         print('loading tomo scan: #{}'.format(scan_id))
@@ -502,7 +502,7 @@ def load_fly_scan(h):
     scan_type = 'fly_scan'
     scan_id = h.start['scan_id']   
     scan_time = h.start['time'] 
-    x_eng = h.start['x_ray_energy']
+    x_eng = h.start['XEng']
     chunk_size = h.start['chunk_size']
     # sanity check: make sure we remembered the right stream name
     assert 'zps_pi_r_monitor' in h.stream_names
@@ -638,7 +638,8 @@ def load_z_scan(h):
     img_norm = (img_zscan - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
-    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    fn = h.start['plan_args']['fn']
+    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
@@ -646,6 +647,7 @@ def load_z_scan(h):
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img', data = img_zscan)
+        hf.create_dataset('img_norm', data=img_norm)
     del img, img_zscan, img_bkg, img_dark, img_norm
 
     
@@ -653,7 +655,7 @@ def load_test_scan(h):
     scan_type = h.start['plan_name']
     scan_id = h.start['scan_id']
     uid = h.start['uid']   
-    num = h.start['plan_args']['num']
+    num = h.start['plan_args']['num_bkg']
     num_bkg = h.start['plan_args']['num_bkg']
     note = h.start['plan_args']['note'] if h.start['plan_args']['note'] else 'None'
     img = np.squeeze(np.array(list(h.data('Andor_image'))))
@@ -664,6 +666,7 @@ def load_test_scan(h):
     img_norm = (img_test - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
+#    fn = h.start['plan_args']['fn']
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
@@ -672,6 +675,7 @@ def load_test_scan(h):
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img', data = img_test)
+        hf.create_dataset('img_norm', data=img_norm)
     del img, img_test, img_bkg, img_dark, img_norm
 
 
