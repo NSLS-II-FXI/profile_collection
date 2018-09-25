@@ -151,6 +151,7 @@ def insert_pic(fn='', ratio=0.3):
 
 
 def insert_log(comment=''):
+    export_pdf(1)
     line = wh_pos(comment, 0)
     current_date, current_time, _,_,_ = get_current_date()
     line[0] = f'FXI log    {current_date} {current_time}\n'
@@ -158,7 +159,7 @@ def insert_log(comment=''):
     for i in range(len(line)):
         txt += line[i]
         txt += '\n'
-    PDF_ARGS['Font_size'] = 5.8
+    PDF_ARGS['Font_size'] = 5.5
     PDF_ARGS['num_of_letter'] = 170
     insert_text(txt, 0)
     export_pdf(1)

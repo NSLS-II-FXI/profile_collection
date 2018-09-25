@@ -5,18 +5,23 @@ class PZT(Device):
     i_gain = Cpt(EpicsSignal, 'GET_SERVO_IGAIN', kind='config')
     d_gain = Cpt(EpicsSignal, 'GET_SERVO_DGAIN', kind='config')
     setpos = Cpt(EpicsSignal, 'SET_POSITION.A', kind='normal')
+    status = Cpt(EpicsSignal, 'GET_SERVO_STATE', kind='normal')
 
     @property
     def bender(self):
-        print("stop using PZT.bender")
+#        print("stop using PZT.bender")
         return 'None'
+
+    @property
+    def stat(self):
+        return 'Enabled' if self.status.value else 'Disabled'
 
 class PZTwForce(PZT):
     loadcell = Cpt(EpicsSignalRO, 'W-I', kind='hinted')
 
     @property
     def bender(self):
-        print("stop using PZT.bender")
+#        print("stop using PZT.bender")
         return self.loadcell.get()
 
 class pzt:

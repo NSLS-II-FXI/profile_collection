@@ -4,7 +4,7 @@ def test_test():
     print(h.start['scan_id'])
 
 
-def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_bkg=10, note='', fn='/home/xf18id/tmp/tmp.h5', md=None):
+def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_img=10, num_bkg=10, note='', md=None):
     '''
     Take multiple images (Andor camera)
 
@@ -38,8 +38,8 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_bkg=10, note='', fn
            'plan_args': {'exposure_time': exposure_time,
                          'out_x': out_x,
                          'out_y': out_y,
+                         'num_img': num_img,
                          'num_bkg': num_bkg,
-                         'fn': f'{fn}',
                          'note': note if note else 'None',
                         },
            'plan_name': 'test_scan',
@@ -56,7 +56,7 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_bkg=10, note='', fn
     @stage_decorator(list(detectors))
     @run_decorator(md=_md)
     def inner_scan():
-        for i in range(num_bkg):
+        for i in range(num_img):
             yield from trigger_and_read(list(detectors))
         # taking out sample and take background image
         yield from mv(zps.sx, x_out, zps.sy, y_out)
@@ -80,7 +80,7 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_bkg=10, note='', fn
     return uid
 
 
-def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, fn='/home/xf18id/Documents/tmp/', note='', md=None):
+def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, note='', md=None):
     '''
     scan the zone-plate to find best focus
     use as:
@@ -109,6 +109,8 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
     detectors=[Andor]
     motor = zp.z    
     z_ini = motor.position # zp.z intial position
+    z_start = z_ini + start
+    z_stop = z_ini + stop
     detectors = [Andor]
     y_ini = zps.sy.position # sample y position (initial)
     y_out = y_ini + out_y # sample y position (out-position)
@@ -126,7 +128,6 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
            'plan_args': {'start': start, 'stop': stop, 'steps': steps,
                          'out_x': out_x, 'out_y': out_y, 'chunk_size':chunk_size,                            
                          'exposure_time': exposure_time,
-                         'fn': f'{fn}', 
                          'note': note if note else 'None'},
            'plan_name': 'z_scan',
            'plan_pattern': 'linspace',
@@ -136,7 +137,7 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
            'motor_pos': wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
-    my_var = np.linspace(start, stop, steps)
+    my_var = np.linspace(z_start, z_stop, steps)
     try:   dimensions = [(motor.hints['fields'], 'primary')]
     except (AttributeError, KeyError):  pass
     else:   _md['hints'].setdefault('dimensions', dimensions)
@@ -167,13 +168,13 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
     insert_text(txt)
     print(txt)
     print('loading z_scan and save file to current directory')
-    load_z_scan(db[-1])
+#    load_z_scan(db[-1])
     return uid
 
 
 #####################
 
-'''
+
 def cond_scan(detectors=[detA1], *, md=None):
     motor = clens.x
 
@@ -197,18 +198,29 @@ def cond_scan(detectors=[detA1], *, md=None):
     else:
         _md['hints'].setdefault('dimensions', dimensions)
 
-    @stage_decorator(list(detectors))
+    @stage_decorator(list(detectors) + [clens.x, clens.y1, clens.y2])
     @run_decorator(md=_md)
     def cond_inner_scan():
-        for x in range(6000, 7100, 100):
-            for z1 in range(-800, 800, 20):
-                for p in range(-600, 600, 10):
-                    yield from mv_stage(clens.x, x)
-                    yield from mv_stage(clens.z1, z1)
-                    yield from mv_stage(clens.p, p)
-                    yield from trigger_and_read(list(detectors))
+        cnt=1
+#        for z1 in range(0, 1500, 100):
+#            yield from mv(clens.z1, z1, clens.z2, -z1)
+#            for p in range(-1000, 1000, 100):
+#                yield from mv(clens.p, p)
+#                print(f'cnt={cnt}, z1={z1}, z2={-z1}, pitch={p}\n')
+#                for x in range(-3200, -200, 300):
+#                    yield from mv(clens.x, x)
+#                    for y in range(2500, 4500, 200):
+#                        yield from mv(clens.y1, y, clens.y2, y)
+#                        yield from trigger_and_read(list(detectors)+ [clens.x, clens.y1, clens.y2])
+#                        cnt +=1
+        for x in range(-1850, -550, 50):
+            yield from mv(clens.x, x)
+            for y in range(2400, 3200, 50):
+                yield from mv(clens.y1, y, clens.y2, y)
+                yield from trigger_and_read(list(detectors)+ [clens.x, clens.y1, clens.y2])
+
     return (yield from cond_inner_scan())
-'''
+
 
 
 def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_end, steps, delay_time=0.5):
@@ -235,6 +247,7 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
         fig = plt.figure()
         ax1 = fig.add_subplot(211)
         ax2 = fig.add_subplot(212)
+
         for pbsl_pos in pbsl_y_pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
@@ -423,6 +436,77 @@ def repeat_scan(detectors, motor, start, stop, steps, num=1, sleep_time=1.2):
 
 
 
+###############
+
+def overnight_count(detectors, num=1, delay=None, *, md=None):
+    """
+    same function as the default "count", 
+    re_write it in order to add auto-logging
+    """
+    if num is None:
+        num_intervals = None
+    else:
+        num_intervals = num - 1
+    _md = {'detectors': [det.name for det in detectors],
+           'num_points': num,
+           'XEng': XEng.position,
+           'num_intervals': num_intervals,
+           'plan_args': {'detectors': 'detectors', 'num': num, 'delay': delay},
+           'plan_name': 'overnight_count',
+           'hints': {}
+           }
+    _md.update(md or {})
+    _md['hints'].setdefault('dimensions', [(('time',), 'primary')])
+
+    @bpp.stage_decorator(detectors)
+    @bpp.run_decorator(md=_md)
+    def inner_count():
+        for i in range(num):
+            yield from abs_set(shutter_open, 1)
+            yield from bps.sleep(1)
+            yield from abs_set(shutter_open, 1)
+            yield from bps.sleep(1)
+            yield from trigger_and_read(list(detectors))
+            yield from abs_set(shutter_close, 1)
+            yield from bps.sleep(1)
+            yield from abs_set(shutter_close, 1)
+            yield from bps.sleep(1)
+            print('sleep for 60 sec')
+            yield from bps.sleep(60)
+        yield from mvr(zps.sy, -3000)
+        yield from abs_set(shutter_open, 1)
+        yield from bps.sleep(1)
+        yield from abs_set(shutter_open, 1)
+        yield from bps.sleep(1)
+        print('take sample out, and take background image')
+        for i in range(10):
+            yield from trigger_and_read(list(detectors)) 
+        print('close shutter, taking dark image')
+        yield from abs_set(shutter_close, 1)
+        yield from bps.sleep(1)
+        yield from abs_set(shutter_close, 1)
+        yield from bps.sleep(1)    
+        for i in range(10):
+            yield from trigger_and_read(list(detectors))      
+        yield from mvr(zps.sy, 3000)
+#        return (yield from bps.repeat(partial(bps.trigger_and_read, detectors),
+#                                      num=num, delay=delay))
+    uid = yield from inner_count()
+    h = db[-1]
+    scan_id = h.start['scan_id']
+    det = [det.name for det in detectors]
+    det_name = ''
+    for i in range(len(det)):
+        det_name += det[i]
+        det_name += ', '
+    det_name = '[' + det_name[:-2] + ']'
+
+    txt1 = get_scan_parameter()
+    txt2 = f'detectors = {det_name}'
+    txt = txt1 + '\n' + txt2
+    insert_text(txt)
+    print(txt)
+    return uid    
 
 
 

@@ -94,20 +94,21 @@ from bluesky.callbacks import CallbackBase
 class PdfMaker(CallbackBase):
     def start(self, doc):
         self._last_start = doc
+        print('HI')
 
-    def stop(self, stop):
-        doc = self._last_start
-        exit
-        scan_id = doc['scan_id']
-        uid = doc['uid']
-        X_eng = f'{h.start["XEng"]:2.4f}'
-        scan_type = doc['plan_name']
-        txt = ''
-        for key, val in doc['plan_args'].items():
-            txt += f'{key}={val}, '
-        txt0 = f'#{scan_id}  (uid: {uid[:6]},  X_Eng: {X_eng} keV)\n'
-        txt = txt0 + scan_type + '(' + txt[:-2] + ')'
-        insert_text(txt)
+#    def stop(self, stop):
+#        doc = self._last_start
+#        scan_id = doc['scan_id']
+#        uid = doc['uid']
+#        X_eng = f'{h.start["XEng"]:2.4f}'
+#        scan_type = doc['plan_name']
+#        txt = ''
+#        for key, val in doc['plan_args'].items():
+#            txt += f'{key}={val}, '
+#        txt0 = f'#{scan_id}  (uid: {uid[:6]},  X_Eng: {X_eng} keV)\n'
+#        txt = txt0 + scan_type + '(' + txt[:-2] + ')'
+#        insert_text(txt)
+#        print('this is from callback')
 
      
 
@@ -502,8 +503,8 @@ def load_tomo_scan(h):
     img_dark_avg = np.mean(img_dark,axis=0).reshape(1, s[1], s[2])
     img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
     img_angle = np.linspace(angle_i, angle_e, angle_n)
-        
-    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    fn = os.getcwd() + '/'
+    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
@@ -514,6 +515,9 @@ def load_tomo_scan(h):
     del img_tomo
     del img_dark
     del img_bkg
+    txt = f'load {scan_type} #{scan_id} to: {fname}'
+    print(txt)
+    insert_text(txt)
 
 
 def load_fly_scan(h): 
@@ -568,8 +572,8 @@ def load_fly_scan(h):
     pos2 = mot_pos_interp.argmax() + 1
     img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
     img_tomo = imgs[:pos2-chunk_size]  # tomo images
-    
-    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    fn = os.getcwd() + '/'
+    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('note', data = note)
         hf.create_dataset('uid', data = uid)
@@ -586,6 +590,9 @@ def load_fly_scan(h):
     del img_dark
     del img_bkg
     del imgs
+    txt = f'load {scan_type} #{scan_id} to: {fname}'
+    print(txt)
+    insert_text(txt)
     
 
 def load_xanes_scan(h):
@@ -630,7 +637,8 @@ def load_xanes_scan(h):
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0        
     img_bkg = np.array(img_bkg, dtype=np.float32)
 #    img_xanes_norm = np.array(img_xanes_norm, dtype=np.float32)
-    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    fn = os.getcwd() + '/'
+    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
@@ -642,6 +650,9 @@ def load_xanes_scan(h):
         hf.create_dataset('img_xanes', data = img_xanes_norm)
     del img_xanes, img_dark, img_bkg, img_xanes_avg, img_dark_avg
     del img_bkg_avg, imgs, img_xanes_norm
+    txt = f'load {scan_type} #{scan_id} to: {fname}'
+    print(txt)
+    insert_text(txt)
 
 
 def load_z_scan(h):
@@ -658,7 +669,7 @@ def load_z_scan(h):
     img_norm = (img_zscan - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
-    fn = h.start['plan_args']['fn']
+    fn = os.getcwd() + '/'
     fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
@@ -669,13 +680,16 @@ def load_z_scan(h):
         hf.create_dataset('img', data = img_zscan)
         hf.create_dataset('img_norm', data=img_norm)
     del img, img_zscan, img_bkg, img_dark, img_norm
+    txt = f'load {scan_type} #{scan_id} to: {fname}'
+    print(txt)
+    insert_text(txt)
 
     
 def load_test_scan(h):
     scan_type = h.start['plan_name']
     scan_id = h.start['scan_id']
     uid = h.start['uid']   
-    num = h.start['plan_args']['num_bkg']
+    num = h.start['plan_args']['num_img']
     num_bkg = h.start['plan_args']['num_bkg']
     note = h.start['plan_args']['note'] if h.start['plan_args']['note'] else 'None'
     img = np.squeeze(np.array(list(h.data('Andor_image'))))
@@ -686,8 +700,8 @@ def load_test_scan(h):
     img_norm = (img_test - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
-#    fn = h.start['plan_args']['fn']
-    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    fn = os.getcwd() + '/'
+    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
@@ -697,6 +711,9 @@ def load_test_scan(h):
         hf.create_dataset('img', data = img_test)
         hf.create_dataset('img_norm', data=img_norm)
     del img, img_test, img_bkg, img_dark, img_norm
+    txt = f'load {scan_type} #{scan_id} to: {fname}'
+    print(txt)
+    insert_text(txt)
 
 
 
