@@ -92,6 +92,7 @@ def insert_text(text,write_txt_flag=1):
     check_page_is_full()    
     if write_txt_flag:
         PDF_ARGS['f'].write(text+'\n')
+        PDF_ARGS['f'].write('\n')
         PDF_ARGS['f'].close()
     PDF_ARGS['Cursor_x'] = 0.6 * inch
     PDF_ARGS['C_canvas'].setFont('Courier', PDF_ARGS['Font_size'])
@@ -166,9 +167,12 @@ def insert_log(comment=''):
     reset_pdf()
     
 
-def insert_screen_shot(ratio=0.6):
+def insert_screen_shot(ratio=0.8, whole_screen=False):
     fn =  PDF_ARGS['temp_folder'] + f'/tmp_fig_{PDF_ARGS["tmp_flag"]}.png'
-    cmd = f'import -screen {fn}'
+    if whole_screen:
+        cmd = f'import -screen {fn}'
+    else:
+        cmd = f'import {fn}'
     os.system(cmd)
     insert_pic(fn, ratio)
 #    if flag==2: # current monitor screen
@@ -192,6 +196,16 @@ def export_pdf(merge_flag=0):
         reset_pdf()
     except:
         pass
+
+
+def close_pdf():
+    try:
+        PDF_ARGS['C_canvas'].showPage()
+        PDF_ARGS['C_canvas'].save()
+        print('PDF is closed and disabled\nTo enable PDF, run "reset_pdf()"')
+    except:
+        print('fails to close pdf\nAutomatically run "reset_pdf()"')
+        reset_pdf()
 
 
 def merge_log():
