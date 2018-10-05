@@ -5,7 +5,7 @@ from operator import attrgetter
 from PIL import Image
 #from image_binning import bin_ndarray
 
-GLOBAL_MAG = 380.1 # total magnification
+GLOBAL_MAG = 359.1 # total magnification
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
 ZONE_DIAMETER = 200 # 200 um
@@ -271,10 +271,13 @@ def move_zp_ccd(eng_new, eng_ini=0, flag=1, info_flag=1):
     if flag: # move stages
         print ('Now moving stages ....')
         # RE(mv(XEng.position, Eng) # uncomment it when doing experiment        
-        yield from mvr(zp.z, zp_delta)
+#        yield from mvr(zp.z, zp_delta)
+        yield from mv(zp.z, zp_final)
         if info_flag: 
             print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp.z.position))
-        yield from mvr(det.z, det_delta)
+
+#        yield from mvr(det.z, det_delta)
+        yield from mv(det.z, det_final)
         if info_flag: 
             print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det.z.position))
         yield from mv(XEng, eng_new)
@@ -909,7 +912,7 @@ def find_rot(fn, thresh=0.05):
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, bad_slice=[]):
    
    
     import tomopy 
@@ -917,10 +920,15 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
     tmp = np.array(f['img_bkg_avg'])
     s = tmp.shape
     if sli == 0: sli = int(s[1]/2)
-    img_tomo = np.array(f['img_tomo'][:, sli, :])
+    
     img_bkg = np.array(f['img_bkg_avg'][:, sli, :])
     img_dark = np.array(f['img_dark_avg'][:, sli, :])
+
     theta = np.array(f['angle']) / 180.0 * np.pi
+    tot_slice = np.arange(len(theta))
+    tot_slice = np.setdiff1d(tot_slice, bad_slice)     
+    img_tomo = np.array(f['img_tomo'][tot_slice, sli, :])
+    theta = theta[tot_slice]
     f.close()
     prj = (img_tomo - img_dark) / (img_bkg - img_dark)
     prj_norm = -np.log(prj)
@@ -944,7 +952,7 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
         hf.create_dataset('rot_cen', data=cen)
     
     
-def recon(fn, rot_cen, algorithm='gridrec', sli=[], num_iter=5, binning=None, zero_flag=0):
+def recon(fn, rot_cen, algorithm='gridrec', sli=[], bad_slice=[], num_iter=5, binning=None, zero_flag=0):
     '''
     reconstruct 3D tomography
     Inputs:
@@ -982,12 +990,16 @@ def recon(fn, rot_cen, algorithm='gridrec', sli=[], num_iter=5, binning=None, ze
     else:
         print('non valid slice id, will take reconstruction for the whole object')
     
-        
     scan_id = np.array(f['scan_id'])
-    img_tomo = np.array(f['img_tomo'][:, sli[0]:sli[1], :])
+    theta = np.array(f['angle']) / 180.0 * np.pi
+
+    tot_slice = np.arange(len(theta))
+    tot_slice = np.setdiff1d(tot_slice, bad_slice)     
+    img_tomo = np.array(f['img_tomo'][tot_slice, sli[0]:sli[1], :])
+    theta = theta[tot_slice]
     img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1], :])
     img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1], :])
-    theta = np.array(f['angle']) / 180.0 * np.pi
+    
     f.close()
     prj = (img_tomo - img_dark) / (img_bkg - img_dark)
     prj_norm = -np.log(prj)

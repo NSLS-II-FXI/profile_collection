@@ -485,14 +485,17 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
     print(txt) 
 
 
-def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=0, out_y=2000, rs=1, parkpos=None, note='', md=None):
+def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=0, out_y=2000, out_z=0, rs=1, parkpos=None, note='', md=None):
     motor_rot = zps.pi_r
     motor_x = zps.sx
     motor_y = zps.sy
+    motor_z = zps.sz
     motor_x_ini = motor_x.position
     motor_x_out = motor_x_ini + out_x
     motor_y_ini = motor_y.position
     motor_y_out = motor_y_ini + out_y
+    motor_z_ini = motor_z.position
+    motor_z_out = motor_z_ini + out_z
     detectors = [Andor, ic3]
 #    detectors = [detA1, ic3]
     offset_angle = -2.0 * rs
@@ -567,6 +570,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
         yield from mv(motor_rot, parkpos) # move sample stage back to parkposition to take bkg image
         yield from mv(motor_x, motor_x_out)    # move zps.sx stage to motor_x_out
         yield from mv(motor_y, motor_y_out)
+        yield from mv(motor_z, motor_z_out)
         print ('\nTaking background images...')
         #print('pi_x position: {0}'\n.format(motor_x.position))
         yield from trigger_and_read(list(detectors) + [motor_rot])
@@ -576,6 +580,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
         yield from abs_set(shutter_close, 1)
         yield from mv(motor_x, motor_x_ini)   # move zps.sx stage back to motor_x_start
         yield from mv(motor_y, motor_y_ini)
+        yield from mv(motor_z, motor_z_ini)
     uid = yield from fly_inner_scan()
     print('scan finished')
     txt = get_scan_parameter()

@@ -174,6 +174,16 @@ for k in ('image', 'stats1', 'trans1', 'roi1', 'proc1'):
     getattr(Andor, k).ensure_nonblocking()
 
 
+vlm = Manta('XF:18IDB-BI{VLM:1}', name='vlm')
+vlm.hdf5.reg = db.reg
+vlm.hdf5._reg = db.reg
+#detA1.read_attrs = ['hdf5', 'stats1', 'stats5']
+#detA1.read_attrs = ['hdf5']
+vlm.read_attrs = ['hdf5', 'stats1']
+vlm.stats1.read_attrs = ['total']
+#detA1.stats5.read_attrs = ['total']
+vlm.hdf5.read_attrs = []
+
 
 
 for det in [detA1, Andor]:
