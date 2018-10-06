@@ -5,7 +5,7 @@ from operator import attrgetter
 from PIL import Image
 #from image_binning import bin_ndarray
 
-GLOBAL_MAG = 359.1 # total magnification
+GLOBAL_MAG = 377 # total magnification
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
 ZONE_DIAMETER = 200 # 200 um
@@ -72,7 +72,8 @@ def new_user():
 
 def get_img(h, det='Andor'):
     "Take in a Header and return a numpy array of detA1 image(s)."
-    img = list(h.data('Andor_image'))
+    det_name=det+'_image'
+    img = list(h.data(det_name))
     return np.squeeze(np.array(img))
 
 
@@ -246,7 +247,7 @@ def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
         return zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final
 
 
-def move_zp_ccd(eng_new, eng_ini=0, flag=1, info_flag=1):
+def move_zp_ccd(eng_new, move_flag=1, info_flag=1, xanes_flag='2D'):
     '''
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
@@ -256,38 +257,89 @@ def move_zp_ccd(eng_new, eng_ini=0, flag=1, info_flag=1):
     -------
     eng_new:  float 
           User defined energy, in unit of keV
-    eng_ini:  float
-          if eng_ini < 4.0 (keV), will eng_ini = current Xray energy 
     flag: int
           0: Do calculation without moving real stages
           1: Will move stages
     '''
     eng_new = float(eng_new) # eV, e.g. 9.0
     det = DetU # upstream detector
-    zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
     eng_ini = XEng.position
+    check_eng_range([eng_ini])
+    zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
+    
     assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
 
-    if flag: # move stages
-        print ('Now moving stages ....')
-        # RE(mv(XEng.position, Eng) # uncomment it when doing experiment        
-#        yield from mvr(zp.z, zp_delta)
-        yield from mv(zp.z, zp_final)
-        if info_flag: 
-            print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp.z.position))
 
-#        yield from mvr(det.z, det_delta)
-        yield from mv(det.z, det_final)
+    pzt_dcm_th2_9kev = 6.0373
+    pzt_dcm_chi2_9kev = -12.6474
+    pzt_dcm_th2_7kev = 5.4373
+    pzt_dcm_chi2_7kev = -10.7463
+
+    pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
+    pzt_dcm_th2_target = (eng_new - 7.) * (pzt_dcm_th2_9kev - pzt_dcm_th2_7kev) / (9-7) + pzt_dcm_th2_7kev
+
+    pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
+    pzt_dcm_chi2_target = (eng_new - 7.) * (pzt_dcm_chi2_9kev - pzt_dcm_chi2_7kev) / (9-7) + pzt_dcm_chi2_7kev
+    
+    zp_x_ini = zp.x.position
+    zp_x_target = (eng_new - 7)*1.0*(0-52)/(9-7)+52
+    zp_y_ini = zp.y.position
+    zp_y_target = (eng_new - 7)*1.0*(0-1)/(9-7)+1
+
+    clens_x_ini = clens.x.position
+    clens_x_target = (eng_new - 7) *(0-40)/2+40
+
+    aper_x_ini = aper.x.position
+    aper_x_target = (eng_new - 7) *(0-40)/2+40
+
+    zps_x_ini = zps.sx.position
+    zps_pi_x_ini = zps.pi_x.position
+    if xanes_flag == '2D': 
+        x_target = (eng_new - 7)*1.0*(0-40)/(9-7)+40 # move zps.sx
+    else:
+        x_target = (eng_new - 7)*1.0*(0-0.0425)/(9-7)+0.0425 # move zps.pi_x
+
+
+
+    if move_flag: # move stages
+        print ('Now moving stages ....')     
         if info_flag: 
-            print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det.z.position))
-        yield from mv(XEng, eng_new)
-        if info_flag: 
-            print ('Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, XEng.position))
+            print ('Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
+            print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp_final))
+            print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final))            
+            if xanes_flag == '2D':
+                print ('move zps_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_x_ini, x_target))
+            else:
+                print ('move zps_pi_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_pi_x_ini, x_target))
+            print ('move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
+            print ('move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
+            print ('move clens_x: ({0:2.4f} um --> {1:2.4f} um)'.format(clens_x_ini, clens_x_target))
+            print ('move aper_x: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_x_ini, aper_x_target))
+            print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
+            print ('move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
+        yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
+        yield from mv(zp.x, zp_x_target, zp.y, zp_y_target, clens.x, clens_x_target, aper.x, aper_x_target)
+        yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
+        if xanes_flag == '2D':
+            yield from mv(zps.sx, x_target)
+        else:
+            yield from mv(zps.pi_x, x_target)
     else:
         print ('This is calculation. No stages move') 
+        print ('Will move Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
         print ('will move zone plate down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(zp_delta, zp_ini, zp_final))
         print ('will move CCD down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(det_delta, det_ini, det_final))
-    
+        print ('will move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
+        print ('will move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
+        if xanes_flag == '2D':
+            print ('will move zps_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_x_ini, x_target))
+        else:
+            print ('will move zps_pi_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_pi_x_ini, x_target))
+        print ('will move clens_x: ({0:2.4f} um --> {1:2.4f} um)'.format(clens_x_ini, clens_x_target))
+        print ('will move aper_x: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_x_ini, aper_x_target))
+        print ('will move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
+        print ('will move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
+
 
 def cal_phase_ring_position(eng_new, eng_ini=0, print_flag=1):
     '''

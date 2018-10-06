@@ -220,7 +220,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
         time.sleep(1)
         for eng in eng_list:
 #            yield from mv_stage(motor, eng)
-            yield from move_zp_ccd(eng, info_flag=0)
+            yield from move_zp_ccd(eng, move_flag=1, info_flag=0, xanes_flag='2D')
             yield from trigger_and_read(list(detectors) + [motor])
 
         yield from mv_stage(motor_x, motor_x_out)
@@ -344,7 +344,7 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
         time.sleep(1)
         for eng in eng_list:
 #            yield from mv_stage(motor, eng)
-            yield from move_zp_ccd(eng, info_flag=0)
+            yield from move_zp_ccd(eng, move_flag=1, info_flag=0, xanes_flag='2D')
             yield from trigger_and_read(list(detectors) + [motor])
             yield from mv_stage(motor_x, motor_x_out)
             yield from mv_stage(motor_y, motor_y_out)
