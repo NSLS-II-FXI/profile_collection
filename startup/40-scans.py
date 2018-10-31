@@ -129,7 +129,7 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
 
 
 
-def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note='', md=None):
+def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_z=0, out_r=0, note='', md=None):
     '''
     Scan the energy and take 2D image
     Example: RE(xanes_scan([8.9, 9.0, 9.1], exposure_time=0.1, bkg_num=10, dark_num=10, out_x=1, out_y=0, note='xanes scan test'))
@@ -171,6 +171,12 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
     motor_y = zps.sy # move sample y
     motor_y_ini = motor_y.position # initial position of motor_y
     motor_y_out = motor_y_ini + out_y  # 'out position' of motor_y
+    motor_z = zps.sz
+    motor_z_ini = motor_z.position # initial position of motor_y
+    motor_z_out = motor_z_ini + out_z  # 'out position' of motor_y
+    motor_r = zps.pi_r
+    motor_r_ini = motor_r.position # initial position of motor_y
+    motor_r_out = motor_r_ini + out_r  # 'out position' of motor_y
 
     _md = {'detectors': [det.name for det in detectors],
            'motors': [motor.name],
@@ -202,7 +208,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
     except (AttributeError, KeyError):  pass
     else:   _md['hints'].setdefault('dimensions', dimensions)
 
-    @stage_decorator(list(detectors) + [motor, motor_x])
+    @stage_decorator(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
     @run_decorator(md=_md)
     def xanes_inner_scan():
         print('\ntake {} dark images...'.format(chunk_size))
@@ -210,7 +216,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
         time.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
         time.sleep(1)
-        yield from trigger_and_read(list(detectors) + [motor])
+        yield from trigger_and_read(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
 
 
         print('\nopening shutter, and start xanes scan: {} images per each energy... '.format(chunk_size))
@@ -219,22 +225,24 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
         yield from abs_set(shutter_open, 1, wait=True)
         time.sleep(1)
         for eng in eng_list:
-#            yield from mv_stage(motor, eng)
-            yield from move_zp_ccd(eng, move_flag=1, info_flag=0, xanes_flag='2D')
-            yield from trigger_and_read(list(detectors) + [motor])
+            yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
+            yield from trigger_and_read(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
 
-        yield from mv_stage(motor_x, motor_x_out)
-        yield from mv_stage(motor_y, motor_y_out)
+        yield from mv(motor_r, motor_r_out)
+        yield from mv(motor_x, motor_x_out, motor_y, motor_y_out, motor_z, motor_z_out)
+
         print('\ntake bkg image after xanes scan, {} per each energy...'.format(chunk_size))
         for eng in eng_list:
 #            yield from mv_stage(motor, eng)
             yield from move_zp_ccd(eng, info_flag=0)
-            yield from trigger_and_read(list(detectors) + [motor])
+            yield from trigger_and_read(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
 #            for i in range(bkg_num):
 #                yield from trigger_and_read(list(detectors) + [motor])
 
-        yield from mv_stage(motor_x, motor_x_ini) # move sample stage back to orginal position
-        yield from mv_stage(motor_y, motor_y_ini)
+
+        yield from mv(motor_x, motor_x_ini, motor_y, motor_y_ini, motor_z, motor_z_ini)
+        yield from mv(motor_r, motor_r_ini)
+        
         yield from move_zp_ccd(eng_ini, info_flag=0)
 
         print('closing shutter')
@@ -243,7 +251,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
         yield from abs_set(shutter_close, 1, wait=True)
     yield from xanes_inner_scan()
     txt1 = get_scan_parameter()
-    txt2 = f'eng_list: {eng_list}'
+    txt2 = f'eng_list: {eng_list}\n'
     txt = txt1 + '\n' + txt2
     insert_text(txt)
     print(txt)
@@ -251,7 +259,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note
 
 
 
-def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, note='', md=None):
+def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_z=0, out_r=0, note='', md=None):
     '''
     Different from xanes_scan:  In xanes_scan2, it moves out sample and take background image at each energy
 
@@ -280,7 +288,7 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
     note: string
 
     '''
-    detectors=[Andor]
+    detectors=[Andor, ic3]
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
@@ -295,6 +303,14 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
     motor_y = zps.sy # move sample y
     motor_y_ini = motor_y.position # initial position of motor_y
     motor_y_out = motor_y_ini + out_y  # 'out position' of motor_y
+    motor_z = zps.sz
+    motor_z_ini = motor_z.position # initial position of motor_y
+    motor_z_out = motor_z_ini + out_z  # 'out position' of motor_y
+    motor_r = zps.pi_r
+    motor_r_ini = motor_r.position # initial position of motor_y
+    motor_r_out = motor_r_ini + out_r  # 'out position' of motor_y
+
+    rs_ini = motor_r.velocity.value
 
     _md = {'detectors': [det.name for det in detectors],
            'motors': [motor.name],
@@ -313,6 +329,8 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
                          'chunk_size': chunk_size,
                          'out_x': out_x,
                          'out_y': out_y,
+                         'out_z': out_z,
+                         'our_r': out_r,
                          'note': note if note else 'None'
                          },              
            'plan_name': 'xanes_scan2',
@@ -326,15 +344,16 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
     except (AttributeError, KeyError):  pass
     else:   _md['hints'].setdefault('dimensions', dimensions)
 
-    @stage_decorator(list(detectors) + [motor, motor_x])
+    @stage_decorator(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
     @run_decorator(md=_md)
     def xanes_inner_scan():
+        yield from abs_set(motor_r.velocity, 30)
         print('\ntake {} dark images...'.format(chunk_size))
         yield from abs_set(shutter_close, 1, wait=True)
         time.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
         time.sleep(1)
-        yield from trigger_and_read(list(detectors) + [motor])
+        yield from trigger_and_read(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
 
 
         print('\nopening shutter, and start xanes scan: {} images per each energy... '.format(chunk_size))
@@ -344,25 +363,42 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, not
         time.sleep(1)
         for eng in eng_list:
 #            yield from mv_stage(motor, eng)
-            yield from move_zp_ccd(eng, move_flag=1, info_flag=0, xanes_flag='2D')
-            yield from trigger_and_read(list(detectors) + [motor])
-            yield from mv_stage(motor_x, motor_x_out)
-            yield from mv_stage(motor_y, motor_y_out)
-            yield from trigger_and_read(list(detectors) + [motor])
-            yield from mv_stage(motor_x, motor_x_ini)
-            yield from mv_stage(motor_y, motor_y_ini)
+            yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
+            yield from bps.sleep(0.1)
+            yield from trigger_and_read(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
+#            yield from bps.sleep(0.1)
+            yield from mv(motor_r, motor_r_out)
+            yield from mv(motor_x, motor_x_out, motor_y, motor_y_out, motor_z, motor_z_out)
+#            yield from mv_stage(motor_x, motor_x_out)
+#            yield from mv_stage(motor_y, motor_y_out)
+#            yield from mv_stage(motor_z, motor_z_out)
+#            yield from mv_stage(motor_r, motor_r_out)
+            yield from bps.sleep(0.1)
+            yield from trigger_and_read(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
+#            yield from bps.sleep(0.1)
+            yield from mv(motor_x, motor_x_ini, motor_y, motor_y_ini, motor_z, motor_z_ini)
+            yield from mv(motor_r, motor_r_ini)
+#            yield from mv_stage(motor_r, motor_r_ini)
+#            yield from mv_stage(motor_x, motor_x_ini)
+#            yield from mv_stage(motor_y, motor_y_ini)
+#            yield from mv_stage(motor_z, motor_z_ini)
 
-        yield from mv_stage(motor_x, motor_x_ini) # move sample stage back to orginal position
-        yield from mv_stage(motor_y, motor_y_ini)
-        yield from move_zp_ccd(eng_ini, info_flag=0)
+        yield from mv(motor_r, motor_r_ini)
+        yield from mv(motor_x, motor_x_ini, motor_y, motor_y_ini, motor_z, motor_z_ini)
+#        yield from mv_stage(motor_x, motor_x_ini) # move sample stage back to orginal position
+#        yield from mv_stage(motor_y, motor_y_ini)
+#        yield from mv_stage(motor_z, motor_z_ini)
+
+        yield from move_zp_ccd(eng_ini, move_flag=1, info_flag=0)
 
         print('closing shutter')
         yield from abs_set(shutter_close, 1, wait=True)
         time.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
+        yield from abs_set(motor_r.velocity, rs_ini)
     yield from xanes_inner_scan()
     txt1 = get_scan_parameter()
-    txt2 = f'eng_list: {eng_list}'
+    txt2 = f'eng_list: {eng_list}\n'
     txt = txt1 + '\n' + txt2
     insert_text(txt)
     print(txt)
@@ -485,6 +521,7 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
     print(txt) 
 
 
+
 def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=0, out_y=2000, out_z=0, rs=1, parkpos=None, note='', md=None):
     motor_rot = zps.pi_r
     motor_x = zps.sx
@@ -590,6 +627,85 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
 
 
 
+
+def grid2D_rel(motor1, start1, stop1, num1, motor2, start2, stop2, num2, exposure_time=0.05, delay_time=0, note='', md=None):
+    # detectors=[ic3, ic4]
+
+    detectors=[Andor, ic3]
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
+    yield from mv(Andor.cam.num_images, 1)
+    yield from mv(detectors[0].cam.acquire_time, exposure_time)
+    Andor.cam.acquire_period.put(exposure_time)
+
+
+    motor1_ini = motor1.position
+    motor2_ini = motor2.position
+
+    _md = {'detectors': [det.name for det in detectors],
+           'motors': [motor1.name, motor2.name],
+           'XEng': XEng.position,
+           'plan_name': 'grid2D_rel',
+           'plan_args': {'motor1': motor1.name,'start1':start1, 'stop1':stop1, 'num1':num1,
+                         'motor2': motor2.name,'start2':start2, 'stop2':stop2, 'num2':num2,
+                         'exposure_time':exposure_time, 'delay_time': delay_time,
+                         'note': note if note else 'None',
+                         },   
+           'plan_pattern': 'linspace',
+           'plan_pattern_module': 'numpy',
+           'hints': {},
+           'operator': 'FXI',
+           'note': note if note else 'None',
+           'motor_pos':  wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    try:  dimensions = [(motor1.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):    pass
+    else: _md['hints'].setdefault('dimensions', dimensions)
+
+    motor1_s = motor1_ini + start1
+    motor1_e = motor1_ini + stop1
+    steps1 = np.linspace(motor1_s, motor1_e, num1)
+
+    motor2_s = motor2_ini + start2
+    motor2_e = motor2_ini + stop2
+    steps2 = np.linspace(motor2_s, motor2_e, num2)
+
+    print(steps1)
+    print(steps2)
+
+    
+    @stage_decorator(list(detectors) + [motor1, motor2])
+    @run_decorator(md=_md)
+    def grid2D_rel_inner():
+        for i in range(num1):
+            yield from mv(motor1, steps1[i])
+            for j in range(num2):
+                yield from mv(motor2, steps2[j])
+                yield from bps.sleep(delay_time)
+                yield from trigger_and_read(list(detectors) + [motor1, motor2])
+        yield from mv(motor1, motor1_ini, motor2, motor2_ini)
+    yield from grid2D_rel_inner()
+
+    h = db[-1]
+    scan_id = h.start['scan_id']    
+    det = [det.name for det in detectors]
+    det_name = ''
+    for i in range(len(det)):
+        det_name += det[i]
+        det_name += ', '
+    det_name = '[' + det_name[:-2] + ']'
+    txt1 = get_scan_parameter()
+    txt2 = f'detectors = {det_name}'
+    txt = txt1 + '\n' + txt2 + '\n'
+    insert_text(txt)
+    print(txt) 
+
+
+
+
+
+
 def overnight_scan():
     for i in range(14):
         print('current run scan #{:2d}'.format(i))
@@ -602,7 +718,7 @@ def overnight_scan():
 
 ###############################################
 
-def delay_count(detectors, num=1, delay=None, *, md=None):
+def delay_count(detectors, num=1, delay=None, *, note='', md=None):
     """
     same function as the default "count", 
     re_write it in order to add auto-logging
@@ -617,7 +733,8 @@ def delay_count(detectors, num=1, delay=None, *, md=None):
            'num_intervals': num_intervals,
            'plan_args': {'detectors': 'detectors', 'num': num, 'delay': delay},
            'plan_name': 'delay_count',
-           'hints': {}
+           'hints': {},
+           'note': note if note else 'None',
            }
     _md.update(md or {})
     _md['hints'].setdefault('dimensions', [(('time',), 'primary')])
@@ -717,12 +834,9 @@ def delay_scan(detectors, motor, start, stop, steps,  sleep_time=1.0, plot_flag=
     return uid
 
 
-
+'''
 def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_size=20, out_x=0, out_y=0, rs=3, parkpos=None, note=''):
-    '''
-    eng is in KeV
 
-    '''
     id_list=[]
     txt1 = f'xanes_3d_scan(eng_list=eng_list, exposure_time={exposure_time}, relative_rot_angle={relative_rot_angle}, period={period}, chunk_size={chunk_size}, out_x={out_x}, out_y={out_y}, rs={rs}, parkpos={park_pos}, note={note if note else "None"})'
     txt2 = f'eng_list = {eng_list}'
@@ -739,7 +853,7 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
         print('current energy: {} --> scan_id: {}\n'.format(eng, scan_id))
     return my_eng_list, id_list
 
-
+'''
 
 
 

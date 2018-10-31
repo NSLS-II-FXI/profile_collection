@@ -3,6 +3,8 @@ import matplotlib.pylab as plt
 import h5py
 from operator import attrgetter
 from PIL import Image
+from scipy.signal import medfilt2d
+
 #from image_binning import bin_ndarray
 
 GLOBAL_MAG = 377 # total magnification
@@ -72,8 +74,7 @@ def new_user():
 
 def get_img(h, det='Andor'):
     "Take in a Header and return a numpy array of detA1 image(s)."
-    det_name=det+'_image'
-    img = list(h.data(det_name))
+    img = list(h.data('Andor_image'))
     return np.squeeze(np.array(img))
 
 
@@ -233,8 +234,8 @@ def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
     zp_delta = p_cal - p_ini
     det_delta = q_cal - q_ini + zp_delta
 
-    zp_final = zp_ini + zp_delta
-    det_final = det_ini + det_delta
+    zp_final = p_cal
+    det_final = p_cal*(mag+1)
 
     if print_flag:    
         print ('Calculation results:')
@@ -247,11 +248,11 @@ def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
         return zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final
 
 
-def move_zp_ccd(eng_new, move_flag=1, info_flag=1, xanes_flag='2D'):
+def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
     '''
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
-        move_zp_ccd_with_const_mag(eng_new=8.0, eng_ini=9.0, flag=1):
+        move_zp_ccd_with_const_mag(eng_new=8.0, move_flag=1):
 
     Inputs:
     -------
@@ -270,60 +271,42 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, xanes_flag='2D'):
     assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
 
 
-    pzt_dcm_th2_9kev = 6.0373
-    pzt_dcm_chi2_9kev = -12.6474
-    pzt_dcm_th2_7kev = 5.4373
-    pzt_dcm_chi2_7kev = -10.7463
+    pzt_dcm_th2_9kev = 0.814
+    pzt_dcm_chi2_9kev = -22.85
+    zp_x_pos_9kev = 0
+    zp_y_pos_9kev = 0
+
+
+    pzt_dcm_th2_7kev = 0.517
+    pzt_dcm_chi2_7kev = -25.1
+    zp_x_pos_7kev = 17.7
+    zp_y_pos_7kev = 2
+
+    
+    pzt_dcm_th2_target = (eng_new - 7.) * (pzt_dcm_th2_9kev - pzt_dcm_th2_7kev) / (9-7) + pzt_dcm_th2_7kev
+    pzt_dcm_chi2_target = (eng_new - 7.) * (pzt_dcm_chi2_9kev - pzt_dcm_chi2_7kev) / (9-7) + pzt_dcm_chi2_7kev
+    zp_x_target = (eng_new - 7.0)*(zp_x_pos_9kev-zp_x_pos_7kev)/(9-7.0)+zp_x_pos_7keV
+    zp_y_target = (eng_new - 7.0)*(zp_y_pos_9kev-zp_y_pos_7kev)/(9-7.0)+zp_y_pos_7keV
 
     pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
-    pzt_dcm_th2_target = (eng_new - 7.) * (pzt_dcm_th2_9kev - pzt_dcm_th2_7kev) / (9-7) + pzt_dcm_th2_7kev
-
     pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
-    pzt_dcm_chi2_target = (eng_new - 7.) * (pzt_dcm_chi2_9kev - pzt_dcm_chi2_7kev) / (9-7) + pzt_dcm_chi2_7kev
-    
-    zp_x_ini = zp.x.position
-    zp_x_target = (eng_new - 7)*1.0*(0-52)/(9-7)+52
+    zp_x_ini = zp.x.position    
     zp_y_ini = zp.y.position
-    zp_y_target = (eng_new - 7)*1.0*(0-1)/(9-7)+1
-
-    clens_x_ini = clens.x.position
-    clens_x_target = (eng_new - 7) *(0-40)/2+40
-
-    aper_x_ini = aper.x.position
-    aper_x_target = (eng_new - 7) *(0-40)/2+40
-
-    zps_x_ini = zps.sx.position
-    zps_pi_x_ini = zps.pi_x.position
-    if xanes_flag == '2D': 
-        x_target = (eng_new - 7)*1.0*(0-40)/(9-7)+40 # move zps.sx
-    else:
-        x_target = (eng_new - 7)*1.0*(0-0.0425)/(9-7)+0.0425 # move zps.pi_x
-
-
+    
 
     if move_flag: # move stages
         print ('Now moving stages ....')     
         if info_flag: 
             print ('Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
             print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp_final))
-            print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final))            
-            if xanes_flag == '2D':
-                print ('move zps_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_x_ini, x_target))
-            else:
-                print ('move zps_pi_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_pi_x_ini, x_target))
+            print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final)) 
             print ('move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
             print ('move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
-            print ('move clens_x: ({0:2.4f} um --> {1:2.4f} um)'.format(clens_x_ini, clens_x_target))
-            print ('move aper_x: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_x_ini, aper_x_target))
             print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
             print ('move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
         yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
-        yield from mv(zp.x, zp_x_target, zp.y, zp_y_target, clens.x, clens_x_target, aper.x, aper_x_target)
         yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
-        if xanes_flag == '2D':
-            yield from mv(zps.sx, x_target)
-        else:
-            yield from mv(zps.pi_x, x_target)
+        yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
     else:
         print ('This is calculation. No stages move') 
         print ('Will move Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
@@ -331,15 +314,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, xanes_flag='2D'):
         print ('will move CCD down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(det_delta, det_ini, det_final))
         print ('will move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
         print ('will move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
-        if xanes_flag == '2D':
-            print ('will move zps_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_x_ini, x_target))
-        else:
-            print ('will move zps_pi_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zps_pi_x_ini, x_target))
-        print ('will move clens_x: ({0:2.4f} um --> {1:2.4f} um)'.format(clens_x_ini, clens_x_target))
-        print ('will move aper_x: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_x_ini, aper_x_target))
         print ('will move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
         print ('will move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
-
+    
 
 def cal_phase_ring_position(eng_new, eng_ini=0, print_flag=1):
     '''
@@ -531,7 +508,13 @@ def load_single_scan(scan_id=-1):
         load_z_scan(h)
     elif scan_type == 'test_scan':
         print('loading test_scan: #{}'.format(scan_id))
-        load_test_scan(h)
+        load_test_scan(h)    
+    elif scan_type == 'multipos_count':
+        print(f'loading multipos_count: #{scan_id}')
+        load_multipos_count(h)
+    elif scan_type == 'grid2D_rel':
+        print('loading grid2D_rel: #{}'.format(scan_id))
+        load_grid2D_rel(h)
     else:
         print('Un-recognized scan type ......')
         pass
@@ -558,8 +541,8 @@ def load_tomo_scan(h):
     img_dark_avg = np.mean(img_dark,axis=0).reshape(1, s[1], s[2])
     img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
     img_angle = np.linspace(angle_i, angle_e, angle_n)
-    fn = os.getcwd() + '/'
-    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
+        
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
@@ -570,9 +553,6 @@ def load_tomo_scan(h):
     del img_tomo
     del img_dark
     del img_bkg
-    txt = f'load {scan_type} #{scan_id} to: {fname}'
-    print(txt)
-    insert_text(txt)
 
 
 def load_fly_scan(h): 
@@ -627,8 +607,8 @@ def load_fly_scan(h):
     pos2 = mot_pos_interp.argmax() + 1
     img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
     img_tomo = imgs[:pos2-chunk_size]  # tomo images
-    fn = os.getcwd() + '/'
-    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
+    
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('note', data = note)
         hf.create_dataset('uid', data = uid)
@@ -645,9 +625,6 @@ def load_fly_scan(h):
     del img_dark
     del img_bkg
     del imgs
-    txt = f'load {scan_type} #{scan_id} to: {fname}'
-    print(txt)
-    insert_text(txt)
     
 
 def load_xanes_scan(h):
@@ -665,7 +642,7 @@ def load_xanes_scan(h):
     imgs = np.array(list(h.data('Andor_image')))
     img_dark = imgs[0]
     img_dark_avg = np.mean(img_dark, axis=0).reshape([1,img_dark.shape[1], img_dark.shape[2]])
-    eng_list = np.array(list(h.data('XEng')))[1:num_eng+1]
+    eng_list = list(h.start['eng_list'])
     s = imgs.shape
     img_xanes_avg = np.zeros([num_eng, s[2], s[3]])   
     img_bkg_avg = np.zeros([num_eng, s[2], s[3]])  
@@ -692,8 +669,7 @@ def load_xanes_scan(h):
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0        
     img_bkg = np.array(img_bkg, dtype=np.float32)
 #    img_xanes_norm = np.array(img_xanes_norm, dtype=np.float32)
-    fn = os.getcwd() + '/'
-    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
@@ -705,9 +681,6 @@ def load_xanes_scan(h):
         hf.create_dataset('img_xanes', data = img_xanes_norm)
     del img_xanes, img_dark, img_bkg, img_xanes_avg, img_dark_avg
     del img_bkg_avg, imgs, img_xanes_norm
-    txt = f'load {scan_type} #{scan_id} to: {fname}'
-    print(txt)
-    insert_text(txt)
 
 
 def load_z_scan(h):
@@ -724,7 +697,7 @@ def load_z_scan(h):
     img_norm = (img_zscan - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
-    fn = os.getcwd() + '/'
+    fn = h.start['plan_args']['fn']
     fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
@@ -735,12 +708,10 @@ def load_z_scan(h):
         hf.create_dataset('img', data = img_zscan)
         hf.create_dataset('img_norm', data=img_norm)
     del img, img_zscan, img_bkg, img_dark, img_norm
-    txt = f'load {scan_type} #{scan_id} to: {fname}'
-    print(txt)
-    insert_text(txt)
 
     
 def load_test_scan(h):
+    import tifffile
     scan_type = h.start['plan_name']
     scan_id = h.start['scan_id']
     uid = h.start['uid']   
@@ -755,8 +726,9 @@ def load_test_scan(h):
     img_norm = (img_test - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
-    fn = os.getcwd() + '/'
-    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
+#    fn = h.start['plan_args']['fn']
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    fname_tif = scan_type + '_id_' + str(scan_id) + '.tif'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
@@ -765,10 +737,8 @@ def load_test_scan(h):
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img', data = img_test)
         hf.create_dataset('img_norm', data=img_norm)
+#    tifffile.imsave(fname_tif, img_norm)
     del img, img_test, img_bkg, img_dark, img_norm
-    txt = f'load {scan_type} #{scan_id} to: {fname}'
-    print(txt)
-    insert_text(txt)
 
 
 
@@ -782,7 +752,67 @@ def load_count_img(scan_id, fn='img_test.h5'):
         hf.create_dataset('img',data=img)
 
 
+def load_multipos_count(h):
+    scan_type = h.start['plan_name']
+    scan_id = h.start['scan_id']
+    uid = h.start['uid']
+    num_dark = h.start['num_dark_images']
+    num_of_position = h.start['num_of_position']
+    note = h.start['note']
+
+    img_raw = list(h.data('Andor_image'))
+    img_dark = np.squeeze(np.array(img_raw[:num_dark]))
+    img_dark_avg = np.mean(img_dark, axis=0, keepdims=True)
+    num_repeat = np.int((len(img_raw) - 10)/num_of_position/2) # alternatively image and background
+
+    tot_img_num = num_of_position * 2 * num_repeat
+    s = img_dark.shape
+    img_group = np.zeros([num_of_position, num_repeat, s[1], s[2]], dtype=np.float32)
+
+    for j in range(num_repeat):
+        index = num_dark + j*num_of_position*2
+        print(f'processing #{index} / {tot_img_num}' )
+        for i in range(num_of_position):
+            tmp_img = np.array(img_raw[index+i*2])
+            tmp_bkg = np.array(img_raw[index+i*2+1])
+            img_group[i, j] = (tmp_img - img_dark_avg)/(tmp_bkg - img_dark_avg)
+    fn = os.getcwd() + '/'
+    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
+    with h5py.File(fname, 'w') as hf:
+        hf.create_dataset('uid', data = uid)
+        hf.create_dataset('scan_id', data = scan_id)
+        hf.create_dataset('note', data = note)
+        for i in range(num_of_position):
+            hf.create_dataset(f'img_pos{i+1}', data=np.squeeze(img_group[i])) 
+
+
+def load_grid2D_rel(h):
+    uid = h.start['uid']
+    note = h.start['note']
+    scan_type = 'grid2D_rel'
+    scan_id = h.start['scan_id']   
+    scan_time = h.start['time'] 
+    x_eng = h.start['XEng']
+    num1 = h.start['plan_args']['num1']
+    num2 = h.start['plan_args']['num2']
+    img = np.squeeze(np.array(list(h.data('Andor_image'))))
     
+    fname= scan_type + '_id_' + str(scan_id)
+    cwd = os.getcwd()
+    try:
+        os.mkdir(cwd+f'/{fname}')
+    except:
+        print(cwd+f'/{name} existed')
+    fout= cwd+f'/{fname}' 
+    for i in range(num1):
+        for j in range(num2):
+            fname_tif = fout + f'_({ij}).tif'
+            img = Image.fromarray(img[i*num1+j])
+            img.save(fname_tif)
+    
+
+
+
 ################################################################
 ####################   plot scaler  ############################
 ################################################################
@@ -938,10 +968,12 @@ def find_rot(fn, thresh=0.05):
     f = h5py.File(fn, 'r')
     img_bkg = np.squeeze(np.array(f['img_bkg_avg']))
     ang = np.array(list(f['angle']))
-    img = list(f['img_tomo'])
+    
+    tmp = np.abs(ang - ang[0] -180).argmin() 
+    img0 = np.array(list(f['img_tomo'][0]))
+    img180_raw = np.array(list(f['img_tomo'][tmp]))
     f.close()
-    tmp = np.abs(ang - ang[0] -180).argmin()    
-    img0, img180_raw = img[0], img[tmp]
+#    img0, img180_raw = img[0], img[tmp]
     img0 = img0 / img_bkg
     img180_raw = img180_raw / img_bkg
     img180 = img180_raw[:,::-1] 
@@ -964,7 +996,7 @@ def find_rot(fn, thresh=0.05):
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, bad_slice=[]):
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
    
    
     import tomopy 
@@ -972,15 +1004,10 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, bad_slice=[]):
     tmp = np.array(f['img_bkg_avg'])
     s = tmp.shape
     if sli == 0: sli = int(s[1]/2)
-    
+    img_tomo = np.array(f['img_tomo'][:, sli, :])
     img_bkg = np.array(f['img_bkg_avg'][:, sli, :])
     img_dark = np.array(f['img_dark_avg'][:, sli, :])
-
     theta = np.array(f['angle']) / 180.0 * np.pi
-    tot_slice = np.arange(len(theta))
-    tot_slice = np.setdiff1d(tot_slice, bad_slice)     
-    img_tomo = np.array(f['img_tomo'][tot_slice, sli, :])
-    theta = theta[tot_slice]
     f.close()
     prj = (img_tomo - img_dark) / (img_bkg - img_dark)
     prj_norm = -np.log(prj)
@@ -1004,7 +1031,7 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, bad_slice=[]):
         hf.create_dataset('rot_cen', data=cen)
     
     
-def recon(fn, rot_cen, algorithm='gridrec', sli=[], bad_slice=[], num_iter=5, binning=None, zero_flag=0):
+def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0):
     '''
     reconstruct 3D tomography
     Inputs:
@@ -1027,11 +1054,14 @@ def recon(fn, rot_cen, algorithm='gridrec', sli=[], bad_slice=[], num_iter=5, bi
         
     '''
     import tomopy
+    from PIL import Image
     f = h5py.File(fn)
     tmp = np.array(f['img_bkg_avg'])
     s = tmp.shape
     slice_info = ''
     bin_info = ''
+    col_info = ''
+
     if len(sli) == 0:
         sli = [0, s[1]]
     elif len(sli) == 1 and sli[0] >=0 and sli[0] <= s[1]:
@@ -1042,29 +1072,43 @@ def recon(fn, rot_cen, algorithm='gridrec', sli=[], bad_slice=[], num_iter=5, bi
     else:
         print('non valid slice id, will take reconstruction for the whole object')
     
-    scan_id = np.array(f['scan_id'])
-    theta = np.array(f['angle']) / 180.0 * np.pi
+    if len(col) == 0:
+        col = [0, s[2]]
+    elif len(col) == 1 and col[0] >=0 and col[0] <= s[2]:
+        col = [col[0], col[0]+1]
+        col_info = '_col_{}_'.format(col[0])
+    elif len(col) == 2 and col[0] >=0 and col[1] <= s[2]:
+        col_info = 'col_{}_{}_'.format(col[0], col[1])
+    else:
+        col = [0, s[2]]
+        print('invalid col id, will take reconstruction for the whole object')
 
-    tot_slice = np.arange(len(theta))
-    tot_slice = np.setdiff1d(tot_slice, bad_slice)     
-    img_tomo = np.array(f['img_tomo'][tot_slice, sli[0]:sli[1], :])
-    theta = theta[tot_slice]
-    img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1], :])
-    img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1], :])
+    rot_cen = rot_cen - col[0]
     
-    f.close()
+    scan_id = np.array(f['scan_id'])
+    img_tomo = np.array(f['img_tomo'][:, sli[0]:sli[1], :])
+    img_tomo = np.array(img_tomo[:, :, col[0]:col[1]])
+    img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1], col[0]:col[1]])
+    img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1], col[0]:col[1]])
+    theta = np.array(f['angle']) / 180.0 * np.pi
+    f.close() 
+
+    s = img_tomo.shape
+    if not binning == None:
+        img_tomo = bin_ndarray(img_tomo, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
+        img_bkg = bin_ndarray(img_bkg, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
+        img_dark = bin_ndarray(img_dark, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
+        rot_cen = rot_cen * 1.0 / binning 
+        bin_info = 'bin{}'.format(int(binning))
+
     prj = (img_tomo - img_dark) / (img_bkg - img_dark)
     prj_norm = -np.log(prj)
     prj_norm[np.isnan(prj_norm)] = 0
     prj_norm[np.isinf(prj_norm)] = 0
-    prj_norm[prj_norm < 0] = 0           
-    
-    s = prj_norm.shape
-    if not binning == None:
-        prj_norm = bin_ndarray(prj_norm, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
-        rot_cen = rot_cen * 1.0 / binning 
-        bin_info = '_bin{}_'.format(int(binning))
+    prj_norm[prj_norm < 0] = 0   
 
+    fout = 'recon_scan_' + str(scan_id) + str(slice_info) + str(col_info) + str(bin_info)
+    '''
     if algorithm == 'gridrec':
         rec = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
     elif algorithm == 'mlem' or algorithm == 'ospml_hybrid':
@@ -1072,13 +1116,169 @@ def recon(fn, rot_cen, algorithm='gridrec', sli=[], bad_slice=[], num_iter=5, bi
     else:
         print('algorithm not recognized')
     rec = tomopy.misc.corr.remove_ring(rec, rwidth=3)
-    if zero_flag:
-        rec[rec<0] = 0    
-    fout = 'recon_scan_' + str(scan_id) + str(slice_info) + str(bin_info) + algorithm +'.h5'
-    with h5py.File(fout, 'w') as hf:
-        hf.create_dataset('img', data=rec)
-        hf.create_dataset('scan_id', data=scan_id)        
-    print('{} is saved.'.format(fout)) 
+    '''    
+    if tiff_flag:
+        cwd = os.getcwd()
+        try:
+            os.mkdir(cwd+f'/{fout}')
+        except:
+            print(cwd+f'/{fout} existed')
+        for i in range(prj_norm.shape[1]):
+            print(f'recon slice: {i:04d}/{prj_norm.shape[1]-1}')
+            rec = tomopy.recon(prj_norm[:, i:i+1,:], theta, center=rot_cen, algorithm='gridrec')
+            
+            if zero_flag:
+                rec[rec<0] = 0
+            img = Image.fromarray(rec[0])
+            fout_tif = cwd + f'/{fout}' + f'/{i+sli[0]:04d}.tiff' 
+            img.save(fout_tif)
+    else:
+        rec = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
+        if zero_flag:
+            rec[rec<0] = 0
+        fout_h5 = fout +'.h5'
+        with h5py.File(fout_h5, 'w') as hf:
+            hf.create_dataset('img', data=rec)
+            hf.create_dataset('scan_id', data=scan_id)        
+        print('{} is saved.'.format(fout)) 
+    del rec
+    del img_tomo
+    del prj_norm
+
+
+
+def show_image_slice(fn, sli=0):
+    f=h5py.File(fn,'r')
+    try:
+        img = np.squeeze(np.array(f['img_tomo'][sli]))
+        plt.figure()
+        plt.imshow(img)
+    except:
+        try:
+            img = np.squeeze(np.array(f['img_xames'][sli]))
+            plt.imshow(img)
+        except:
+            print('cannot display image')
+    finally:
+        f.close()
+
+def find_3Dshift(f_ref, f_need_align, threshold=0.2):
+    '''
+    f1 is the reference
+    f2 is the file need to shift
+    '''
+    f = h5py.File(f_ref, 'r')
+    img1 = np.squeeze(np.array(f['img_tomo'][0]))
+    bkg1 = np.squeeze(np.array(f['img_bkg_avg']))
+    f.close()
+
+    f = h5py.File(f_need_align, 'r')
+    img2 = np.squeeze(np.array(f['img_tomo'][0]))
+    bkg2 = np.squeeze(f['img_bkg_avg'])
+    f.close()
+
+    img_norm1 = -np.log(img1 / bkg1)
+    img_norm2 = -np.log(img2 / bkg2)
+
+    mask = np.ones(img_norm1.shape)
+    mask[img_norm1<threshold] = 0
+    mask = medfilt2d(mask, 7)
+#    mask[:, 1600:] = 0
+
+    img_norm1_shift, rshift, cshift = align_img(mask, img_norm2)
+
+    return rshift, cshift
+
+
+
+def recon_with_align(fn, rot_cen, rshift, cshift, sli=[], col=[], binning=None, tiff_flag=0):
+    import tomopy
+    f = h5py.File(fn)
+    tmp = np.array(f['img_bkg_avg'])
+    s = tmp.shape
+    slice_info = ''
+    bin_info = ''
+    col_info = ''
+
+    if len(sli) == 0:
+        sli = [0, s[1]]
+    elif len(sli) == 1 and sli[0] >=0 and sli[0] <= s[1]:
+        sli = [sli[0], sli[0]+1]
+        slice_info = '_slice_{}_'.format(sli[0])
+    elif len(sli) == 2 and sli[0] >=0 and sli[1] <= s[1]:
+        slice_info = '_slice_{}_{}_'.format(sli[0], sli[1])
+    else:
+        sli = [0, s[1]]
+        print('invalid slice id, will take reconstruction for the whole object')
+
+    if len(col) == 0:
+        col = [0, s[2]]
+    elif len(col) == 1 and col[0] >=0 and col[0] <= s[2]:
+        col = [col[0], col[0]+1]
+        col_info = 'col_{}_'.format(col[0])
+    elif len(col) == 2 and col[0] >=0 and col[1] <= s[2]:
+        col_info = 'col_{}_{}_'.format(col[0], col[1])
+    else:
+        col = [0, s[2]]
+        print('invalid col id, will take reconstruction for the whole object')
+    rot_cen = rot_cen - col[0]
+
+
+    scan_id = np.array(f['scan_id'])
+    img_tomo = np.array(f['img_tomo'][:, sli[0]:sli[1], :])
+    img_tomo = img_tomo[:, :, col[0]:col[1]]
+    img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1], col[0]:col[1]])
+    img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1], col[0]:col[1]])
+    theta = np.array(f['angle']) / 180.0 * np.pi
+    f.close() 
+    
+    s = img_tomo.shape
+    if not binning == None:
+        img_tomo = bin_ndarray(img_tomo, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
+        img_bkg = bin_ndarray(img_bkg, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
+        img_dark = bin_ndarray(img_dark, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
+        rot_cen = rot_cen * 1.0 / binning 
+        rshift = rshift * 1.0 / binning
+        bin_info = 'bin{}'.format(int(binning))
+
+    prj = (img_tomo - img_dark) / (img_bkg - img_dark)
+    prj_norm = -np.log(prj)
+    prj_norm[np.isnan(prj_norm)] = 0
+    prj_norm[np.isinf(prj_norm)] = 0
+    prj_norm[prj_norm < 0] = 0   
+
+    
+    print('shift imaging ...')
+    prj_norm = shift(prj_norm, [0, rshift, 0], mode='constant', cval=0, order=0)     
+
+    fout = 'recon_scan_' + str(scan_id) + str(slice_info) + str(col_info) + str(bin_info)
+    if tiff_flag:
+        cwd = os.getcwd()
+        try:
+            os.mkdir(cwd+f'/{fout}')
+        except:
+            print(cwd+f'/{fout} existed')
+        for i in range(prj_norm.shape[1]):
+            print(f'recon slice: {i:04d}/{prj_norm.shape[1]}')
+            rec = tomopy.recon(prj_norm[:, i:i+1,:], theta, center=rot_cen, algorithm='gridrec')
+            
+            if zero_flag:
+                rec[rec<0] = 0
+            img = Image.fromarray(rec[0])
+            fout_tif = cwd + f'/{fout}' + f'/{i+sli[0]:04d}.tiff' 
+            img.save(fout_tif)
+    else:
+        rec = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
+        if zero_flag:
+            rec[rec<0] = 0
+        fout_h5 = fout +'.h5'
+        with h5py.File(fout_h5, 'w') as hf:
+            hf.create_dataset('img', data=rec)
+            hf.create_dataset('scan_id', data=scan_id)        
+        print('{} is saved.'.format(fout)) 
+
+
+
 
 
 
@@ -1189,6 +1389,18 @@ def print_baseline_list():
 
 
 
+def get_scan_timestamp(scan_id):
+    h=db[scan_id]
+    scan_id = h.start['scan_id']
+    timestamp = h.start['time']
+    timestamp_conv=convert_AD_timestamps(pd.Series(timestamp))
+    scan_year = int(timestamp_conv.dt.year)
+    scan_mon = int(timestamp_conv.dt.month)
+    scan_day = int(timestamp_conv.dt.day)
+    scan_day, scan_hour = int(timestamp_conv.dt.day), int(timestamp_conv.dt.hour)
+    scan_min, scan_sec, scan_msec = int(timestamp_conv.dt.minute), int(timestamp_conv.dt.second), int(timestamp_conv.dt.microsecond)
+    scan_time = f'scan#{scan_id}: {scan_year-20:04d}-{scan_mon:02d}-{scan_day:02d}   {scan_hour:02d}:{scan_min:02d}:{scan_sec:02d}'
+    print(scan_time)
 
 
 

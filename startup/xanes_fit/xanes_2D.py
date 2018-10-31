@@ -36,7 +36,7 @@ from copy import deepcopy
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from image_util import align_img
 from scipy.ndimage.interpolation import shift
-from scipy.signal import medfilt2d
+from scipy.signal import medfilt2d, medfilt
 from scipy.interpolate import interp1d
 from xanes_util import fit_2D_xanes_non_iter, fit_2D_xanes_iter, normalize_2D_xanes, normalize_1D_xanes
 import tifffile
@@ -158,6 +158,7 @@ class App(QWidget):
         self.msg = ''
         self.shift_list = []
         self.lst_roi.clear()
+        self.roi_spec_dif = ''
         self.lb_ang1.setText('No energy data ...')
         # self.lb_ang2.setVisible(False)
         # self.tx_ang.setVisible(False)
@@ -573,6 +574,31 @@ class App(QWidget):
         self.pb_roi_export.setFixedWidth(105)
         self.pb_roi_export.setVisible(True)
 
+
+        self.pb_eval_glitch = QPushButton('Eval. Glitch')
+        self.pb_eval_glitch.setFont(self.font2)
+        self.pb_eval_glitch.clicked.connect(self.evaluate_glitch)
+        self.pb_eval_glitch.setFixedWidth(105)
+        self.pb_eval_glitch.setVisible(True)
+
+
+        self.pb_rm_glitch = QPushButton('Remov Glitch')
+        self.pb_rm_glitch.setFont(self.font2)
+        self.pb_rm_glitch.clicked.connect(self.remove_glitch)
+        self.pb_rm_glitch.setFixedWidth(105)
+        self.pb_rm_glitch.setVisible(True)
+
+        lb_glitch_thresh = QLabel()
+        lb_glitch_thresh.setFont(self.font2)
+        lb_glitch_thresh.setText('  Glitch threshold: ')
+        lb_glitch_thresh.setFixedWidth(155)
+
+        self.tx_glitch_thresh = QLineEdit(self)
+        self.tx_glitch_thresh.setFont(self.font2)
+        self.tx_glitch_thresh.setText('0.8')
+        self.tx_glitch_thresh.setFixedWidth(50)
+
+
         lb_file_index = QLabel()
         lb_file_index.setFont(self.font2)
         lb_file_index.setText('  File index for export:')
@@ -587,26 +613,13 @@ class App(QWidget):
         self.lst_roi.setFont(self.font2)
         self.lst_roi.setSelectionMode(QAbstractItemView.MultiSelection)
         self.lst_roi.setFixedWidth(80)
-        self.lst_roi.setFixedHeight(100)
+        self.lst_roi.setFixedHeight(140)
 
         lb_lst_roi = QLabel()
         lb_lst_roi.setFont(self.font2)
         lb_lst_roi.setText('ROI list:')
         lb_lst_roi.setFixedWidth(80)
 
-        # hbox_roi_tl = QHBoxLayout()
-        # hbox_roi_tl.addWidget(lb_roi_x1)
-        # hbox_roi_tl.addWidget(self.tx_roi_x1)
-        # hbox_roi_tl.addWidget(lb_roi_y1)
-        # hbox_roi_tl.addWidget(self.tx_roi_y1)
-        # hbox_roi_tl.setAlignment(QtCore.Qt.AlignLeft)
-        #
-        # hbox_roi_bd = QHBoxLayout()
-        # hbox_roi_bd.addWidget(lb_roi_x2)
-        # hbox_roi_bd.addWidget(self.tx_roi_x2)
-        # hbox_roi_bd.addWidget(lb_roi_y2)
-        # hbox_roi_bd.addWidget(self.tx_roi_y2)
-        # hbox_roi_bd.setAlignment(QtCore.Qt.AlignLeft)
 
         hbox_roi_button1 = QHBoxLayout()
         hbox_roi_button1.addWidget(self.pb_roi_draw)
@@ -624,9 +637,20 @@ class App(QWidget):
         hbox_roi_button3.setAlignment(QtCore.Qt.AlignLeft)
 
         hbox_roi_button4 = QHBoxLayout()
-        hbox_roi_button4.addWidget(lb_file_index)
-        hbox_roi_button4.addWidget(self.tx_file_index)
+        hbox_roi_button4.addWidget(self.pb_eval_glitch)
+        hbox_roi_button4.addWidget(self.pb_rm_glitch)
         hbox_roi_button4.setAlignment(QtCore.Qt.AlignLeft)
+
+        hbox_roi_button5 = QHBoxLayout()
+        hbox_roi_button5.addWidget(lb_glitch_thresh)
+        hbox_roi_button5.addWidget(self.tx_glitch_thresh)
+        hbox_roi_button5.setAlignment(QtCore.Qt.AlignLeft)
+
+        hbox_roi_button6 = QHBoxLayout()
+        hbox_roi_button6.addWidget(lb_file_index)
+        hbox_roi_button6.addWidget(self.tx_file_index)
+        hbox_roi_button6.setAlignment(QtCore.Qt.AlignLeft)
+        
 
         vbox_roi = QVBoxLayout()
         vbox_roi.setContentsMargins(0, 0, 0, 0)
@@ -634,6 +658,8 @@ class App(QWidget):
         vbox_roi.addLayout(hbox_roi_button2)
         vbox_roi.addLayout(hbox_roi_button3)
         vbox_roi.addLayout(hbox_roi_button4)
+        vbox_roi.addLayout(hbox_roi_button5)
+        vbox_roi.addLayout(hbox_roi_button6)
         vbox_roi.setAlignment(QtCore.Qt.AlignLeft)
 
         vbox_lst = QVBoxLayout()
@@ -720,7 +746,7 @@ class App(QWidget):
 
         lb_fit_img = QLabel()
         lb_fit_img.setFont(self.font2)
-        lb_fit_img.setText('Norm image')
+        lb_fit_img.setText('Norm Image')
         lb_fit_img.setFixedWidth(120)
 
         self.pb_fit_img = QPushButton('Norm Img')
@@ -1120,13 +1146,13 @@ class App(QWidget):
 
         lb_ali_ref = QLabel()
         lb_ali_ref.setFont(self.font2)
-        lb_ali_ref.setText('  Ref. image: ')
-        lb_ali_ref.setFixedWidth(80)
+        lb_ali_ref.setText('  Ref. Image: ')
+        lb_ali_ref.setFixedWidth(90)
 
         lb_ali_roi = QLabel()
         lb_ali_roi.setFont(self.font2)
-        lb_ali_roi.setText('  ROI index: ')
-        lb_ali_roi.setFixedWidth(80)
+        lb_ali_roi.setText('  ROI Index: ')
+        lb_ali_roi.setFixedWidth(90)
 
         self.tx_ali_ref = QLineEdit(self)
         self.tx_ali_ref.setFont(self.font2)
@@ -1141,7 +1167,7 @@ class App(QWidget):
         self.tx_ali_roi.setFixedWidth(50)
 
 
-        self.pb_filt = QPushButton('Median filter')
+        self.pb_filt = QPushButton('Median Filter')
         self.pb_filt.setFont(self.font2)
         self.pb_filt.clicked.connect(self.xanes_img_smooth)
         self.pb_filt.setEnabled(False)
@@ -1149,8 +1175,8 @@ class App(QWidget):
 
         lb_filt = QLabel()
         lb_filt.setFont(self.font2)
-        lb_filt.setText('  kernal size: ')
-        lb_filt.setFixedWidth(80)
+        lb_filt.setText('  Kernal Size: ')
+        lb_filt.setFixedWidth(90)
 
         self.tx_filt = QLineEdit(self)
         self.tx_filt.setFont(self.font2)
@@ -1799,15 +1825,15 @@ class App(QWidget):
 
 
     def plot_spectrum(self):
-        canvas = self.canvas1
-        img_stack = deepcopy(canvas.img_stack)
-        # img_stack = self.img_update
-        plt.figure();
-        roi_color = canvas.roi_color
-        roi_list = canvas.roi_list
-        x = self.xanes_eng
-        legend = []
-        try:
+            canvas = self.canvas1
+            img_stack = deepcopy(canvas.img_stack)
+            # img_stack = self.img_update
+            plt.figure();
+            roi_color = canvas.roi_color
+            roi_list = canvas.roi_list
+            x = self.xanes_eng
+            legend = []
+    #    try:
             for item in self.lst_roi.selectedItems():
                 plt.hold(True)
                 print(item.text())
@@ -1825,10 +1851,75 @@ class App(QWidget):
             print(legend)
             plt.legend(handles=legend)
             plt.show()
-        except:
+     #   except:
             self.msg = 'no spectrum available for current image stack ...'
             self.update_msg()
+
+
+    def evaluate_glitch(self):
+            canvas = self.canvas1
+            img_stack = deepcopy(canvas.img_stack)
+            roi_list = canvas.roi_list
+            
+            x = self.xanes_eng
+            item = self.lst_roi.selectedItems()[0]
+            roi_cord = np.int32(np.array(roi_list[item.text()]))
+            x1, y1, x2, y2 = roi_cord[0], roi_cord[1], roi_cord[2], roi_cord[3]
+            x1 = min(x1, x2)
+            x2 = max(x1, x2)
+            y1 = min(y1, y2)
+            y2 = max(y1, y2)
+            roi_spec = np.mean(np.mean(img_stack[:, y1:y2, x1:x2, ], axis=1), axis=1)
+            roi_spec_median = medfilt(roi_spec, 5)
+            self.roi_spec_dif = roi_spec/roi_spec_median
+        #    print(f'{roi_spec_median}')
+            plt.figure()
+            plt.subplot(2,1,1)          
+            plt.plot(x[:-1], self.roi_spec_dif[:-1], 'r.')
+            plt.title('Identify the threshold for removing glitch')
+            plt.subplots_adjust(hspace = 0.5)
+            plt.subplot(2,1,2)
+            plt.plot(x, roi_spec, 'b.-')
+            plt.plot(x[:-1], roi_spec_median[:-1], 'r.-')
+            plt.title(f'median value: {np.median(self.roi_spec_dif)}')
+            plt.show()
         
+            self.msg = 'no spectrum available for current image stack ...'
+            self.update_msg()
+
+
+    def remove_glitch(self):
+        glitch_thresh =  np.float(self.tx_glitch_thresh.text())
+        if len(self.roi_spec_dif) != len(self.xanes_eng):
+            self.msg = 'data size disagree...'
+            self.update_msg()
+        else:
+            mask = self.roi_spec_dif > glitch_thresh
+            msg = QMessageBox()
+            msg.setText('This will delete the image in \"raw data\", and \"image_update\" ')
+            msg.setWindowTitle('Delete multiple image')
+            msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+            reply = msg.exec_()
+            if reply == QMessageBox.Ok:
+                try:
+                    self.img_xanes = self.img_xanes[mask]
+                    print('glitch removed in img_xanes ')
+                    self.img_update = self.img_update[mask]
+                    print('glitch removed in img_update ')
+                    self.xanes_eng = self.xanes_eng[mask]
+                    st = '{0:3.1f}, {1:3.1f}, ..., {2:3.1f}  (totally, {3} angles)'.format(self.xanes_eng[0],self.xanes_eng[1],self.xanes_eng[-1],len(self.xanes_eng))
+                    self.lb_ang1.setText(st) 
+                    print('glitch removed in xanes_eng ')
+                    self.msg = 'glitch removed !'
+                except:
+                    print('cannot delete xanes_eng')
+                    self.msg = 'removing glitch failed ...'
+                finally:
+                    self.update_msg()
+            self.update_canvas_img()
+            QApplication.processEvents()
+  
 
     def show_roi(self):
         plt.figure()
@@ -2695,7 +2786,7 @@ class MyCanvas(FigureCanvas):
         self.current_img_index = 0
         self.mask = np.array([1])
         self.colorbar_on_flag = True
-        self.colormap = 'terrain'
+        self.colormap = 'viridis'
         self.title = []
         self.draw_line = False
         self.overlay_flag = True
