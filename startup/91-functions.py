@@ -43,7 +43,7 @@ def record_calib_pos2():
  
     df = pd.DataFrame.from_dict(CALIBER, orient='index')
     df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
-    print('calib_pos1 recored')
+    print('calib_pos2 recored')
 
 
 def read_calib_file():
@@ -334,8 +334,8 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
     assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
 
 
-    eng1 = 9.7
-    eng2 = 9
+    eng1 = CALIBER['XEng_pos1']
+    eng2 = CALIBER['XEng_pos2']
     
     pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
     pzt_dcm_chi2_eng1 = CALIBER['chi2_pos1']
@@ -766,8 +766,8 @@ def load_z_scan(h):
     img_norm = (img_zscan - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
-    fn = h.start['plan_args']['fn']
-    fname = fn + scan_type + '_id_' + str(scan_id) + '.h5'
+#    fn = h.start['plan_args']['fn']
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
