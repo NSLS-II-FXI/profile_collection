@@ -337,16 +337,16 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
     eng1 = 9.7
     eng2 = 9
     
-    pzt_dcm_th2_eng1 = 3.75
-    pzt_dcm_chi2_eng1 = -15.95
-    zp_x_pos_eng1 = -7.476
-    zp_y_pos_eng1 = -0.525
+    pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
+    pzt_dcm_chi2_eng1 = CALIBER['chi2_pos1']
+    zp_x_pos_eng1 = CALIBER['zp_x_pos1']
+    zp_y_pos_eng1 = CALIBER['zp_y_pos1']
 
 
-    pzt_dcm_th2_eng2 = 3.6517
-    pzt_dcm_chi2_eng2 = -14.5
-    zp_x_pos_eng2 = -1.476
-    zp_y_pos_eng2 = -0.525
+    pzt_dcm_th2_eng2 = CALIBER['th2_pos2']
+    pzt_dcm_chi2_eng2 = CALIBER['chi2_pos2']
+    zp_x_pos_eng2 = CALIBER['zp_x_pos2']
+    zp_y_pos_eng2 = CALIBER['zp_y_pos2']
 
     
     pzt_dcm_th2_target = (eng_new - eng2) * (pzt_dcm_th2_eng1 - pzt_dcm_th2_eng2) / (eng1-eng2) + pzt_dcm_th2_eng2
