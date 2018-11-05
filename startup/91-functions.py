@@ -271,22 +271,25 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
     assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
 
 
-    pzt_dcm_th2_9kev = 0.814
-    pzt_dcm_chi2_9kev = -22.85
-    zp_x_pos_9kev = 0
-    zp_y_pos_9kev = 0
+    eng1 = 9.7
+    eng2 = 9
+    
+    pzt_dcm_th2_eng1 = 3.75
+    pzt_dcm_chi2_eng1 = -15.95
+    zp_x_pos_eng1 = -7.476
+    zp_y_pos_eng1 = -0.525
 
 
-    pzt_dcm_th2_7kev = 0.517
-    pzt_dcm_chi2_7kev = -25.1
-    zp_x_pos_7kev = 17.7
-    zp_y_pos_7kev = 2
+    pzt_dcm_th2_eng2 = 3.6517
+    pzt_dcm_chi2_eng2 = -14.5
+    zp_x_pos_eng2 = -1.476
+    zp_y_pos_eng2 = -0.525
 
     
-    pzt_dcm_th2_target = (eng_new - 7.) * (pzt_dcm_th2_9kev - pzt_dcm_th2_7kev) / (9-7) + pzt_dcm_th2_7kev
-    pzt_dcm_chi2_target = (eng_new - 7.) * (pzt_dcm_chi2_9kev - pzt_dcm_chi2_7kev) / (9-7) + pzt_dcm_chi2_7kev
-    zp_x_target = (eng_new - 7.0)*(zp_x_pos_9kev-zp_x_pos_7kev)/(9-7.0)+zp_x_pos_7keV
-    zp_y_target = (eng_new - 7.0)*(zp_y_pos_9kev-zp_y_pos_7kev)/(9-7.0)+zp_y_pos_7keV
+    pzt_dcm_th2_target = (eng_new - eng2) * (pzt_dcm_th2_eng1 - pzt_dcm_th2_eng2) / (eng1-eng2) + pzt_dcm_th2_eng2
+    pzt_dcm_chi2_target = (eng_new - eng2) * (pzt_dcm_chi2_eng1 - pzt_dcm_chi2_eng2) / (eng1-eng2) + pzt_dcm_chi2_eng2
+    zp_x_target = (eng_new - eng2)*(zp_x_pos_eng1 - zp_x_pos_eng2)/(eng1 - eng2) + zp_x_pos_eng2
+    zp_y_target = (eng_new - eng2)*(zp_y_pos_eng1 - zp_y_pos_eng2)/(eng1 - eng2) + zp_y_pos_eng2
 
     pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
     pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
@@ -515,6 +518,9 @@ def load_single_scan(scan_id=-1):
     elif scan_type == 'grid2D_rel':
         print('loading grid2D_rel: #{}'.format(scan_id))
         load_grid2D_rel(h)
+    elif scan_type == 'count':
+        print('loading count: #{}'.format(scan_id))
+        load_count_img(h)
     else:
         print('Un-recognized scan type ......')
         pass
@@ -745,11 +751,16 @@ def load_test_scan(h):
 def load_count_img(scan_id, fn='img_test.h5'):
     '''
     load images (e.g. RE(count([Andor], 10)) ) and save to .h5 file
-    '''
-    h = db[scan_id]
+    '''    
+    uid = h.start['uid']
     img = get_img(h)
+    scan_id = h.start['scan_id']
+    fn = 'count_id_' + str(scan_id) + '.h5'
     with h5py.File(fn, 'w') as hf:
         hf.create_dataset('img',data=img)
+        hf.create_dataset('uid',data=uid)
+        hf.create_dataset('scan_id',data=scan_id)
+
 
 
 def load_multipos_count(h):
