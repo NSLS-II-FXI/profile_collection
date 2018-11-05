@@ -13,6 +13,69 @@ OUT_ZONE_WIDTH = 30 # 30 nm
 ZONE_DIAMETER = 200 # 200 um
 
 
+CALIBER = {}
+
+def record_calib_pos1():
+    CALIBER['th2_pos1'] = pzt_dcm_th2.pos.value
+    CALIBER['chi2_pos1'] = pzt_dcm_chi2.pos.value
+    CALIBER['XEng_pos1'] = XEng.position
+    CALIBER['zp_x_pos1'] = zp.x.position
+    CALIBER['zp_y_pos1'] = zp.y.position
+    print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
+    print(f'pzt_dcm_chi2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["chi2_pos1"]:2.4f}')
+    print(f'zp_x_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_x_pos1"]:2.4f}')
+    print(f'zp_y_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_y_pos1"]:2.4f}')
+
+    df = pd.DataFrame.from_dict(CALIBER, orient='index')
+    df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
+    print('calib_pos1 recored')
+
+def record_calib_pos2():
+    CALIBER['th2_pos2'] = pzt_dcm_th2.pos.value
+    CALIBER['chi2_pos2'] = pzt_dcm_chi2.pos.value
+    CALIBER['XEng_pos2'] = XEng.position
+    CALIBER['zp_x_pos2'] = zp.x.position
+    CALIBER['zp_y_pos2'] = zp.y.position
+    print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
+    print(f'pzt_dcm_chi2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["chi2_pos2"]:2.4f}')
+    print(f'zp_x_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_x_pos2"]:2.4f}')
+    print(f'zp_y_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_y_pos2"]:2.4f}')
+ 
+    df = pd.DataFrame.from_dict(CALIBER, orient='index')
+    df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
+    print('calib_pos1 recored')
+
+
+def read_calib_file():
+    fn = '/home/xf18id/.ipython/profile_collection/startup/calib.csv'
+    try:
+
+        df = pd.Series.from_csv(fn, header=0).to_dict()
+        CALIBER['th2_pos1'] = np.float(df['th2_pos1'])
+        CALIBER['chi2_pos1'] = np.float(df['chi2_pos1'])
+        ALIBER['XEng_pos1'] = np.float(df['XEng_pos1'])
+        CALIBER['zp_x_pos1'] = np.float(df['zp_x_pos1'])
+        CALIBER['zp_y_pos1'] = np.float(df['zp_y_pos1'])
+
+        CALIBER['th2_pos2'] = np.float(df['th2_pos2'])
+        CALIBER['chi2_pos2'] = np.float(df['chi2_pos2'])
+        CALIBER['XEng_pos2'] = np.float(df['XEng_pos2'])
+        CALIBER['zp_x_pos2'] = np.float(df['zp_x_pos2'])
+        CALIBER['zp_y_pos2'] = np.float(df['zp_y_pos2'])
+    
+        print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
+        print(f'pzt_dcm_chi2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["chi2_pos1"]:2.4f}')
+        print(f'zp_x_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_x_pos1"]:2.4f}')
+        print(f'zp_y_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_y_pos1"]:2.4f}')
+        print('\n')
+        print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
+        print(f'pzt_dcm_chi2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["chi2_pos2"]:2.4f}')
+        print(f'zp_x_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_x_pos2"]:2.4f}')
+        print(f'zp_y_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_y_pos2"]:2.4f}')
+    except:
+        print('reading calibration file: {fn} fails...\n Please optimize optics at two energy points, and using record_calib_pos1() and record_calib_pos2() after optimizing each energy points ')
+
+
 def show_global_para():
     print(f'GLOBAL_MAG = {GLOBAL_MAG} X') # total magnification
     print(f'GLOBAL_VLM_MAG = {GLOBAL_VLM_MAG} X') # vlm magnification

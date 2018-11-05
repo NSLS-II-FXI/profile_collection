@@ -194,8 +194,10 @@ def export_pdf(merge_flag=0):
         if merge_flag:
             merge_pdf(PDF_ARGS['fn_log'], PDF_ARGS['fn_tmp'], PDF_ARGS['fn_log'])
         reset_pdf()
+        os.remove(PDF_ARGS['fn_tmp_txt'])
     except:
-        pass
+        print('export_pdf fails... will run reset_pdf()')
+        reset_pdf()
 
 
 def close_pdf():
