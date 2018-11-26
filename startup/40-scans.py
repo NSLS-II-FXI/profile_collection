@@ -250,8 +250,12 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_
         time.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
     yield from xanes_inner_scan()
-    txt1 = get_scan_parameter()
-    txt2 = f'eng_list: {eng_list}\n'
+    txt1 = get_scan_parameter()    
+    eng_list = np.round(eng_list, 5)
+    if len(eng_list) > 10:
+        txt2 = f'eng_list: {eng_list[0:10]}, ... {eng_list[-5:]}\n'
+    else:
+        txt2 = f'eng_list: {eng_list}'
     txt = txt1 + '\n' + txt2
     insert_text(txt)
     print(txt)
@@ -369,6 +373,8 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
 #            yield from bps.sleep(0.1)
             yield from mv(motor_r, motor_r_out)
             yield from mv(motor_x, motor_x_out, motor_y, motor_y_out, motor_z, motor_z_out)
+            yield from mv(motor_r, motor_r_out)
+            yield from mv(motor_x, motor_x_out, motor_y, motor_y_out, motor_z, motor_z_out)
 #            yield from mv_stage(motor_x, motor_x_out)
 #            yield from mv_stage(motor_y, motor_y_out)
 #            yield from mv_stage(motor_z, motor_z_out)
@@ -376,6 +382,8 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
             yield from bps.sleep(0.1)
             yield from trigger_and_read(list(detectors) + [motor, motor_x, motor_y, motor_z, motor_r])
 #            yield from bps.sleep(0.1)
+            yield from mv(motor_x, motor_x_ini, motor_y, motor_y_ini, motor_z, motor_z_ini)
+            yield from mv(motor_r, motor_r_ini)
             yield from mv(motor_x, motor_x_ini, motor_y, motor_y_ini, motor_z, motor_z_ini)
             yield from mv(motor_r, motor_r_ini)
 #            yield from mv_stage(motor_r, motor_r_ini)
@@ -398,7 +406,11 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
         yield from abs_set(motor_r.velocity, rs_ini)
     yield from xanes_inner_scan()
     txt1 = get_scan_parameter()
-    txt2 = f'eng_list: {eng_list}\n'
+    eng_list = np.round(eng_list, 5)
+    if len(eng_list) > 10:
+        txt2 = f'eng_list: {eng_list[0:10]}, ... {eng_list[-5:]}\n'
+    else:
+        txt2 = f'eng_list: {eng_list}'
     txt = txt1 + '\n' + txt2
     insert_text(txt)
     print(txt)
@@ -857,7 +869,106 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
 
 
 
+def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2, note='', md=None):
 
+    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    detectors = [Andor, ic3]
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
+    yield from mv(Andor.cam.num_images, 1)
+    yield from mv(detectors[0].cam.acquire_time, exposure_time)
+    detectors[0].cam.acquire_period.put(exposure_time)
+
+    x_initial = zps.sx.position    
+    y_initial = zps.sy.position
+    z_initial = zps.sz.position
+    r_initial = zps.pi_r.position
+
+    img_sizeX = np.int(img_sizeX)
+    img_sizeY = np.int(img_sizeY)
+    x_range = np.int_(x_range)
+    y_range = np.int_(y_range)
+    
+    
+    _md = {'detectors': [det.name for det in detectors],
+           'motors': [mot.name for mot in motor],
+           'num_bkg_images': 5,
+           'num_dark_images': 5,
+           'x_range': x_range,
+           'y_range': y_range,
+           'out_x': out_x,
+           'out_y': out_y,
+           'out_z': out_z,
+           'exposure_time': exposure_time,
+           'XEng': XEng.position,
+           'plan_args': {'x_range': x_range,
+                         'y_range': y_range,
+                         'exposure_time': exposure_time,                         
+                         'out_x': out_x,
+                         'out_y': out_y,
+                         'out_z': out_z,
+                         'out_r': out_r,
+                         'img_sizeX': img_sizeX,
+                         'img_sizeY': img_sizeY,
+                         'pxl': pxl,
+                         'note': note if note else 'None'
+                        },     
+           'plan_name': 'raster_2D',
+           'hints': {},
+           'operator': 'FXI',
+           'note': note if note else 'None',
+           'motor_pos':  wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    try:   dimensions = [(motor.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):  pass
+    else:   _md['hints'].setdefault('dimensions', dimensions)
+    
+    @stage_decorator(list(detectors) + list(motor))
+    @run_decorator(md=_md)
+    def raster_2D_inner():
+        yield from abs_set(shutter_close, 1, wait=True)
+        time.sleep(1)
+        yield from abs_set(shutter_close, 1, wait=True)
+        time.sleep(1)
+        print('take 5 dark image')
+        for i in range(5):
+            yield from trigger_and_read(list(detectors) + list(motor))
+
+
+        print('opening shutter ...')
+        yield from abs_set(shutter_open, 1, wait=True)
+        time.sleep(1)
+        yield from abs_set(shutter_open, 1, wait=True)
+        time.sleep(1)
+        print('taking mosaic image ...')
+        for ii in range(x_range[0], x_range[1]):
+            yield from mv(zps.sx, x_initial + ii*img_sizeX*pxl*1.0/1000)
+            for jj in range(y_range[0], y_range[1]):
+                yield from mv(zps.sy, y_initial + jj*img_sizeY*pxl*1.0/1000)
+                yield from trigger_and_read(list(detectors) + list(motor))
+
+
+        print('moving sample out to take 5 background image')
+        yield from mv(zps.pi_r, out_r)
+        yield from mv(zps.sx, x_initial+out_x, zps.sy, y_initial+out_y, zps.sz, z_initial+out_z)
+        for i in range(5):
+            yield from trigger_and_read(list(detectors) + list(motor))
+
+
+        yield from mv(zps.sx, x_initial, zps.sy, y_initial, zps.sz, z_initial)
+        yield from mv(zps.pi_r, r_initial)
+        print('closing shutter')
+        yield from abs_set(shutter_close, 1, wait=True)
+        time.sleep(1)
+        yield from abs_set(shutter_close, 1, wait=True)
+        time.sleep(1)
+
+
+    yield from raster_2d_inner()
+    txt = get_scan_parameter()
+    insert_text(txt)
+    print(txt)
 
 
 

@@ -11,11 +11,16 @@ GLOBAL_MAG = 377 # total magnification
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
 ZONE_DIAMETER = 200 # 200 um
+CURRENT_MAG_1 = GLOBAL_MAG
+CURRENT_MAG_2 = GLOBAL_MAG
+CALIBER_FLAG = 1
+
 
 
 CALIBER = {}
 
 def record_calib_pos1():
+    global CALIBER_FLAG
     CALIBER['th2_pos1'] = pzt_dcm_th2.pos.value
     CALIBER['chi2_pos1'] = pzt_dcm_chi2.pos.value
     CALIBER['XEng_pos1'] = XEng.position
@@ -27,10 +32,20 @@ def record_calib_pos1():
     print(f'zp_y_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_y_pos1"]:2.4f}')
 
     df = pd.DataFrame.from_dict(CALIBER, orient='index')
+    CALIBER_FLAG = 1 - CALIBER_FLAG
     df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
-    print('calib_pos1 recored')
+    CURRENT_MAG_1 = (DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG
+    if CALIBER_FLAG:
+        if np.abs(CURRENT_MAG_1 - CURRENT_MAG_2) > 0.1:
+            print('MAGNIFICATION between two calibration points does not match!!')
+            print(f'MAGNIFICATION_1 = {CURRENT_MAG_1}\nMAGNIFICATION_2 = {CURRENT_MAG_2}')
+        else:
+            GLOBAL_MAG = np.round(CURRENT_MAG_1 * 100) / 100.
+    print(f'calib_pos1 recored: current Magnification = {CURRENT_MAG_1}')
+
 
 def record_calib_pos2():
+    global CALIBER_FLAG
     CALIBER['th2_pos2'] = pzt_dcm_th2.pos.value
     CALIBER['chi2_pos2'] = pzt_dcm_chi2.pos.value
     CALIBER['XEng_pos2'] = XEng.position
@@ -43,7 +58,15 @@ def record_calib_pos2():
  
     df = pd.DataFrame.from_dict(CALIBER, orient='index')
     df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
-    print('calib_pos2 recored')
+    CALIBER_FLAG = 1 - CALIBER_FLAG
+    CURRENT_MAG_2 = (DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG
+    if CALIBER_FLAG:
+        if np.abs(CURRENT_MAG_1 - CURRENT_MAG_2) > 0.1:
+            print('MAGNIFICATION between two calibration points does not match!!')
+            print(f'MAGNIFICATION_1 = {CURRENT_MAG_1}\nMAGNIFICATION_2 = {CURRENT_MAG_2}')
+        else:
+            GLOBAL_MAG = np.round(CURRENT_MAG_2 * 100) / 100.
+    print(f'calib_pos2 recored: current Magnification = {CURRENT_MAG_2}')
 
 
 def read_calib_file():
@@ -325,64 +348,68 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
           0: Do calculation without moving real stages
           1: Will move stages
     '''
-    eng_new = float(eng_new) # eV, e.g. 9.0
-    det = DetU # upstream detector
-    eng_ini = XEng.position
-    check_eng_range([eng_ini])
-    zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
+    global CALIBER_FLAG
+    if CALIBER_FLAG:
+        eng_new = float(eng_new) # eV, e.g. 9.0
+        det = DetU # upstream detector
+        eng_ini = XEng.position
+        check_eng_range([eng_ini])
+        zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
+        
+        assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
+
+
+        eng1 = CALIBER['XEng_pos1']
+        eng2 = CALIBER['XEng_pos2']
+        
+        pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
+        pzt_dcm_chi2_eng1 = CALIBER['chi2_pos1']
+        zp_x_pos_eng1 = CALIBER['zp_x_pos1']
+        zp_y_pos_eng1 = CALIBER['zp_y_pos1']
+
+
+        pzt_dcm_th2_eng2 = CALIBER['th2_pos2']
+        pzt_dcm_chi2_eng2 = CALIBER['chi2_pos2']
+        zp_x_pos_eng2 = CALIBER['zp_x_pos2']
+        zp_y_pos_eng2 = CALIBER['zp_y_pos2']
+
+        
+        pzt_dcm_th2_target = (eng_new - eng2) * (pzt_dcm_th2_eng1 - pzt_dcm_th2_eng2) / (eng1-eng2) + pzt_dcm_th2_eng2
+        pzt_dcm_chi2_target = (eng_new - eng2) * (pzt_dcm_chi2_eng1 - pzt_dcm_chi2_eng2) / (eng1-eng2) + pzt_dcm_chi2_eng2
+        zp_x_target = (eng_new - eng2)*(zp_x_pos_eng1 - zp_x_pos_eng2)/(eng1 - eng2) + zp_x_pos_eng2
+        zp_y_target = (eng_new - eng2)*(zp_y_pos_eng1 - zp_y_pos_eng2)/(eng1 - eng2) + zp_y_pos_eng2
+
+        pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
+        pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
+        zp_x_ini = zp.x.position    
+        zp_y_ini = zp.y.position
+        
+
     
-    assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
-
-
-    eng1 = CALIBER['XEng_pos1']
-    eng2 = CALIBER['XEng_pos2']
-    
-    pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
-    pzt_dcm_chi2_eng1 = CALIBER['chi2_pos1']
-    zp_x_pos_eng1 = CALIBER['zp_x_pos1']
-    zp_y_pos_eng1 = CALIBER['zp_y_pos1']
-
-
-    pzt_dcm_th2_eng2 = CALIBER['th2_pos2']
-    pzt_dcm_chi2_eng2 = CALIBER['chi2_pos2']
-    zp_x_pos_eng2 = CALIBER['zp_x_pos2']
-    zp_y_pos_eng2 = CALIBER['zp_y_pos2']
-
-    
-    pzt_dcm_th2_target = (eng_new - eng2) * (pzt_dcm_th2_eng1 - pzt_dcm_th2_eng2) / (eng1-eng2) + pzt_dcm_th2_eng2
-    pzt_dcm_chi2_target = (eng_new - eng2) * (pzt_dcm_chi2_eng1 - pzt_dcm_chi2_eng2) / (eng1-eng2) + pzt_dcm_chi2_eng2
-    zp_x_target = (eng_new - eng2)*(zp_x_pos_eng1 - zp_x_pos_eng2)/(eng1 - eng2) + zp_x_pos_eng2
-    zp_y_target = (eng_new - eng2)*(zp_y_pos_eng1 - zp_y_pos_eng2)/(eng1 - eng2) + zp_y_pos_eng2
-
-    pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
-    pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
-    zp_x_ini = zp.x.position    
-    zp_y_ini = zp.y.position
-    
-
-    if move_flag: # move stages
-        print ('Now moving stages ....')     
-        if info_flag: 
-            print ('Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
-            print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp_final))
-            print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final)) 
-            print ('move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
-            print ('move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
-            print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
-            print ('move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
-        yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
-        yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
-        yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
+        if move_flag: # move stages
+            print ('Now moving stages ....')     
+            if info_flag: 
+                print ('Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
+                print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp_final))
+                print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final)) 
+                print ('move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
+                print ('move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
+                print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
+                print ('move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
+            yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
+            yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
+            yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
+        else:
+            print ('This is calculation. No stages move') 
+            print ('Will move Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
+            print ('will move zone plate down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(zp_delta, zp_ini, zp_final))
+            print ('will move CCD down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(det_delta, det_ini, det_final))
+            print ('will move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
+            print ('will move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
+            print ('will move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
+            print ('will move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
     else:
-        print ('This is calculation. No stages move') 
-        print ('Will move Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
-        print ('will move zone plate down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(zp_delta, zp_ini, zp_final))
-        print ('will move CCD down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(det_delta, det_ini, det_final))
-        print ('will move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
-        print ('will move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
-        print ('will move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
-        print ('will move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
-    
+        print('record_calib_pos1() or record_calib_pos2() not excuted...\nWill not move anything')
 
 def cal_phase_ring_position(eng_new, eng_ini=0, print_flag=1):
     '''
@@ -883,9 +910,46 @@ def load_grid2D_rel(h):
             fname_tif = fout + f'_({ij}).tif'
             img = Image.fromarray(img[i*num1+j])
             img.save(fname_tif)
+
+    
+def load_raster_2D(h):
+    uid = h.start['uid']
+    note = h.start['note']
+    scan_type = 'grid2D_rel'
+    scan_id = h.start['scan_id']   
+    scan_time = h.start['time'] 
+    num_dark = h.start['num_dark_images']
+    num_bkg = h.start['num_bkg_images']
+    x_eng = h.start['XEng']
+    x_range = h.start['plan_args']['x_range']
+    y_range = h.start['plan_args']['y_range']
+    img_sizeX = h.start['plan_args']['img_sizeX']
+    img_sizeY = h.start['plan_args']['img_sizeY']
+
+    img_raw = np.squeeze(np.array(list(h.data('Andor_image'))))
+    img_dark_avg = np.mean(img_raw[:num_dark], axis=0, keepdims=True)
+    img_bkg_avg = np.mean(img_raw[-num_bkg:], axis=0, keppdims = True)
+    img = img_raw[num_dark:-num_bkg]
+    s = img.shape
+
+    row_size = len(y_range) * s[1]
+    col_size = len(x_range) * s[2]
+    img_patch = np.zeros([1, row_size, col_size])
+    index = 0
+    for i in range(len(x_range)):
+        for j in range(len(y_range)):
+            img_patch[1, j*s[1]:(j+1)*s[1], i*s[2]:(i+1)*s[2]] = img[index]
+            index = index + 1
+    s = img_patch.shape
+    img_patch_bin = bin_ndarray(img_patch, new_shape=(s[0], s[1]/4, s[2]/4))
+
+    fout = f'raster2D_scan_{scan_id}.tif'
+    
+    
+    
     
 
-
+    
 
 ################################################################
 ####################   plot scaler  ############################
@@ -1478,5 +1542,24 @@ def get_scan_timestamp(scan_id):
 
 
 
+
+def get_scan_file_name(scan_id):
+    hdr = db[scan_id]
+
+#    print(scan_id, hdr.stop['exit_status'])  
+    res_uids = list(db.get_resource_uids(hdr))
+    for i, uid in enumerate(res_uids):
+        res_doc = db.reg.resource_given_uid(uid)
+#        print("   ", i, res_doc)
+    fpath_root = res_doc['root']
+    fpath_relative = res_doc['resource_path']
+    fpath = fpath_root + '/' + fpath_relative
+
+    fpath_remote = '/nsls2/xf18id1/backup/DATA/Andor/' + fpath_relative
+    return print(f'local path: {fpath}\nremote path: {fpath_remote}')
+
+
+
+read_calib_file()
 
 

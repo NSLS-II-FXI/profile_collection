@@ -4,7 +4,7 @@ def test_test():
     print(h.start['scan_id'])
 
 
-def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_img=10, num_bkg=10, note='', md=None):
+def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, out_z=0, out_r=0, num_img=10, num_bkg=10, note='', md=None):
     '''
     Take multiple images (Andor camera)
 
@@ -33,11 +33,17 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_img=10, num_bkg=10,
     y_out = y_ini + out_y
     x_ini = zps.sx.position
     x_out = x_ini + out_x
+    z_ini = zps.sz.position
+    z_out = z_ini + out_z
+    r_ini = zps.pi_r.position
+    r_out = r_ini + out_r
     _md = {'detectors': ['Andor'],
            'XEng': XEng.position,
            'plan_args': {'exposure_time': exposure_time,
                          'out_x': out_x,
                          'out_y': out_y,
+                         'out_z': out_z,
+                         'out_r': out_r,
                          'num_img': num_img,
                          'num_bkg': num_bkg,
                          'note': note if note else 'None',
@@ -56,9 +62,15 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_img=10, num_bkg=10,
     @stage_decorator(list(detectors))
     @run_decorator(md=_md)
     def inner_scan():
+        yield from abs_set(shutter_open, 1, wait=True)
+        yield from bps.sleep(2)
+        yield from abs_set(shutter_open, 1, wait=True)
+        yield from bps.sleep(2)
         for i in range(num_img):
             yield from trigger_and_read(list(detectors))
         # taking out sample and take background image
+        yield from mv(zps.pi_r, r_out)
+        yield from mv(zps.sz, z_out)
         yield from mv(zps.sx, x_out, zps.sy, y_out)
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
@@ -69,8 +81,11 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_img=10, num_bkg=10,
         yield from bps.sleep(2)
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
+        yield from mv(zps.sz, z_ini)
+        yield from mv(zps.pi_r, r_ini)
+        
         yield from mv(zps.sx, x_ini, zps.sy, y_ini)
-        yield from abs_set(shutter_open, 1, wait=True)
+        #yield from abs_set(shutter_open, 1, wait=True)
     uid = yield from inner_scan()
     txt = get_scan_parameter()
     insert_text(txt)
@@ -78,6 +93,10 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, num_img=10, num_bkg=10,
 #    print('loading test_scan and save file to current directory')
 #    load_test_scan(db[-1])
     return uid
+
+
+
+
 
 
 def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, note='', md=None):
