@@ -60,9 +60,10 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
     hdf5 = Cpt(HDF5PluginWithFileStore,
                suffix='HDF1:',
                write_path_template='/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/',
+              # write_path_template='/dev/shm/%Y/%m/%d/' ,
                root='/NSLS2/xf18id1/DATA/Andor',
                # write_path_template='/tmp/',
-               # root='/',
+               #root='/dev/shm',
                reg=None)  # placeholder to be set on instance as obj.hdf5.reg
     
     ac_period = Cpt(EpicsSignal, 'cam1:AcquirePeriod')    
@@ -94,7 +95,8 @@ class Manta(SingleTrigger, AreaDetector):
     
     hdf5 = Cpt(HDF5PluginWithFileStore,
                suffix='HDF1:',
-               write_path_template='/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/',
+              # write_path_template='/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/',
+               write_path_template = '/dev/shm/',
                root='/NSLS2/xf18id1/DATA/Andor',
                # write_path_template='/tmp/',
                # root='/',

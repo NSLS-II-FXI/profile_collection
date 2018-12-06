@@ -92,7 +92,6 @@ def insert_text(text,write_txt_flag=1):
     check_page_is_full()    
     if write_txt_flag:
         PDF_ARGS['f'].write(text+'\n')
-        PDF_ARGS['f'].write('\n')
         PDF_ARGS['f'].close()
     PDF_ARGS['Cursor_x'] = 0.6 * inch
     PDF_ARGS['C_canvas'].setFont('Courier', PDF_ARGS['Font_size'])
@@ -167,12 +166,9 @@ def insert_log(comment=''):
     reset_pdf()
     
 
-def insert_screen_shot(ratio=0.8, whole_screen=False):
+def insert_screen_shot(ratio=0.6):
     fn =  PDF_ARGS['temp_folder'] + f'/tmp_fig_{PDF_ARGS["tmp_flag"]}.png'
-    if whole_screen:
-        cmd = f'import -screen {fn}'
-    else:
-        cmd = f'import {fn}'
+    cmd = f'import -screen {fn}'
     os.system(cmd)
     insert_pic(fn, ratio)
 #    if flag==2: # current monitor screen
@@ -194,20 +190,8 @@ def export_pdf(merge_flag=0):
         if merge_flag:
             merge_pdf(PDF_ARGS['fn_log'], PDF_ARGS['fn_tmp'], PDF_ARGS['fn_log'])
         reset_pdf()
-        os.remove(PDF_ARGS['fn_tmp_txt'])
     except:
-        print('export_pdf fails... will run reset_pdf()')
-        reset_pdf()
-
-
-def close_pdf():
-    try:
-        PDF_ARGS['C_canvas'].showPage()
-        PDF_ARGS['C_canvas'].save()
-        print('PDF is closed and disabled\nTo enable PDF, run "reset_pdf()"')
-    except:
-        print('fails to close pdf\nAutomatically run "reset_pdf()"')
-        reset_pdf()
+        pass
 
 
 def merge_log():
