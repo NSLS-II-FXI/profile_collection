@@ -39,7 +39,7 @@ def load_single_scan(scan_id=-1):
     elif scan_type == 'raster_2D':
         print('loading raster_2D: #{}'.format(scan_id))
         load_raster_2D(h)
-    elif scan_type == 'count':
+    elif scan_type == 'count' or scan_type == 'delay_count':
         print('loading count: #{}'.format(scan_id))
         load_count_img(h)
     elif scan_type == 'multipos_2D_xanes_scan2':
@@ -91,7 +91,10 @@ def load_fly_scan(h):
     scan_type = 'fly_scan'
     scan_id = h.start['scan_id']   
     scan_time = h.start['time'] 
-    x_eng = h.start['XEng']
+    try:
+        x_eng = h.start['XEng']
+    except:
+        x_eng = h.start['x_ray_energy']
     chunk_size = h.start['chunk_size']
     # sanity check: make sure we remembered the right stream name
     assert 'zps_pi_r_monitor' in h.stream_names
@@ -139,20 +142,20 @@ def load_fly_scan(h):
     img_tomo = imgs[:pos2-chunk_size]  # tomo images
     
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
-    '''
+    
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('note', data = note)
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = int(scan_id))
         hf.create_dataset('scan_time', data = scan_time)
-        hf.create_dataset('X_eng', data = x_eng)
+       # hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img_bkg_avg', data = img_bkg_avg)
         hf.create_dataset('img_dark_avg', data = img_dark_avg)
         hf.create_dataset('img_tomo', data = img_tomo)
         hf.create_dataset('angle', data = img_angle)
-    '''
+    
     del img_tomo
     del img_dark
     del img_bkg
@@ -166,7 +169,7 @@ def load_xanes_scan(h):
     note = h.start['note']
     scan_id = h.start['scan_id']  
     scan_time = h.start['time']
-    x_eng = h.start['x_ray_energy']
+#    x_eng = h.start['x_ray_energy']
 #    chunk_size = h.start['chunk_size']
     chunk_size = h.start['num_bkg_images']
     num_eng = h.start['num_eng']
@@ -208,9 +211,9 @@ def load_xanes_scan(h):
         hf.create_dataset('note', data = note)
         hf.create_dataset('scan_time', data = scan_time)
         hf.create_dataset('X_eng', data = eng_list)
-        hf.create_dataset('img_bkg', data = img_bkg_avg)
-        hf.create_dataset('img_dark', data = img_dark_avg)
-        hf.create_dataset('img_xanes', data = img_xanes_norm)
+        hf.create_dataset('img_bkg', data = img_bkg_avg.astype(np.float32))
+        hf.create_dataset('img_dark', data = img_dark_avg.astype(np.float32))
+        hf.create_dataset('img_xanes', data = img_xanes_norm.astype(np.float32))
     del img_xanes, img_dark, img_bkg, img_xanes_avg, img_dark_avg
     del img_bkg_avg, imgs, img_xanes_norm
 
@@ -267,14 +270,14 @@ def load_test_scan(h):
         hf.create_dataset('note', data = note)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
-        hf.create_dataset('img', data = img_test)
-        hf.create_dataset('img_norm', data=img_norm)
+        hf.create_dataset('img', data = img_test.astype(np.float32))
+        hf.create_dataset('img_norm', data=img_norm.astype(np.float32))
 #    tifffile.imsave(fname_tif, img_norm)
     del img, img_test, img_bkg, img_dark, img_norm
 
 
 
-def load_count_img(scan_id, fn='img_test.h5'):
+def load_count_img(h):
     '''
     load images (e.g. RE(count([Andor], 10)) ) and save to .h5 file
     '''    
@@ -283,7 +286,7 @@ def load_count_img(scan_id, fn='img_test.h5'):
     scan_id = h.start['scan_id']
     fn = 'count_id_' + str(scan_id) + '.h5'
     with h5py.File(fn, 'w') as hf:
-        hf.create_dataset('img',data=img)
+        hf.create_dataset('img',data=img.astype(np.float32))
         hf.create_dataset('uid',data=uid)
         hf.create_dataset('scan_id',data=scan_id)
 
@@ -406,6 +409,18 @@ def load_raster_2D(h):
     with open(f'{fout_txt}','w+') as f:
         f.writelines(pos_file)
     tifffile.imsave(fout_tiff, img_patch_bin.astype(np.float32))
+
+    num_img = int(x_num) * int(y_num)
+    cwd=os.getcwd()
+    new_dir = f'{cwd}/raster_scan_{scan_id}'
+    if not os.path.exists(new_dir):
+        os.mkdir(new_dir) 
+    s = img.shape
+    tmp = bin_ndarray(img, new_shape=(s[0], int(s[1]/4), int(s[2]/4)))
+    for i in range(num_img):  
+        fout = f'{new_dir}/img_{i:02d}.tiff'
+        print(f'saving {fout}')
+        tifffile.imsave(fout, tmp[i].astype(np.float32))
     
     
 def load_multipos_2D_xanes_scan2(h):

@@ -76,9 +76,9 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, out_z=0, out_r=0, num_i
             yield from trigger_and_read(list(detectors))
         # close shutter, taking dark image
         yield from abs_set(shutter_close, 1, wait=True)
-        yield from bps.sleep(2)
+        yield from bps.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
-        yield from bps.sleep(2)
+        yield from bps.sleep(1)
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         yield from mv(zps.sz, z_ini)

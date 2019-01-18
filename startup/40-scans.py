@@ -53,9 +53,14 @@ def _close_shutter(simu=False):
         print('testing: close shutter')
     else:
         print('closing shutter ... ')
+        i = 0
         while not shutter_status.value: # if 1:  closed; if 0: open
             yield from abs_set(shutter_close, 1)
             yield from bps.sleep(1)
+            i += 1
+            if i > 10:
+                print('fails to close shutter')
+                break
         #yield from abs_set(shutter_close, 1)
         #yield from bps.sleep(1)
 
@@ -64,9 +69,14 @@ def _open_shutter(simu=False):
         print('testing: open shutter')
     else:
         print('opening shutter ... ')
+        i = 0
         while shutter_status.value: # if 1:  closed; if 0: open
             yield from abs_set(shutter_open, 1)
             yield from bps.sleep(1)
+            i += 1
+            if i >10:
+                print('fails to open shutter')
+                break
         #yield from abs_set(shutter_open, 1)
         #yield from bps.sleep(1)
 
@@ -808,7 +818,7 @@ def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_t
                          },
            'plan_name': 'delay_scan',
            'hints': {},
-           'motor_pos':  wh_pos(print_on_screen=0),yield from _set_andor_param(exposure_time, period=exposure_time, chunk_size=1)
+           'motor_pos':  wh_pos(print_on_screen=0),
            'operator': 'FXI'
             }
     _md.update(md or {})
@@ -939,6 +949,9 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
         print('taking mosaic image ...')
         for ii in np.arange(x_range[0],x_range[1]+1):
             yield from mv(zps.sx, x_initial + ii*img_sizeX*pxl*1.0/1000)
+            yield from mv(zps.sx, x_initial + ii*img_sizeX*pxl*1.0/1000)
+            sleep_time = (x_range[-1] - x_range[0]) * img_sizeX*pxl*1.0/1000 / 600
+            yield from bps.sleep(sleep_time)
             for jj in np.arange(y_range[0], y_range[1]+1):
                 yield from mv(zps.sy, y_initial + jj*img_sizeY*pxl*1.0/1000)
                 yield from _take_image(detectors, motor, 1)

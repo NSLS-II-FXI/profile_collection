@@ -212,6 +212,17 @@ def user_fly_scan(exposure_time=0.1, period=0.1, chunk_size=20, rs=1, note='', s
     print(txt)
     return uid
 
+def tmp_scan():
+    x = np.array([0,1,2,3])*0.015*2560 + zps.sx.position
+    y = np.array([0,1,2,3])*0.015*2160 + zps.sy.position
 
+    i=0; j=0;
+    for xx in x:
+        i += 1
+        for yy in y:
+            j += 1
+            print(f'current {i}_{j}: x={xx}, y={yy}')
+            yield from mv(zps.sx, xx, zps.sy, yy)
+            yield from xanes_scan2(eng_Ni_list_xanes, 0.05, chunk_size=4, out_x=2000, out_y=0, out_z=0, out_r=0, simu=False, note='NCM532_72cycle_discharge_{i}_{j}')
 
 
