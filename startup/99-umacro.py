@@ -184,3 +184,42 @@ def xanes_fit_demo():
     plt.subplot(122); plt.imshow(w1[1])    
 
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+class IndexTracker(object):
+    def __init__(self, ax, X):
+        self.ax = ax
+        self._indx_txt = ax.set_title(' ', loc='right')
+        self.X = X
+        rows, cols, self.slices = X.shape
+        self.ind = self.slices//2
+
+        self.im = ax.imshow(self.X[:, :, self.ind])
+        self.update()
+
+    def onscroll(self, event):
+        if event.button == 'up':
+            self.ind = (self.ind + 1) % self.slices
+        else:
+            self.ind = (self.ind - 1) % self.slices
+        self.update()
+
+    def update(self):
+        self.im.set_data(self.X[:, :, self.ind])
+        ax.set_ylabel('slice %s' % self.ind)
+        self._indx_txt.set_text(f"frame {self.ind} of {self.slices}")
+        self.im.axes.figure.canvas.draw()
+
+    
+def image_scrubber(data, *, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
+    tracker = IndexTracker(ax, data)
+    # monkey patch the tracker onto the figure to keep it alive
+    fig._tracker = tracker
+    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    return tracker
