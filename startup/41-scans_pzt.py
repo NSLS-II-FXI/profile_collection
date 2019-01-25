@@ -2,6 +2,21 @@
 def pzt_scan(pzt_motor, start, stop, steps, detectors=[Vout2], sleep_time=1, md=None):
     '''
     scan the pzt_motor (e.g., pzt_dcm_th2), detectors can be any signal or motor (e.g., Andor, dcm.th2)
+
+    Inputs:
+    ---------
+    pzt_motor: choose from pzt_dcm_th2, pzt_dcm_chi2
+
+    start: float, start position
+
+    stop: float, stop position
+
+    steps: int, number of steps
+
+    detectors: list of detectors, e.g., [Vout2, Andor, ic3]
+
+    sleep time: float, in unit of sec
+    
     '''
     if Andor in detectors:
         exposure_time = Andor.cam.acquire_time.value
@@ -29,26 +44,30 @@ def pzt_scan(pzt_motor, start, stop, steps, detectors=[Vout2], sleep_time=1, md=
                          },
            'plan_name': 'pzt_scan',
            'hints': {},
-           'motor_pos': wh_pos(),
-           'operator': 'FXI'
+           'motor_pos': wh_pos(print_on_screen=0),
+           'operator': 'FXI',
         }
     _md.update(md or {})
     try:
-        dimensions = [(motor.hints['fields'], 'primary')]
+        dimensions = [(pzt_motor.hints['fields'], 'primary')]
     except (AttributeError, KeyError):
         pass
     else:
         _md['hints'].setdefault('dimensions', dimensions)
-    my_var = np.linspace(start, stop, steps)
+
     @stage_decorator(list(detector_all))
     @run_decorator(md=_md)
     def pzt_inner_scan():
+        my_var = np.linspace(start, stop, steps)
+        print(my_var)
         for x in my_var:
+            print(x)
             yield from mv(motor, x)
             yield from bps.sleep(sleep_time)
             yield from trigger_and_read(list(detector_all))
         yield from mv(motor, motor_ini_pos)
     uid = yield from pzt_inner_scan()
+
     h = db[-1]
     scan_id = h.start['scan_id']    
     det = [det.name for det in detectors]

@@ -24,6 +24,7 @@ def reset_pdf():
     _,_, PDF_ARGS['year'], PDF_ARGS['month'], PDF_ARGS['day'] = get_current_date()
     PDF_ARGS['fn_log'] = f'/NSLS2/xf18id1/DATA/FXI_log/TXM_log_test_{PDF_ARGS["year"]}{PDF_ARGS["month"]}{PDF_ARGS["day"]}.pdf'
     PDF_ARGS['temp_folder'] = '/home/xf18id/.ipython/profile_collection/startup/temp'
+    PDF_ARGS['temp_img_folder'] = PDF_ARGS['temp_folder'] + '/img'
     PDF_ARGS['fn_tmp'] = PDF_ARGS['temp_folder'] + '/tmp.pdf'
     PDF_ARGS['fn_tmp_txt'] = PDF_ARGS['temp_folder'] + '/current_log.txt'
     PDF_ARGS['C_canvas'] = canvas.Canvas(PDF_ARGS['fn_tmp'], pagesize=letter, bottomup = 1)
@@ -31,22 +32,24 @@ def reset_pdf():
     PDF_ARGS['Width'], PDF_ARGS['Height'] = letter     
     PDF_ARGS['Font_size'] = 9
     PDF_ARGS['LineSpace'] = 1.2 * PDF_ARGS['Font_size']
-#    clean_tmp_fig()
-#    PDF_ARGS['tmp_flag'] = 0
     PDF_ARGS['Cursor_x'] = 0.45 * inch
     PDF_ARGS['Cursor_y'] = PDF_ARGS['Height'] - 0.5*inch
     insert_time_title()
     PDF_ARGS['Cursor_y'] = PDF_ARGS['Height'] - inch
+    if not os.path.exists(PDF_ARGS['temp_img_folder']):
+        os.makedirs(PDF_ARGS['temp_img_folder'], exist_ok=True)
+
+
 
 
 
 def clean_tmp_fig():
     reset_pdf()
-    files = glob.glob(PDF_ARGS['temp_folder'] + '/*.png')
+    files = glob.glob(PDF_ARGS['temp_img_folder'] + '/*.png')
     if len(files):
         for f in files:
             os.remove(f)
-    PDF_ARGS['tmp_flag'] = 0
+    #PDF_ARGS['tmp_flag'] = 0
 
 
 
@@ -71,9 +74,10 @@ def get_current_date():
     day  = '{:02d}'.format(now.day)
     hour = '{:02d}'.format(now.hour)
     minu = '{:02d}'.format(now.minute)
+    sec  = '{:02d}'.format(now.second) 
     current_date = year + '-' + mon + '-' + day
-    current_time = hour + ':' + minu
-    return current_date, current_time, year, mon, day,
+    current_time = hour + ':' + minu + ':' + sec
+    return current_date, current_time, year, mon, day
 
 
 def insert_time_title():
@@ -85,10 +89,17 @@ def insert_time_title():
     textObj = PDF_ARGS['C_canvas'].beginText(PDF_ARGS['Cursor_x'], PDF_ARGS['Cursor_y'])
     textObj.textLines(text)
     PDF_ARGS['C_canvas'].drawText(textObj)   
+
     
+def obtain_image_file_name():
+    current_date, current_time, _, _, _ = get_current_date()
+    current_date = ''.join(current_date.split('-'))
+    current_time = ''.join(current_time.split(':'))
+    fn = f'{PDF_ARGS["temp_img_folder"]}/{current_date}_{current_time}.png'
+    return fn
 
 
-def insert_text(text,write_txt_flag=1):
+def insert_text(text, write_txt_flag=1):
     check_page_is_full()    
     if write_txt_flag:
         PDF_ARGS['f'].write(text+'\n')
@@ -113,7 +124,8 @@ def insert_fig(ratio=0.4):
     try:
         fig = plt.gcf()
     #    fig.set_figheight(2) # set figure height to 2 inch
-        fn =  PDF_ARGS['temp_folder'] + f'/tmp_fig_{PDF_ARGS["tmp_flag"]}.png'
+        fn = obtain_image_file_name()
+       # fn =  PDF_ARGS['temp_folder'] + f'/tmp_fig_{PDF_ARGS["tmp_flag"]}.png'
 #        fn = f'/home/xf18id/.ipython/profile_collection/startup/temp/tmp_fig_{PDF_ARGS["tmp_flag"]}.png'
         fig.savefig(fn,format='png')
         insert_pic(fn, ratio)
@@ -138,15 +150,15 @@ def insert_pic(fn='', ratio=0.3):
         if check_page_is_full():
             PDF_ARGS['Cursor_y'] -= img_height - PDF_ARGS['LineSpace']
             PDF_ARGS['Cursor_x'] = (PDF_ARGS['Width'] - img_width)/2
+        
         PDF_ARGS['C_canvas'].drawImage(fn, PDF_ARGS['Cursor_x'], PDF_ARGS['Cursor_y'], width=img_width, height=img_height)
         PDF_ARGS['Cursor_x'] = 0.6 * inch        
-        PDF_ARGS['Cursor_y'] -= inch/2     
-        PDF_ARGS['tmp_flag'] += 1 
+        PDF_ARGS['Cursor_y'] -= inch/2 
+        insert_text(fn)    
+        #PDF_ARGS['tmp_flag'] += 1 
    
     except:
         print('picture file not found') 
-    finally:
-        pass
 
 
 
@@ -167,8 +179,8 @@ def insert_log(comment=''):
     
 
 def insert_screen_shot(ratio=0.6):
-    fn =  PDF_ARGS['temp_folder'] + f'/tmp_fig_{PDF_ARGS["tmp_flag"]}.png'
-    cmd = f'import -screen {fn}'
+    fn = obtain_image_file_name()
+    cmd = f'import {fn}'
     os.system(cmd)
     insert_pic(fn, ratio)
 #    if flag==2: # current monitor screen
@@ -237,16 +249,26 @@ def merge_pdf(fn1, fn2, fout):
         flag2 = 0
         try:
             f1 = PdfFileReader(fn1, 'rb')
-        except:
-            print(f'file: crashed.\nGenerate new file "{fout}"')
-        finally:
             flag1 = 1
+        except:
+            try:
+                os.remove(fn1)
+            except:
+                pass
+            finally:
+                print(f'file: crashed.\nGenerate new file "{fout}"')
+                flag1 = 0        
         try:
             f2 = PdfFileReader(fn2,'rb')
-        except:
-            print(f'file: crashed.\nGenerate new file "{fout}"')
-        finally:
             flag2 = 1
+        except:
+            try:
+                os.remove(fn2)
+            except:
+                pass
+            finally:
+                print(f'file: crashed.\nGenerate new file "{fout}"')
+            flag2 = 0
 
         if flag1:     
             merger.append(f1)
@@ -288,7 +310,7 @@ def demo_pdf():
 
 def run_pdf():
     merge_log()
-    clean_tmp_fig()
+#    clean_tmp_fig()
 
 
 

@@ -1,59 +1,61 @@
-def load_scan(scan_id):
+def export_scan(scan_id):
     '''
     e.g. load_scan([0001, 0002]) 
     '''
     for item in scan_id:        
-        load_single_scan(int(item))  
+        export_single_scan(int(item))  
         
 
-def load_single_scan(scan_id=-1):
+def export_single_scan(scan_id=-1):
     h = db[scan_id]
     scan_id = h.start['scan_id']
     scan_type = h.start['plan_name']
 #    x_eng = h.start['XEng']
      
     if scan_type == 'tomo_scan':
-        print('loading tomo scan: #{}'.format(scan_id))
-        load_tomo_scan(h)
+        print('exporting tomo scan: #{}'.format(scan_id))
+        export_tomo_scan(h)
         print('tomo scan: #{} loading finished'.format(scan_id))
     elif scan_type == 'fly_scan':
-        print('loading fly scan: #{}'.format(scan_id))
-        load_fly_scan(h)
+        print('exporting fly scan: #{}'.format(scan_id))
+        export_fly_scan(h)
         print('fly scan: #{} loading finished'.format(scan_id))
     elif scan_type == 'xanes_scan' or scan_type == 'xanes_scan2':
-        print('loading xanes scan: #{}'.format(scan_id))
-        load_xanes_scan(h)
+        print('exporting xanes scan: #{}'.format(scan_id))
+        export_xanes_scan(h)
         print('xanes scan: #{} loading finished'.format(scan_id))
     elif scan_type == 'z_scan':
-        print('loading z_scan: #{}'.format(scan_id))
-        load_z_scan(h)
+        print('exporting z_scan: #{}'.format(scan_id))
+        export_z_scan(h)
     elif scan_type == 'test_scan':
-        print('loading test_scan: #{}'.format(scan_id))
-        load_test_scan(h)    
+        print('exporting test_scan: #{}'.format(scan_id))
+        export_test_scan(h)    
     elif scan_type == 'multipos_count':
-        print(f'loading multipos_count: #{scan_id}')
-        load_multipos_count(h)
+        print(f'exporting multipos_count: #{scan_id}')
+        export_multipos_count(h)
     elif scan_type == 'grid2D_rel':
-        print('loading grid2D_rel: #{}'.format(scan_id))
-        load_grid2D_rel(h)
+        print('exporting grid2D_rel: #{}'.format(scan_id))
+        export_grid2D_rel(h)
     elif scan_type == 'raster_2D':
-        print('loading raster_2D: #{}'.format(scan_id))
-        load_raster_2D(h)
+        print('exporting raster_2D: #{}'.format(scan_id))
+        export_raster_2D(h)
     elif scan_type == 'count' or scan_type == 'delay_count':
-        print('loading count: #{}'.format(scan_id))
-        load_count_img(h)
+        print('exporting count: #{}'.format(scan_id))
+        export_count_img(h)
     elif scan_type == 'multipos_2D_xanes_scan2':
-        print('loading multipos_2D_xanes_scan2: #{}'.format(scan_id))
-        load_multipos_2D_xanes_scan2(h)
+        print('exporting multipos_2D_xanes_scan2: #{}'.format(scan_id))
+        export_multipos_2D_xanes_scan2(h)
     else:
         print('Un-recognized scan type ......')
-        pass
         
 
-def load_tomo_scan(h):
+def export_tomo_scan(h):
     scan_type = 'tomo_scan'
     scan_id = h.start['scan_id']
-    x_eng = h.start['x_ray_energy']
+    try:
+        x_eng = h.start['XEng']
+    except:
+        x_eng = h.start['x_ray_energy']
     bkg_img_num = h.start['num_bkg_images']
     dark_img_num = h.start['num_dark_images']
     angle_i = h.start['plan_args']['start']
@@ -85,7 +87,7 @@ def load_tomo_scan(h):
     del img_bkg
 
 
-def load_fly_scan(h): 
+def export_fly_scan(h): 
     uid = h.start['uid']
     note = h.start['note']
     scan_type = 'fly_scan'
@@ -148,12 +150,12 @@ def load_fly_scan(h):
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = int(scan_id))
         hf.create_dataset('scan_time', data = scan_time)
-       # hf.create_dataset('X_eng', data = x_eng)
-        hf.create_dataset('img_bkg', data = img_bkg)
-        hf.create_dataset('img_dark', data = img_dark)
-        hf.create_dataset('img_bkg_avg', data = img_bkg_avg)
-        hf.create_dataset('img_dark_avg', data = img_dark_avg)
-        hf.create_dataset('img_tomo', data = img_tomo)
+        hf.create_dataset('X_eng', data = x_eng)
+        hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
+        hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
+        hf.create_dataset('img_bkg_avg', data = np.array(img_bkg_avg, dtype=np.float32))
+        hf.create_dataset('img_dark_avg', data = np.array(img_dark_avg, dtype=np.float32))
+        hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.float32))
         hf.create_dataset('angle', data = img_angle)
     
     del img_tomo
@@ -162,16 +164,18 @@ def load_fly_scan(h):
     del imgs
     
 
-def load_xanes_scan(h):
+def export_xanes_scan(h):
     scan_type = h.start['plan_name']
 #    scan_type = 'xanes_scan'
     uid = h.start['uid']
     note = h.start['note']
     scan_id = h.start['scan_id']  
     scan_time = h.start['time']
-#    x_eng = h.start['x_ray_energy']
-#    chunk_size = h.start['chunk_size']
-    chunk_size = h.start['num_bkg_images']
+    try:
+        x_eng = h.start['XEng']
+    except:
+        x_eng = h.start['x_ray_energy']
+    chunk_size = h.start['chunk_size']
     num_eng = h.start['num_eng']
     
     imgs = np.array(list(h.data('Andor_image')))
@@ -211,17 +215,21 @@ def load_xanes_scan(h):
         hf.create_dataset('note', data = note)
         hf.create_dataset('scan_time', data = scan_time)
         hf.create_dataset('X_eng', data = eng_list)
-        hf.create_dataset('img_bkg', data = img_bkg_avg.astype(np.float32))
-        hf.create_dataset('img_dark', data = img_dark_avg.astype(np.float32))
-        hf.create_dataset('img_xanes', data = img_xanes_norm.astype(np.float32))
+        hf.create_dataset('img_bkg', data = np.array(img_bkg_avg, dtype=np.float32))
+        hf.create_dataset('img_dark', data = np.array(img_dark_avg, dtype=np.float32))
+        hf.create_dataset('img_xanes', data = np.array(img_xanes_norm, dtype=np.float32))
     del img_xanes, img_dark, img_bkg, img_xanes_avg, img_dark_avg
     del img_bkg_avg, imgs, img_xanes_norm
 
 
-def load_z_scan(h):
+def export_z_scan(h):
     scan_type = h.start['plan_name']
     scan_id = h.start['scan_id']
     uid = h.start['uid']
+    try:
+        x_eng = h.start['XEng']
+    except:
+        x_eng = h.start['x_ray_energy']
     num = h.start['plan_args']['steps']
     chunk_size = h.start['plan_args']['chunk_size']
     note = h.start['plan_args']['note'] if h.start['plan_args']['note'] else 'None'
@@ -238,6 +246,7 @@ def load_z_scan(h):
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
         hf.create_dataset('note', data = note)
+        hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img', data = img_zscan)
@@ -245,11 +254,15 @@ def load_z_scan(h):
     del img, img_zscan, img_bkg, img_dark, img_norm
 
     
-def load_test_scan(h):
+def export_test_scan(h):
     import tifffile
     scan_type = h.start['plan_name']
     scan_id = h.start['scan_id']
     uid = h.start['uid']   
+    try:
+        x_eng = h.start['XEng']
+    except:
+        x_eng = h.start['x_ray_energy']
     num = h.start['plan_args']['num_img']
     num_bkg = h.start['plan_args']['num_bkg']
     note = h.start['plan_args']['note'] if h.start['plan_args']['note'] else 'None'
@@ -267,6 +280,7 @@ def load_test_scan(h):
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('uid', data = uid)
         hf.create_dataset('scan_id', data = scan_id)
+        hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('note', data = note)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
@@ -277,7 +291,7 @@ def load_test_scan(h):
 
 
 
-def load_count_img(h):
+def export_count_img(h):
     '''
     load images (e.g. RE(count([Andor], 10)) ) and save to .h5 file
     '''    
@@ -292,7 +306,7 @@ def load_count_img(h):
 
 
 
-def load_multipos_count(h):
+def export_multipos_count(h):
     scan_type = h.start['plan_name']
     scan_id = h.start['scan_id']
     uid = h.start['uid']
@@ -326,7 +340,7 @@ def load_multipos_count(h):
             hf.create_dataset(f'img_pos{i+1}', data=np.squeeze(img_group[i])) 
 
 
-def load_grid2D_rel(h):
+def export_grid2D_rel(h):
     uid = h.start['uid']
     note = h.start['note']
     scan_type = 'grid2D_rel'
@@ -351,7 +365,7 @@ def load_grid2D_rel(h):
             img.save(fname_tif)
 
     
-def load_raster_2D(h):
+def export_raster_2D(h):
     import tifffile
     uid = h.start['uid']
     note = h.start['note']
@@ -373,19 +387,14 @@ def load_raster_2D(h):
     img = img_raw[num_dark:-num_bkg]
     s = img.shape
     img = (img - img_dark_avg)/(img_bkg_avg-img_dark_avg)
-
     x_num = round((x_range[1]-x_range[0])+1)
     y_num = round((y_range[1]-y_range[0])+1)
-
     x_list = np.linspace(x_range[0], x_range[1], x_num) 
     y_list = np.linspace(y_range[0], y_range[1], y_num) 
-
     row_size = y_num * s[1]
     col_size = x_num * s[2]
-
     img_patch = np.zeros([1, row_size, col_size])
     index = 0
-
     pos_file_for_print = np.zeros([x_num*y_num, 4])
     pos_file = ['cord_x\tcord_y\tx_pos_relative\ty_pos_relative\n']
     index=0
@@ -397,19 +406,13 @@ def load_raster_2D(h):
             index = index + 1
     s = img_patch.shape
     img_patch_bin = bin_ndarray(img_patch, new_shape=(1, int(s[1]/4), int(s[2]/4)))
-
-        
-
     fout_h5 = f'raster2D_scan_{scan_id}.h5'
     fout_tiff = f'raster2D_scan_{scan_id}.tiff' 
     fout_txt = f'raster2D_scan_{scan_id}_cord.txt'     
-#    with h5py.File(fout_h5, 'w') as hf:
-#        hf.create_dataset('img', data=img_patch)
     print(f'{pos_file_for_print}')
     with open(f'{fout_txt}','w+') as f:
         f.writelines(pos_file)
-    tifffile.imsave(fout_tiff, img_patch_bin.astype(np.float32))
-
+    tifffile.imsave(fout_tiff, np.array(img_patch_bin, dtype=np.float32))
     num_img = int(x_num) * int(y_num)
     cwd=os.getcwd()
     new_dir = f'{cwd}/raster_scan_{scan_id}'
@@ -420,10 +423,10 @@ def load_raster_2D(h):
     for i in range(num_img):  
         fout = f'{new_dir}/img_{i:02d}.tiff'
         print(f'saving {fout}')
-        tifffile.imsave(fout, tmp[i].astype(np.float32))
+        tifffile.imsave(fout, np.array(tmp[i], dtype=np.float32))
     
     
-def load_multipos_2D_xanes_scan2(h):
+def export_multipos_2D_xanes_scan2(h):
     scan_type = h.start['plan_name']
     uid = h.start['uid']
     note = h.start['note']
@@ -443,8 +446,6 @@ def load_multipos_2D_xanes_scan2(h):
 
     img_xanes = np.zeros([num_pos, num_eng, imgs.shape[1], imgs.shape[2]])
     img_bkg = np.zeros([num_eng, imgs.shape[1], imgs.shape[2]])
-
-
     for repeat in range(repeat_num):
         index = 1
         for i in range(num_eng):
@@ -457,8 +458,6 @@ def load_multipos_2D_xanes_scan2(h):
         for i in range(num_eng):
             for j in range(num_pos):
                 img_xanes[j,i] = (img_xanes[j,i] - img_dark) / (img_bkg[i] - img_dark)
-
-
         # save data
         fn = os.getcwd() + '/'
         for j in range(num_pos):
@@ -469,10 +468,9 @@ def load_multipos_2D_xanes_scan2(h):
                 hf.create_dataset('note', data = note)
                 hf.create_dataset('scan_time', data = scan_time)
                 hf.create_dataset('X_eng', data = eng_list)
-                hf.create_dataset('img_bkg', data = img_bkg.astype(np.float32))
-                hf.create_dataset('img_dark', data = img_dark.astype(np.float32))
-                hf.create_dataset('img_xanes', data = img_xanes[j].astype(np.float32))        
-                    
+                hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
+                hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
+                hf.create_dataset('img_xanes', data = np.array(img_xanes[j], dtype=np.float32))
     del img_xanes
     del img_bkg
     del img_dark    

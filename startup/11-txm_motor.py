@@ -1,6 +1,7 @@
 from ophyd import (EpicsMotor, EpicsSignalRO, Device, Component as Cpt)
 from ophyd import EpicsSignal
 
+from nslsii.devices import TwoButtonShutter
 
 class MyBaseMotor(EpicsMotor):
     dial_readback = Cpt(EpicsSignalRO, '.DRBV')
@@ -82,6 +83,8 @@ XEng = MyEpicsMotor('XF:18IDA-OP{Mono:DCM-Ax:En}Mtr', name='XEng')
 shutter_open = EpicsSignal('XF:18IDA-PPS{PSh}Cmd:Opn-Cmd', name='shutter_open')
 shutter_close = EpicsSignal('XF:18IDA-PPS{PSh}Cmd:Cls-Cmd', name='shutter_close')
 shutter_status = EpicsSignal('XF:18IDA-PPS{PSh}Pos-Sts', name='shutter_status')
+
+shutter = TwoButtonShutter('XF:18IDA-PPS{PSh}', name='shutter')
 
 motor_txm = [clens.x, clens.y1, clens.y2, clens.z1, clens.z2, clens.p,
              aper.x, aper.y, aper.z,

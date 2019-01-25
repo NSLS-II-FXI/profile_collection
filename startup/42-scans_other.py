@@ -16,11 +16,13 @@ def test_scan(exposure_time=0.1, out_x=-100, out_y=-100, out_z=0, out_r=0, num_i
     
     out_y: float(int), relative sampel out position for zps.sy
 
-    num: int, number of images to take
+    out_z: float(int), relative sampel out position for zps.sz
+    
+    out_r: float(int), relative sampel out position for zps.pi_r
+
+    num_img: int, number of images to take
 
     num_bkg: int, number of backgroud image to take
-
-    fn: str, file name to save .h5 
     '''
 
     yield from mv(Andor.cam.acquire, 0)
@@ -248,6 +250,24 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
     Use as:
     load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_end, steps, delay_time=0.5)
     note: energies are in unit if keV
+
+    Inputs:
+    --------
+    pzt_cm_bender_pos_list: list of "CM_Bender Set Position"
+        PV:    XF:18IDA-OP{Mir:CM-Ax:Bender}SET_POSITION
+
+    pbsl_y_pos_list: list of PBSL_y Center Position
+        PV:    XF:18IDA-OP{PBSL:1-Ax:YCtr}Mtr
+
+    num: number of repeating scans (engergy scan) at each pzt_cm_bender position and each pbsl_y center position
+
+    eng_start: float, start energy in unit of keV
+
+    eng_end: float, end of energy in unit of keV
+
+    steps:  num of steps from eng_start to eng_end
+
+    delay_time: delay_time between each energy step, in unit of sec
     '''
 
     txt1 = f'load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num={num}, eng_start={eng_start}, eng_end={eng_end}, steps={steps}, delay_time={delay_time})'
@@ -290,6 +310,20 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
 def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     '''
     scanning ssa, with different pzt_tm_bender position
+    
+    Inputs:
+    --------
+    bender_pos_list: list of pzt_tm position
+        PV:     XF:18IDA-OP{Mir:TM-Ax:Bender}
+
+    ssa_motor: choose from ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr 
+
+    ssa_start: float, start position of ssa_motor
+
+    ssa_end: float, end position of ssa_motor
+
+    ssa_steps: int, number of ssa_motor movement
+
     '''
     txt1 = f'ssa_scan_tm_bender(bender_pos_list=bender_pos_list, ssa_motor={ssa_motor.name}, ssa_start={ssa_start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})' 
     txt2 = f'bender_pos_list = {bender_pos_list}'
@@ -328,6 +362,19 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
 def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     '''
     scanning ssa, with different tm.yaw position
+
+    Inputs:
+    --------
+    tm_yaw_pos_list: list of tm_yaw position
+        PV:     XF:18IDA-OP{Mir:TM-Ax:Yaw}Mtr
+
+    ssa_motor: choose from ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr 
+
+    ssa_start: float, start position of ssa_motor
+
+    ssa_end: float, end position of ssa_motor
+
+    ssa_steps: int, number of ssa_motor movement
     '''
     txt1 = f'ssa_scan_tm_yaw(tm_yaw_pos_list=tm_yaw_pos_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})'
     txt2 = f'tm_yaw_pos_list = {tm_yaw_pos_list}'

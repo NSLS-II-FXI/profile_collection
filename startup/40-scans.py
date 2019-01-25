@@ -21,10 +21,6 @@ from bluesky.utils import (Msg, short_uid as _short_uid, make_decorator)
 warnings.filterwarnings('ignore')
 
 
-
-
-
-
 ######################### 
 def _move_sample_out(out_x, out_y, out_z, out_r, repeat=1):
     '''
@@ -241,29 +237,43 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
 
 def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_z=0, out_r=0, simu=False, note='', md=None):
     '''
-    Scan the energy and take 2D image
+    Scan the energy and take 2D image, will take background after take all images for all energy points
     Example: RE(xanes_scan([8.9, 9.0, 9.1], exposure_time=0.1, bkg_num=10, dark_num=10, out_x=1, out_y=0, note='xanes scan test'))
 
     Inputs:
     -------
     eng_list: list or numpy array,
-           energy in unit of keV
+        energy in unit of keV
 
     exposure_time: float
-           in unit of seconds
+        in unit of seconds
 
     chunk_size: int
-           number of background images == num of dark images
+        number of background images == num of dark images
 
-    out_x: float
-           relative move amount of zps.sx motor
-           (in unit of um, to move out sample)
+    out_x: float, default is 0
+        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
-    out_y: float
-           relative move amount of zps.sy motor
-           (in unit of um, to move out sample)
+    out_y: float, default is 0
+        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_z: float, default is 0
+        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_r: float, default is 0
+        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
     note: string
+        adding note to the scan
+
+    simu: Bool, default is False
+        True: will simulate closing/open shutter without really closing/opening
+        False: will really close/open shutter
+
 
     '''
     detectors=[Andor, ic3]
@@ -364,23 +374,36 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
     Inputs:
     -------
     eng_list: list or numpy array,
-           energy in unit of keV
+        energy in unit of keV
 
     exposure_time: float
-           in unit of seconds
+        in unit of seconds
 
     chunk_size: int
-           number of background images == num of dark images
+        number of background images == num of dark images
 
-    out_x: float
-           relative move amount of zps.sx motor
-           (in unit of um, to move out sample)
+    out_x: float, default is 0
+        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
-    out_y: float
-           relative move amount of zps.sy motor
-           (in unit of um, to move out sample)
+    out_y: float, default is 0
+        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_z: float, default is 0
+        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_r: float, default is 0
+        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
     note: string
+        adding note to the scan
+
+    simu: Bool, default is False
+        True: will simulate closing/open shutter without really closing/opening
+        False: will really close/open shutter
 
     '''
     detectors=[Andor, ic3]
@@ -535,6 +558,23 @@ def eng_scan(eng_start, eng_end, steps, num=10, detectors=[ic3, ic4], delay_time
 
 
 def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note='', md=None):
+    '''
+
+    Input:
+    ----------
+    start: float, energy start in keV
+
+    end: float, energy stop in keV
+
+    num: int, number of energies
+
+    detectors: list, detector list, e.g.[ic3, ic4, Andor]
+
+    delay_time: float, delay time after moving motors, in sec
+
+    note: string    
+
+    '''
     # detectors=[ic3, ic4]
     motor_x = XEng
     motor_x_ini = motor_x.position # initial position of motor_x
@@ -587,6 +627,47 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
 
 
 def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=0, out_y=2000, out_z=0,  out_r=0, rs=1, note='', simu=False, md=None):
+    '''
+    Inputs:
+    -------
+    exposure_time: float, in unit of sec
+
+    relative_rot_angle: float, 
+        total rotation angles start from current rotary stage (zps.pi_r) position
+
+    period: float, in unit of sec
+        period of taking images, "period" should >= "exposure_time"
+
+    chunk_size: int, default setting is 20
+        number of images taken for each trigger of Andor camera
+
+    out_x: float, default is 0
+        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_y: float, default is 0
+        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_z: float, default is 0
+        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_r: float, default is 0
+        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    rs: float, default is 1
+        rotation speed in unit of deg/sec
+
+    note: string
+        adding note to the scan
+
+    simu: Bool, default is False
+        True: will simulate closing/open shutter without really closing/opening
+        False: will really close/open shutter
+    
+    '''
 
     motor_x_ini = zps.sx.position
     motor_x_out = motor_x_ini + out_x
@@ -749,7 +830,7 @@ def grid2D_rel(motor1, start1, stop1, num1, motor2, start2, stop2, num2, exposur
 
 
 
-def delay_count(detectors, num=1, delay=None, *, note='', md=None):
+def delay_count(detectors, num=1, delay=None, *, note='', plot_flag=0, md=None):
     """
     same function as the default "count", 
     re_write it in order to add auto-logging
@@ -778,6 +859,8 @@ def delay_count(detectors, num=1, delay=None, *, note='', md=None):
     uid = yield from inner_count()
     h = db[-1]
     scan_id = h.start['scan_id']
+    if plot_flag:   
+        plot1d(scan_id) 
     det = [det.name for det in detectors]
     det_name = ''
     for i in range(len(det)):
@@ -796,6 +879,29 @@ def delay_count(detectors, num=1, delay=None, *, note='', md=None):
 def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_time=1.0, plot_flag=0, note='', md=None):
     '''
     add sleep_time to regular 'scan' for each scan_step
+
+    Inputs:
+    ---------
+    detectors: list of dectectors, e.g., [Andor, ic3]
+
+    motor: list of motors, e.g., zps.sx
+
+    start: float, motor start position
+
+    stop: float, motor stop position
+
+    steps: int, number of steps for motor motion
+
+    exposure_time: float, in unit of sec
+
+    sleep time: float, in unit of sec
+
+    plot_flag: 0 or 1
+        if 1: will plot detector signal vs. motor
+        if 0: not plot
+
+    note: string
+    
     '''
     if Andor in detectors:
         yield from _set_andor_param(exposure_time, period=exposure_time, chunk_size=1)
@@ -840,13 +946,10 @@ def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_t
         yield from mv(motor, motor_ini)
     uid = yield from delay_inner_scan()
     h = db[-1]
-    if plot_flag:        
-        x = np.linspace(start, stop, steps)
-        y = list(h.data(detectors[0].name))
-        plt.figure();
-        plt.plot(x,y);plt.xlabel(motor.name);plt.ylabel(detectors[0].name)
-        plt.title('scan# {}'.format(h.start['scan_id']))
     scan_id = h.start['scan_id']
+    if plot_flag:   
+        plot1d(scan_id)     
+   
     det = [det.name for det in detectors]
     det_name = ''
     for i in range(len(det)):

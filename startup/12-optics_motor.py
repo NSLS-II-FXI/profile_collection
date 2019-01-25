@@ -1,5 +1,6 @@
 #from ophyd import (EpicsMotor, Device, Component as Cpt)
 
+
 class mirror(Device):
     x = Cpt(MyEpicsMotor, '-Ax:X}Mtr')
     yaw = Cpt(MyEpicsMotor, '-Ax:Yaw}Mtr')
