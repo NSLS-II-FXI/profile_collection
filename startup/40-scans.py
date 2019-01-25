@@ -989,6 +989,48 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
 
 
 def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2, note='', simu=False, md=None):
+    '''
+    scanning large area by moving samples at different 2D block position, defined by x_range and y_range, only work for Andor camera at full resolution (2160 x 2560)
+    for example, set x_range=[-1,1] and y_range=[-2, 2] will totally take 3 x 5 = 15 images and stitch them together
+
+    Inputs:
+    -------
+
+    x_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size 
+
+    y_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size
+
+    exposure_time: float
+
+    out_x: float, default is 0
+        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_y: float, default is 0
+        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_z: float, default is 0
+        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_r: float, default is 0
+        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+       
+    img_sizeX: int, default is 2560, it is the pixel number for Andor camera horizontal
+
+    img_sizeY: int, default is 2160, it is the pixel number for Andor camera vertical
+
+    pxl: float, pixel size, default is 17.2, in unit of nm/pix
+
+    note: string
+
+    simu: Bool, default is False
+        True: will simulate closing/open shutter without really closing/opening
+        False: will really close/open shutter
+              
+    '''
 
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
     detectors = [Andor, ic3]
@@ -1044,7 +1086,7 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
     def raster_2D_inner():
         # take dark image
         print('take 5 dark image')
-        yield from _take_dark_image(detectors, motor, num_dark=5, simu=False)
+        yield from _take_dark_image(detectors, motor, num_dark=5, simu=simu)
 
         print('open shutter ...')
         yield from _open_shutter(simu)
@@ -1102,7 +1144,7 @@ def multipos_2D_xanes_scan(eng_list, x_list, y_list, z_list, r_list, out_x, out_
 
 def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, exposure_time=0.1, repeat_num=1, sleep_time=0, chunk_size=5, simu=False, note='', md=None):
     '''
-    Different from multipos_2D_xanes_scan. In the current scan, it take image at all locations and then move out sampel to take background image.
+    Different from multipos_2D_xanes_scan. In the current scan, it take image at all locations and then move out sample to take background image.
 
     For example:
     RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, sleep_time=60, note='sample')
@@ -1124,21 +1166,21 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
     r_list: list or numpy array,
             rotation_angle, in unit of degree
 
-    out_x: float
-           relative move amount of zps.sx motor
-           (in unit of um, to move out sample)
+    out_x: float, default is 0
+        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
-    out_y: float
-           relative move amount of zps.sy motor
-           (in unit of um, to move out sample)
+    out_y: float, default is 0
+        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
-    out_z: float
-           relative move amount of zps.sz motor
-           (in unit of um, to move out sample)
+    out_z: float, default is 0
+        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
-    out_r: float
-           relative move amount of zps.pi_r motor
-           (in unit of degree, to move out sample)
+    out_r: float, default is 0
+        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
 
     exposure_time: float
            in unit of seconds
