@@ -49,13 +49,15 @@ def _close_shutter(simu=False):
         print('testing: close shutter')
     else:
         print('closing shutter ... ')
+        # yield from mv(shutter, 'Close')
         i = 0
         while not shutter_status.value: # if 1:  closed; if 0: open
             yield from abs_set(shutter_close, 1)
             yield from bps.sleep(1)
             i += 1
-            if i > 10:
+            if i > 5:
                 print('fails to close shutter')
+                raise Exception('fails to close shutter')
                 break
         #yield from abs_set(shutter_close, 1)
         #yield from bps.sleep(1)
@@ -65,13 +67,15 @@ def _open_shutter(simu=False):
         print('testing: open shutter')
     else:
         print('opening shutter ... ')
+        # yield from mv(shutter, 'Open')
         i = 0
         while shutter_status.value: # if 1:  closed; if 0: open
             yield from abs_set(shutter_open, 1)
             yield from bps.sleep(1)
             i += 1
-            if i >10:
+            if i >5:
                 print('fails to open shutter')
+                raise Exception('fails to open shutter')
                 break
         #yield from abs_set(shutter_open, 1)
         #yield from bps.sleep(1)
