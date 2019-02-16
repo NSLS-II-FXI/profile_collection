@@ -7,7 +7,10 @@ from scipy.signal import medfilt2d
 
 #from image_binning import bin_ndarray
 
-GLOBAL_MAG = 377 # total magnification
+# GLOBAL_MAG = 377 in 2018Q3
+# GLOBAL_MAG = 371.43 in 2019Q1
+# GLOBAL_MAG =400 in 2019Q1 for vanandium K-edge
+GLOBAL_MAG =400 # total magnification
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
 ZONE_DIAMETER = 200 # 200 um

@@ -132,7 +132,7 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
     z_ini = motor.position # zp.z intial position
     z_start = z_ini + start
     z_stop = z_ini + stop
-    detectors = [Andor]
+#    detectors = [Andor]
     y_ini = zps.sy.position # sample y position (initial)
     y_out = y_ini + out_y # sample y position (out-position)
     x_ini = zps.sx.position

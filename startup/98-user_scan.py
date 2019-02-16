@@ -1,3 +1,56 @@
+'''
+import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+def send_email(subject,
+               body,
+               hostname,
+               port,
+               user,
+               password,
+               recipients,
+               attachment_path=None):
+    """Sends an email, and possibly an attachment, to the given recipients.
+    Args:
+        subject: The email subject text.
+        body: The email body text.
+        host: Hostname of the SMTP email server.
+        port: Port on the host to connect on.
+        user: Email address to send the email from.
+        password: Password of the sending address.
+        recipients: A list of email addresses to send the message to.
+        attachment_path (optional): Path to the attachment file.
+    """
+    # Create message and add body
+    msg = MIMEMultipart()
+    msg['Subject'] = subject
+    msg['From']    = user
+    msg['To'] = ', '.join(recipients)
+    msg.attach(MIMEText(body))
+    # Add attachment to message
+    if attachment_path != None:
+        attachment = open(attachment_path, "rb")
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(attachment.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition',
+                        'attachment; filename="{}"'.format(attachment_path))
+        msg.attach(part)
+    # Send the message
+    server = smtplib.SMTP(hostname, port)
+    server.starttls()
+    server.login(user, password)
+    server.sendmail(from_addr = user,
+                    to_addrs = recipients,
+                    msg = msg.as_string())
+    server.quit()
+
+'''
+
+
 def user_scan(exposure_time, period, out_x, out_y, out_z, rs=1, out_r=0, xanes_flag=False, xanes_angle=0, note=''):
 # Ni
     angle_ini = 0
@@ -224,5 +277,54 @@ def tmp_scan():
             print(f'current {i}_{j}: x={xx}, y={yy}')
             yield from mv(zps.sx, xx, zps.sy, yy)
             yield from xanes_scan2(eng_Ni_list_xanes, 0.05, chunk_size=4, out_x=2000, out_y=0, out_z=0, out_r=0, simu=False, note='NCM532_72cycle_discharge_{i}_{j}')
+
+
+
+def mosaic_fly_scan(x_list, y_list, z_list, r_list, exposure_time=0.1, relative_rot_angle = 150, period=0.1, chunk_size=20, out_x=None, out_y=None, out_z=4400,  out_r=90, rs=1, note='', simu=False, relative_move_flag=0, traditional_sequence_flag=0):
+    txt = 'start mosaic_fly_scan, containing following fly_scan\n'
+    insert_text(txt)
+    insert_text('x_list = ')
+    insert_text(str(x_list))
+    insert_text('y_list = ')
+    insert_text(str(y_list))
+    insert_text('z_list = ')
+    insert_text(str(z_list))
+    insert_text('r_list = ')
+    insert_text(str(r_list))
+    
+    n = len(x_list)
+    for i in range(n):
+        success = False
+        count = 1        
+        while not success and count < 20:        
+            try:
+                RE(mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i]))
+                RE(fly_scan(exposure_time, relative_rot_angle, period, chunk_size, out_x, out_y, out_z,  out_r, rs, note, simu, relative_move_flag, traditional_sequence_flag, md=None))
+                success = True
+            except:
+                count += 1
+                RE.abort()
+                Andor.unstage()
+                print('sleeping for 30 sec')
+                RE(bps.sleep(30))
+                txt = f'Redo scan at x={x_list[i]}, y={y_list[i]}, z={z_list[i]} for {count} times'
+                print(txt)
+                insert_text(txt)                
+    txt = 'mosaic_fly_scan finished !!\n'
+    insert_text(txt)
+        
+def mosaic2d_lists(x_start, x_end, x_step, y_start, y_end, y_step, z, r):
+    x_range = list(range(x_start, x_end + x_step, x_step))
+    y_range = list(range(y_start, y_end + y_step, y_step))
+    x_list = x_range * len(y_range)
+    y_list = []
+    for y in y_range:
+        y_list.extend([y] * len(x_range))
+    z_list = [z] * len(x_list)
+    r_list = [r] * len(x_list)
+    return x_list, y_list, z_list, r_list
+
+
+    
 
 

@@ -93,6 +93,12 @@ def export_fly_scan(h):
     scan_type = 'fly_scan'
     scan_id = h.start['scan_id']   
     scan_time = h.start['time'] 
+    x_pos =  h.table('baseline')['zps_sx'][1]
+    y_pos =  h.table('baseline')['zps_sy'][1]
+    z_pos =  h.table('baseline')['zps_sz'][1]
+    r_pos =  h.table('baseline')['zps_pi_r'][1]   
+    
+    
     try:
         x_eng = h.start['XEng']
     except:
@@ -157,7 +163,10 @@ def export_fly_scan(h):
         hf.create_dataset('img_dark_avg', data = np.array(img_dark_avg, dtype=np.float32))
         hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.float32))
         hf.create_dataset('angle', data = img_angle)
-    
+        hf.create_dataset('x_ini', data = x_pos)
+        hf.create_dataset('y_ini', data = y_pos)
+        hf.create_dataset('z_ini', data = z_pos)
+        hf.create_dataset('r_ini', data = r_pos)
     del img_tomo
     del img_dark
     del img_bkg
@@ -165,23 +174,23 @@ def export_fly_scan(h):
     
 
 def export_xanes_scan(h):
-    scan_type = h.start['plan_name']
+    scan_type = h.start['plan_name']   
 #    scan_type = 'xanes_scan'
-    uid = h.start['uid']
-    note = h.start['note']
-    scan_id = h.start['scan_id']  
-    scan_time = h.start['time']
+    uid = h.start['uid']   
+    note = h.start['note']   
+    scan_id = h.start['scan_id']   
+    scan_time = h.start['time'] 
     try:
-        x_eng = h.start['XEng']
+        x_eng = h.start['XEng']   
     except:
-        x_eng = h.start['x_ray_energy']
-    chunk_size = h.start['chunk_size']
-    num_eng = h.start['num_eng']
+        x_eng = h.start['x_ray_energy']   
+    chunk_size = h.start['chunk_size']   
+    num_eng = h.start['num_eng'] 
     
     imgs = np.array(list(h.data('Andor_image')))
     img_dark = imgs[0]
     img_dark_avg = np.mean(img_dark, axis=0).reshape([1,img_dark.shape[1], img_dark.shape[2]])
-    eng_list = list(h.start['eng_list'])
+    eng_list = list(h.start['eng_list'])  
     s = imgs.shape
     img_xanes_avg = np.zeros([num_eng, s[2], s[3]])   
     img_bkg_avg = np.zeros([num_eng, s[2], s[3]])  
@@ -432,7 +441,8 @@ def export_multipos_2D_xanes_scan2(h):
     note = h.start['note']
     scan_id = h.start['scan_id']  
     scan_time = h.start['time']
-    x_eng = h.start['x_ray_energy']
+#    x_eng = h.start['x_ray_energy']
+    x_eng = h.start['XEng']
     chunk_size = h.start['chunk_size']
     chunk_size = h.start['num_bkg_images']
     num_eng = h.start['num_eng']
