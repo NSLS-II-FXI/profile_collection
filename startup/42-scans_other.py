@@ -411,7 +411,7 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
         fig.subplots_adjust(hspace=.5)
         plt.show()
     yield from mv(tm.yaw, tm_yaw_ini)
-    print(f'{moving tm.yaw to initial position: tm.yaw.position}')
+    print(f'moving tm.yaw to initial position: {tm.yaw.position}')
     txt_finish='## "ssa_scan_tm_yaw()" finished'
     insert_text(txt_finish)
 
@@ -453,7 +453,7 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         fig.subplots_adjust(hspace=.5)
         plt.show()
     yield from mv(pbsl.x_gap, pbsl_x_gap_ini)
-    print(f'{moving pbsl.x_gap to initial position: pbsl.x_gap.position}')
+    print(f'moving pbsl.x_gap to initial position: {pbsl.x_gap.position}')
     txt_finish='## "ssa_scan_pbsl_x_gap()" finished'
     insert_text(txt_finish)
 
@@ -494,7 +494,7 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         fig.subplots_adjust(hspace=.5)
         plt.show()
     yield from mv(pbsl.y_gap, pbsl_y_gap_ini)
-    print(f'{moving pbsl.y_gap to initial position: pbsl.y_gap.position}')
+    print(f'moving pbsl.y_gap to initial position: {pbsl.y_gap.position}')
     txt_finish='## "ssa_scan_pbsl_y_gap()" finished'
     insert_text(txt_finish)
 
