@@ -10,10 +10,14 @@ from scipy.signal import medfilt2d
 # GLOBAL_MAG = 377 in 2018Q3
 # GLOBAL_MAG = 371.43 in 2019Q1
 # GLOBAL_MAG =400 in 2019Q1 for vanandium K-edge
-GLOBAL_MAG =400 # total magnification
+# GLOBAL_MAG =400 # total magnification
+# GLOBAL_MAG =350 # new commercial zone plate for low energy 5keV
+#GLOBAL_MAG =300 # new commercial zone plate for high energy 10keV
+GLOBAL_MAG =317.17 # new commercial zone plate for energy range 6.5 - 9keV
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
-ZONE_DIAMETER = 200 # 200 um
+#ZONE_DIAMETER = 200 # 200 um  ### xridia zone plate
+ZONE_DIAMETER = 244 # new commercial zone plate
 CURRENT_MAG_1 = GLOBAL_MAG
 CURRENT_MAG_2 = GLOBAL_MAG
 CALIBER_FLAG = 1
@@ -24,15 +28,19 @@ CALIBER = {}
 
 def record_calib_pos1():
     global CALIBER_FLAG
-    CALIBER['th2_pos1'] = pzt_dcm_th2.pos.value
+    #CALIBER['th2_pos1'] = pzt_dcm_th2.pos.value
     CALIBER['chi2_pos1'] = pzt_dcm_chi2.pos.value
     CALIBER['XEng_pos1'] = XEng.position
     CALIBER['zp_x_pos1'] = zp.x.position
     CALIBER['zp_y_pos1'] = zp.y.position
-    print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
+    CALIBER['th2_motor_pos1'] = th2_motor.position
+    
+    
+    #print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
     print(f'pzt_dcm_chi2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["chi2_pos1"]:2.4f}')
     print(f'zp_x_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_x_pos1"]:2.4f}')
     print(f'zp_y_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_y_pos1"]:2.4f}')
+    print(f'th2_motor_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_motor_pos1"]:2.6f}')
 
     df = pd.DataFrame.from_dict(CALIBER, orient='index')
     df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
@@ -49,15 +57,17 @@ def record_calib_pos1():
 
 def record_calib_pos2():
     global CALIBER_FLAG
-    CALIBER['th2_pos2'] = pzt_dcm_th2.pos.value
+    #CALIBER['th2_pos2'] = pzt_dcm_th2.pos.value
     CALIBER['chi2_pos2'] = pzt_dcm_chi2.pos.value
     CALIBER['XEng_pos2'] = XEng.position
     CALIBER['zp_x_pos2'] = zp.x.position
     CALIBER['zp_y_pos2'] = zp.y.position
-    print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
+    CALIBER['th2_motor_pos2'] = th2_motor.position
+    #print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
     print(f'pzt_dcm_chi2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["chi2_pos2"]:2.4f}')
     print(f'zp_x_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_x_pos2"]:2.4f}')
     print(f'zp_y_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_y_pos2"]:2.4f}')
+    print(f'th2_motor_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_motor_pos2"]:2.6f}')
  
     df = pd.DataFrame.from_dict(CALIBER, orient='index')
     df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
@@ -78,27 +88,31 @@ def read_calib_file():
         df = pd.read_csv(fn, index_col=0, sep='\t')
         d = df.to_dict("split")
         d = dict(zip(d["index"], d["data"]))
-        CALIBER['th2_pos1'] = np.float(d['th2_pos1'][0])
+        #CALIBER['th2_pos1'] = np.float(d['th2_pos1'][0])
         CALIBER['chi2_pos1'] = np.float(d['chi2_pos1'][0])
         CALIBER['XEng_pos1'] = np.float(d['XEng_pos1'][0])
         CALIBER['zp_x_pos1'] = np.float(d['zp_x_pos1'][0])
         CALIBER['zp_y_pos1'] = np.float(d['zp_y_pos1'][0])
+        CALIBER['th2_motor_pos1'] = np.float(d['th2_motor_pos1'][0])
 
-        CALIBER['th2_pos2'] = np.float(d['th2_pos2'][0])
+        #CALIBER['th2_pos2'] = np.float(d['th2_pos2'][0])
         CALIBER['chi2_pos2'] = np.float(d['chi2_pos2'][0])
         CALIBER['XEng_pos2'] = np.float(d['XEng_pos2'][0])
         CALIBER['zp_x_pos2'] = np.float(d['zp_x_pos2'][0])
         CALIBER['zp_y_pos2'] = np.float(d['zp_y_pos2'][0])
+        CALIBER['th2_motor_pos2'] = np.float(d['th2_motor_pos2'][0])
     
-        print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
+        #print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
         print(f'pzt_dcm_chi2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["chi2_pos1"]:2.4f}')
         print(f'zp_x_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_x_pos1"]:2.4f}')
         print(f'zp_y_{CALIBER["XEng_pos1"]:2.4f}\t\t: {CALIBER["zp_y_pos1"]:2.4f}')
+        print(f'th2_motor_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_motor_pos1"]:2.6f}')
         print('\n')
-        print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
+        #print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
         print(f'pzt_dcm_chi2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["chi2_pos2"]:2.4f}')
         print(f'zp_x_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_x_pos2"]:2.4f}')
         print(f'zp_y_{CALIBER["XEng_pos2"]:2.4f}\t\t: {CALIBER["zp_y_pos2"]:2.4f}')
+        print(f'th2_motor_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_motor_pos2"]:2.6f}')
     except:
         print(f'\nreading calibration file: {fn} fails...\n Please optimize optics at two energy points, and using record_calib_pos1() and record_calib_pos2() after optimizing each energy points ')
 
@@ -350,29 +364,33 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
         eng2 = CALIBER['XEng_pos2']
 
         
-        pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
+        #pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
         pzt_dcm_chi2_eng1 = CALIBER['chi2_pos1']
         zp_x_pos_eng1 = CALIBER['zp_x_pos1']
         zp_y_pos_eng1 = CALIBER['zp_y_pos1']
+        th2_motor_eng1 = CALIBER['th2_motor_pos1']
 
 
-        pzt_dcm_th2_eng2 = CALIBER['th2_pos2']
+        #pzt_dcm_th2_eng2 = CALIBER['th2_pos2']
         pzt_dcm_chi2_eng2 = CALIBER['chi2_pos2']
         zp_x_pos_eng2 = CALIBER['zp_x_pos2']
         zp_y_pos_eng2 = CALIBER['zp_y_pos2']
+        th2_motor_eng2 = CALIBER['th2_motor_pos2']
 
         if np.abs(eng1 - eng2) < 1e-5: # difference less than 0.01 eV
             print(f'eng1({eng1:2.5f} eV) and eng2({eng2:2.5f} eV) in "CALIBER" are two close, will not move any motors...')
         else:
-            pzt_dcm_th2_target = (eng_new - eng2) * (pzt_dcm_th2_eng1 - pzt_dcm_th2_eng2) / (eng1-eng2) + pzt_dcm_th2_eng2
+            #pzt_dcm_th2_target = (eng_new - eng2) * (pzt_dcm_th2_eng1 - pzt_dcm_th2_eng2) / (eng1-eng2) + pzt_dcm_th2_eng2
             pzt_dcm_chi2_target = (eng_new - eng2) * (pzt_dcm_chi2_eng1 - pzt_dcm_chi2_eng2) / (eng1-eng2) + pzt_dcm_chi2_eng2
             zp_x_target = (eng_new - eng2)*(zp_x_pos_eng1 - zp_x_pos_eng2)/(eng1 - eng2) + zp_x_pos_eng2
             zp_y_target = (eng_new - eng2)*(zp_y_pos_eng1 - zp_y_pos_eng2)/(eng1 - eng2) + zp_y_pos_eng2
+            th2_motor_target = (eng_new - eng2) * (th2_motor_eng1 -th2_motor_eng2) / (eng1-eng2) + th2_motor_eng2
 
-            pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
+            #pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
             pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
             zp_x_ini = zp.x.position    
             zp_y_ini = zp.y.position
+            th2_motor_ini = th2_motor.position
         
             if move_flag: # move stages
                 print ('Now moving stages ....')     
@@ -382,11 +400,18 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
                     print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final)) 
                     print ('move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
                     print ('move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
-                    print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
+                    #print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
                     print ('move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
+                    print ('move th2_motor: ({0:2.6f} deg --> {1:2.6f} deg)'.format(th2_motor_ini, th2_motor_target))
                 yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
-                yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
                 yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
+                #yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
+                yield from mv(pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
+                yield from mv(th2_feedback_enable, 0)
+                yield from mv(th2_feedback, th2_motor_target)
+                yield from mv(th2_feedback_enable, 1)
+                yield from bps.sleep(1)
+                
             else:
                 print ('This is calculation. No stages move') 
                 print ('Will move Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
@@ -394,8 +419,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
                 print ('will move CCD down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(det_delta, det_ini, det_final))
                 print ('will move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
                 print ('will move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
-                print ('will move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
+                #print ('will move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
                 print ('will move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
+                print ('will move th2_motor: ({0:2.6f} deg --> {1:2.6f} deg)'.format(th2_motor_ini, th2_motor_target))
     else:
         print('record_calib_pos1() or record_calib_pos2() not excuted successfully...\nWill not move anything')
 
@@ -775,6 +801,17 @@ def get_scan_file_name(scan_id):
 
     fpath_remote = '/nsls2/xf18id1/backup/DATA/Andor/' + fpath_relative
     return print(f'local path: {fpath}\nremote path: {fpath_remote}')
+
+
+
+def get_scan_motor_pos(scan_id): 
+    df = db[scan_id].table('baseline').T 
+    mot = BlueskyMagics.positioners 
+    for i in mot: 
+        try: 
+            print(f'{i.name:14s}  :: {df[1][i.name]:3.4f} {i.motor_egu.value}  --->  {df[2][i.name]:3.4f} {i.motor_egu.value}') 
+        except: 
+           pass 
 
 
 

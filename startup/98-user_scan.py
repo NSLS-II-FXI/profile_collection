@@ -292,24 +292,26 @@ def mosaic_fly_scan(x_list, y_list, z_list, r_list, exposure_time=0.1, relative_
     insert_text('r_list = ')
     insert_text(str(r_list))
     
-    n = len(x_list)
-    for i in range(n):
-        success = False
-        count = 1        
-        while not success and count < 20:        
-            try:
-                RE(mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i]))
-                RE(fly_scan(exposure_time, relative_rot_angle, period, chunk_size, out_x, out_y, out_z,  out_r, rs, note, simu, relative_move_flag, traditional_sequence_flag, md=None))
-                success = True
-            except:
-                count += 1
-                RE.abort()
-                Andor.unstage()
-                print('sleeping for 30 sec')
-                RE(bps.sleep(30))
-                txt = f'Redo scan at x={x_list[i]}, y={y_list[i]}, z={z_list[i]} for {count} times'
-                print(txt)
-                insert_text(txt)                
+    nx = len(x_list)
+    ny = len(y_list)
+    for i in range(ny):
+        for j in range(nx):
+            success = False
+            count = 1        
+            while not success and count < 20:        
+                try:
+                    RE(mv(zps.sx, x_list[j], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i]))
+                    RE(fly_scan(exposure_time, relative_rot_angle, period, chunk_size, out_x, out_y, out_z,  out_r, rs, note, simu, relative_move_flag, traditional_sequence_flag, md=None))
+                    success = True
+                except:
+                    count += 1
+                    RE.abort()
+                    Andor.unstage()
+                    print('sleeping for 30 sec')
+                    RE(bps.sleep(30))
+                    txt = f'Redo scan at x={x_list[i]}, y={y_list[i]}, z={z_list[i]} for {count} times'
+                    print(txt)
+                    insert_text(txt)                
     txt = 'mosaic_fly_scan finished !!\n'
     insert_text(txt)
         

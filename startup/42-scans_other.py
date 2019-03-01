@@ -276,6 +276,8 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
     txt = '##' + txt1 + '\n' + txt2 + '\n' + txt3 + '\n  Consisting of:\n'
     insert_text(txt)
 
+    pbsl_y_ctr_ini = pbsl.y_ctr.position
+
     check_eng_range([eng_start, eng_end])
     num_pbsl_pos = len(pbsl_y_pos_list)
 
@@ -303,6 +305,8 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
         ax2.title.set_text('load_cell: {}, bender_pos: {}'.format(load_cell_force, bender_pos))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    yield from mv(pbsl.y_ctr, pbsl_y_ctr_ini)
+    print(f'moving pbsl.y_ctr back to initial position: {pbsl.y_ctr.position} mm')
     txt_finish = '## "load_cell_scan()" finished'
     insert_text(txt_finish)
 
@@ -381,6 +385,7 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     txt = '## ' + txt1 + '\n' + txt2 + '\n  Consisting of:\n'
     insert_text(txt)
     motor = tm.yaw
+    tm_yaw_ini = tm.yaw.position
     x = np.linspace(ssa_start, ssa_end, ssa_steps)
     for tm_yaw_pos in tm_yaw_pos_list:
         yield from mv(motor, tm_yaw_pos)
@@ -405,6 +410,8 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
         ax3.title.set_text('Vout2, tm_yaw = {}'.format(tm_yaw_pos))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    yield from mv(tm.yaw, tm_yaw_ini)
+    print(f'{moving tm.yaw to initial position: tm.yaw.position}')
     txt_finish='## "ssa_scan_tm_yaw()" finished'
     insert_text(txt_finish)
 
@@ -420,6 +427,7 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     insert_text(txt)
     
     motor = pbsl.x_gap
+    pbsl_x_gap_ini = pbsl.x_gap.position
     x = np.linspace(ssa_start, ssa_end, ssa_steps)
     for pbsl_x_gap in pbsl_x_gap_list:
         yield from mv(motor, pbsl_x_gap)
@@ -444,6 +452,8 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         ax3.title.set_text('Vout2, pbsl_x_gap = {}'.format(pbsl_x_gap))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    yield from mv(pbsl.x_gap, pbsl_x_gap_ini)
+    print(f'{moving pbsl.x_gap to initial position: pbsl.x_gap.position}')
     txt_finish='## "ssa_scan_pbsl_x_gap()" finished'
     insert_text(txt_finish)
 
@@ -458,6 +468,7 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     insert_text(txt)
     
     motor = pbsl.y_gap
+    pbsl_y_gap_ini = pbsl.y_gap.position
     x = np.linspace(ssa_start, ssa_end, ssa_steps)
     for pbsl_y_gap in pbsl_y_gap_list:
         yield from mv(motor, pbsl_y_gap)
@@ -482,6 +493,8 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
         ax3.title.set_text('Vout2, pbsl_y_gap = {}'.format(pbsl_y_gap))
         fig.subplots_adjust(hspace=.5)
         plt.show()
+    yield from mv(pbsl.y_gap, pbsl_y_gap_ini)
+    print(f'{moving pbsl.y_gap to initial position: pbsl.y_gap.position}')
     txt_finish='## "ssa_scan_pbsl_y_gap()" finished'
     insert_text(txt_finish)
 

@@ -95,8 +95,8 @@ class Manta(SingleTrigger, AreaDetector):
     
     hdf5 = Cpt(HDF5PluginWithFileStore,
                suffix='HDF1:',
-              # write_path_template='/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/',
-               write_path_template = '/dev/shm/',
+               write_path_template='/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/',
+              # write_path_template = '/dev/shm/',
                root='/NSLS2/xf18id1/DATA/Andor',
                # write_path_template='/tmp/',
                # root='/',

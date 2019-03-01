@@ -146,8 +146,10 @@ def export_fly_scan(h):
     mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
     
     pos2 = mot_pos_interp.argmax() + 1
-    img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
-    img_tomo = imgs[:pos2-chunk_size]  # tomo images
+    #img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
+    #img_tomo = imgs[:pos2-chunk_size]  # tomo images
+    img_angle = mot_pos_interp # rotation angles
+    img_tomo = imgs # tomo images
     
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
     
@@ -161,7 +163,7 @@ def export_fly_scan(h):
         hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
         hf.create_dataset('img_bkg_avg', data = np.array(img_bkg_avg, dtype=np.float32))
         hf.create_dataset('img_dark_avg', data = np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.float32))
+        hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.int16))
         hf.create_dataset('angle', data = img_angle)
         hf.create_dataset('x_ini', data = x_pos)
         hf.create_dataset('y_ini', data = y_pos)
@@ -447,7 +449,7 @@ def export_multipos_2D_xanes_scan2(h):
     chunk_size = h.start['num_bkg_images']
     num_eng = h.start['num_eng']
     num_pos = h.start['num_pos']
-    repeat_num = h.start['plan_args']['repeat_num']
+#    repeat_num = h.start['plan_args']['repeat_num']
     imgs = np.array(list(h.data('Andor_image')))
     imgs = np.mean(imgs, axis=1)
     img_dark = imgs[0]
@@ -456,7 +458,8 @@ def export_multipos_2D_xanes_scan2(h):
 
     img_xanes = np.zeros([num_pos, num_eng, imgs.shape[1], imgs.shape[2]])
     img_bkg = np.zeros([num_eng, imgs.shape[1], imgs.shape[2]])
-    for repeat in range(repeat_num):
+    #for repeat in range(repeat_num):
+    for repeat in range(1):
         index = 1
         for i in range(num_eng):
             for j in range(num_pos):
@@ -471,7 +474,7 @@ def export_multipos_2D_xanes_scan2(h):
         # save data
         fn = os.getcwd() + '/'
         for j in range(num_pos):
-            fname = f'{fn}{scan_type}_id_{scan_id}_repeat_#{repeat}_pos_{j}.h5'
+            fname = f'{fn}{scan_type}_id_{scan_id}_pos_{j}.h5'
             with h5py.File(fname, 'w') as hf:
                 hf.create_dataset('uid', data = uid)
                 hf.create_dataset('scan_id', data = scan_id)
@@ -485,4 +488,58 @@ def export_multipos_2D_xanes_scan2(h):
     del img_bkg
     del img_dark    
     del imgs
+
+
+def export_multipos_2D_xanes_scan3(h):
+    scan_type = h.start['plan_name']
+    uid = h.start['uid']
+    note = h.start['note']
+    scan_id = h.start['scan_id']  
+    scan_time = h.start['time']
+#    x_eng = h.start['x_ray_energy']
+    x_eng = h.start['XEng']
+    chunk_size = h.start['chunk_size']
+    chunk_size = h.start['num_bkg_images']
+    num_eng = h.start['num_eng']
+    num_pos = h.start['num_pos']
+#    repeat_num = h.start['plan_args']['repeat_num']
+    imgs = np.array(list(h.data('Andor_image')))
+    imgs = np.mean(imgs, axis=1)
+    img_dark = imgs[0]
+    eng_list = list(h.start['eng_list'])
+    s = imgs.shape
+
+    img_xanes = np.zeros([num_pos, num_eng, imgs.shape[1], imgs.shape[2]])
+    img_bkg = np.zeros([num_eng, imgs.shape[1], imgs.shape[2]])
+
+    index = 1
+    for i in range(num_eng):
+        for j in range(num_pos):
+            img_xanes[j, i] = imgs[index]
+            index += 1
+
+    imb_bkg = img[-num_eng:]
+
+    for i in range(num_eng):
+        for j in range(num_pos):
+            img_xanes[j,i] = (img_xanes[j,i] - img_dark) / (img_bkg[i] - img_dark)
+    # save data
+    fn = os.getcwd() + '/'
+    for j in range(num_pos):
+        fname = f'{fn}{scan_type}_id_{scan_id}_pos_{j}.h5'
+        with h5py.File(fname, 'w') as hf:
+            hf.create_dataset('uid', data = uid)
+            hf.create_dataset('scan_id', data = scan_id)
+            hf.create_dataset('note', data = note)
+            hf.create_dataset('scan_time', data = scan_time)
+            hf.create_dataset('X_eng', data = eng_list)
+            hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
+            hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
+            hf.create_dataset('img_xanes', data = np.array(img_xanes[j], dtype=np.float32))
+    del img_xanes
+    del img_bkg
+    del img_dark    
+    del imgs
+
+
     
