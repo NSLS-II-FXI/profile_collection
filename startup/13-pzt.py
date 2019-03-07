@@ -57,9 +57,9 @@ pzt_tm_loadcell = pzt_tm.loadcell
 EpicsSignal(pzt_tm.loadcell.pvname + ".PREC", name='').put(3)
 EpicsSignal(pzt_cm.loadcell.pvname + ".PREC", name='').put(3)
 
-'''
-pzt_motors = [pzt_dcm_chi2, pzt_dcm_th2, pzt_tm, pzt_cm]
-'''
+
+motor_pzt = [pzt_dcm_chi2.pos, pzt_dcm_th2.pos, pzt_tm_loadcell, pzt_cm_loadcell]
+
 
 
 

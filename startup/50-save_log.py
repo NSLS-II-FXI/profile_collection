@@ -7,6 +7,8 @@ import subprocess
 import threading
 from datetime import datetime
 
+BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt
+
 
 class Auto_Log_Save(object):
     '''
@@ -237,4 +239,3 @@ def str_convert(my_string, flag=1):
     output = tmp[2:len(tmp)-1]
     if flag:        return fmt.format(float(output))
     else: return output
-

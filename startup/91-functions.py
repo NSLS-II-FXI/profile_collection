@@ -809,10 +809,17 @@ def get_scan_motor_pos(scan_id):
     df = db[scan_id].table('baseline').T 
     mot = BlueskyMagics.positioners 
     for i in mot: 
-        try: 
-            print(f'{i.name:14s}  :: {df[1][i.name]:3.4f} {i.motor_egu.value}  --->  {df[2][i.name]:3.4f} {i.motor_egu.value}') 
+        try:
+            mot_name = i.name
+            if mot_name[:3] == 'pzt':
+                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 12.4f}         --->  {df[2][mot_name]: 12.4f}' )
+            else:
+                mot_parent_name = i.parent.name
+                offset_name = f'{mot_name}_user_offset'
+                offset_val = db[scan_id].config_data(mot_parent_name)["baseline"][0][offset_name]
+                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 12.4f} {i.motor_egu.value:>6s}  --->  {df[2][mot_name]: 12.4f} {i.motor_egu.value:>6s}      offset = {offset_val: 4.4f}') 
         except: 
-           pass 
+            pass 
 
 
 
