@@ -522,6 +522,152 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
     print(txt)
 
 
+
+def xanes_scan3(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_z=0, out_r=0, simu=False, relative_move_flag=1, note='', filters=[], md=None):
+    '''
+    Different from xanes_scan:  In xanes_scan2, it moves out sample and take background image at each energy
+    will move filter in when take bkg image
+
+    Scan the energy and take 2D image
+    Example: RE(xanes_scan([8.9, 9.0, 9.1], exposure_time=0.1, bkg_num=10, dark_num=10, out_x=1, out_y=0, note='xanes scan test'))
+
+    Inputs:
+    -------
+    eng_list: list or numpy array,
+        energy in unit of keV
+
+    exposure_time: float
+        in unit of seconds
+
+    chunk_size: int
+        number of background images == num of dark images
+
+    out_x: float, default is 0
+        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_y: float, default is 0
+        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_z: float, default is 0
+        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_r: float, default is 0
+        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    note: string
+        adding note to the scan
+
+    simu: Bool, default is False
+        True: will simulate closing/open shutter without really closing/opening
+        False: will really close/open shutter
+
+    '''
+    detectors=[Andor, ic3]
+    period = exposure_time if exposure_time >= 0.05 else 0.05
+    yield from _set_andor_param(exposure_time,period, chunk_size)
+    motor_eng = XEng
+    eng_ini = XEng.position
+
+    motor_x_ini = zps.sx.position
+    motor_y_ini = zps.sy.position
+    motor_z_ini = zps.sz.position
+    motor_r_ini = zps.pi_r.position
+
+    if relative_move_flag: 
+        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+    else:
+        motor_x_out = out_x if out_x else motor_x_ini
+        motor_y_out = out_y if out_y else motor_y_ini
+        motor_z_out = out_z if out_z else motor_z_ini
+        motor_r_out = out_r if out_r else motor_r_ini
+  
+    rs_ini = zps.pi_r.velocity.value
+
+    motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
+
+    _md = {'detectors': [det.name for det in detectors],
+           'motors': [mot.name for mot in motor],
+           'num_eng': len(eng_list),
+           'num_bkg_images': chunk_size,
+           'num_dark_images': chunk_size,
+           'chunk_size': chunk_size,
+           'out_x': out_x,
+           'out_y': out_y,
+           'exposure_time': exposure_time,
+           'eng_list': eng_list,
+           'XEng': XEng.position,
+           'plan_args': {'eng_list': 'eng_list',
+                         'exposure_time': exposure_time,
+                         'chunk_size': chunk_size,
+                         'out_x': out_x,
+                         'out_y': out_y,
+                         'out_z': out_z,
+                         'our_r': out_r,
+                         'relative_move_flag':relative_move_flag,
+                         'filters': [filt.name for filt in filters],
+                         'note': note if note else 'None'
+                         },              
+           'plan_name': 'xanes_scan2',
+           'hints': {},
+           'operator': 'FXI',
+           'note': note if note else 'None',
+           'motor_pos':  wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    try:   dimensions = [(motor.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):  pass
+    else:   _md['hints'].setdefault('dimensions', dimensions)
+
+    @stage_decorator(list(detectors) + motor)
+    @run_decorator(md=_md)
+    def xanes_inner_scan():
+        yield from _set_rotation_speed(rs=30)
+        #yield from abs_set(motor_r.velocity, 30)
+        # take dark image
+        print('\ntake {} dark images...'.format(chunk_size))
+        yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+
+
+        print('\nopening shutter, and start xanes scan: {} images per each energy... '.format(chunk_size))
+        yield from _open_shutter(simu)
+
+        for eng in eng_list:
+            yield from _xanes_per_step(eng, detectors, motor, move_flag=1, info_flag=0)
+            if len(filters):
+                for filt in filters:
+                    yield from mv(filt, 1)  
+                    yield from bps.sleep(0.5)      
+            yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=1, simu=simu)
+            if len(filters):
+                for filt in filters:
+                    yield from mv(filt, 0) 
+                    yield from bps.sleep(0.5)
+            yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, repeat=2)
+        yield from move_zp_ccd(eng_ini, move_flag=1, info_flag=0)
+        print('closing shutter')
+        yield from _close_shutter(simu=simu)
+
+    yield from xanes_inner_scan()
+    txt1 = get_scan_parameter()
+    eng_list = np.round(eng_list, 5)
+    if len(eng_list) > 10:
+        txt2 = f'eng_list: {eng_list[0:10]}, ... {eng_list[-5:]}\n'
+    else:
+        txt2 = f'eng_list: {eng_list}'
+    txt = txt1 + '\n' + txt2
+    insert_text(txt)
+    print(txt)
+
+
+
+
 def mv_stage(motor, pos):
         grp = _short_uid('set')
         yield Msg('checkpoint')

@@ -1,12 +1,13 @@
-def export_scan(scan_id):
+def export_scan(scan_id, binning=4):
     '''
     e.g. load_scan([0001, 0002]) 
     '''
     for item in scan_id:        
-        export_single_scan(int(item))  
+        export_single_scan(int(item), binning)  
+        db.reg.clear_process_cache()
         
 
-def export_single_scan(scan_id=-1):
+def export_single_scan(scan_id=-1, binning=4):
     h = db[scan_id]
     scan_id = h.start['scan_id']
     scan_type = h.start['plan_name']
@@ -38,13 +39,16 @@ def export_single_scan(scan_id=-1):
         export_grid2D_rel(h)
     elif scan_type == 'raster_2D':
         print('exporting raster_2D: #{}'.format(scan_id))
-        export_raster_2D(h)
+        export_raster_2D(h, binning)
     elif scan_type == 'count' or scan_type == 'delay_count':
         print('exporting count: #{}'.format(scan_id))
         export_count_img(h)
     elif scan_type == 'multipos_2D_xanes_scan2':
         print('exporting multipos_2D_xanes_scan2: #{}'.format(scan_id))
-        export_multipos_2D_xanes_scan2(h)
+        export_multipos_2D_xanes_scan2_revise(h)
+    elif scan_type == 'multipos_2D_xanes_scan3':
+        print('exporting multipos_2D_xanes_scan3: #{}'.format(scan_id))
+        export_multipos_2D_xanes_scan3(h)
     else:
         print('Un-recognized scan type ......')
         
@@ -146,10 +150,8 @@ def export_fly_scan(h):
     mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
     
     pos2 = mot_pos_interp.argmax() + 1
-    #img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
-    #img_tomo = imgs[:pos2-chunk_size]  # tomo images
-    img_angle = mot_pos_interp # rotation angles
-    img_tomo = imgs # tomo images
+    img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
+    img_tomo = imgs[:pos2-chunk_size]  # tomo images
     
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
     
@@ -163,7 +165,7 @@ def export_fly_scan(h):
         hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
         hf.create_dataset('img_bkg_avg', data = np.array(img_bkg_avg, dtype=np.float32))
         hf.create_dataset('img_dark_avg', data = np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.int16))
+        hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.float32))
         hf.create_dataset('angle', data = img_angle)
         hf.create_dataset('x_ini', data = x_pos)
         hf.create_dataset('y_ini', data = y_pos)
@@ -376,7 +378,7 @@ def export_grid2D_rel(h):
             img.save(fname_tif)
 
     
-def export_raster_2D(h):
+def export_raster_2D(h, binning=4):
     import tifffile
     uid = h.start['uid']
     note = h.start['note']
@@ -416,9 +418,9 @@ def export_raster_2D(h):
             pos_file.append( f'{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i]*pix*img_sizeX/1000:3.3f}\t\t{y_list[j]*pix*img_sizeY/1000:3.3f}\n') 
             index = index + 1
     s = img_patch.shape
-    img_patch_bin = bin_ndarray(img_patch, new_shape=(1, int(s[1]/4), int(s[2]/4)))
-    fout_h5 = f'raster2D_scan_{scan_id}.h5'
-    fout_tiff = f'raster2D_scan_{scan_id}.tiff' 
+    img_patch_bin = bin_ndarray(img_patch, new_shape=(1, int(s[1]/binning), int(s[2]/binning)))
+    fout_h5 = f'raster2D_scan_{scan_id}_binning_{binning}.h5'
+    fout_tiff = f'raster2D_scan_{scan_id}_binning_{binning}.tiff' 
     fout_txt = f'raster2D_scan_{scan_id}_cord.txt'     
     print(f'{pos_file_for_print}')
     with open(f'{fout_txt}','w+') as f:
@@ -430,13 +432,13 @@ def export_raster_2D(h):
     if not os.path.exists(new_dir):
         os.mkdir(new_dir) 
     s = img.shape
-    tmp = bin_ndarray(img, new_shape=(s[0], int(s[1]/4), int(s[2]/4)))
+    tmp = bin_ndarray(img, new_shape=(s[0], int(s[1]/binning), int(s[2]/binning)))
     for i in range(num_img):  
-        fout = f'{new_dir}/img_{i:02d}.tiff'
+        fout = f'{new_dir}/img_{i:02d}_binning_{binning}.tiff'
         print(f'saving {fout}')
         tifffile.imsave(fout, np.array(tmp[i], dtype=np.float32))
     
-    
+'''    
 def export_multipos_2D_xanes_scan2(h):
     scan_type = h.start['plan_name']
     uid = h.start['uid']
@@ -488,6 +490,69 @@ def export_multipos_2D_xanes_scan2(h):
     del img_bkg
     del img_dark    
     del imgs
+'''
+
+def export_multipos_2D_xanes_scan2(h):
+    scan_type = h.start['plan_name']
+    uid = h.start['uid']
+    note = h.start['note']
+    scan_id = h.start['scan_id']  
+    scan_time = h.start['time']
+#    x_eng = h.start['x_ray_energy']
+    x_eng = h.start['XEng']
+    chunk_size = h.start['chunk_size']
+    chunk_size = h.start['num_bkg_images']
+    num_eng = h.start['num_eng']
+    num_pos = h.start['num_pos']
+    repeat_num = h.start['plan_args']['repeat_num']
+    imgs = list(h.data('Andor_image'))
+#    imgs = np.mean(imgs, axis=1)
+    img_dark = np.array(imgs[0])
+    img_dark = np.mean(img_dark, axis=0, keepdims=True) # revised here
+    eng_list = list(h.start['eng_list'])
+#    s = imgs.shape
+    s = img_dark.shape # revised here e.g,. shape=(1, 2160, 2560)
+
+#    img_xanes = np.zeros([num_pos, num_eng, imgs.shape[1], imgs.shape[2]])
+    img_xanes = np.zeros([num_pos, num_eng, s[1], s[2]])
+    img_bkg = np.zeros([num_eng, s[1], s[2]])
+    index = 1
+    for repeat in range(repeat_num):  # revised here
+        try:
+            print(f'repeat: {repeat}')
+            for i in range(num_eng):
+                for j in range(num_pos):
+                    img_xanes[j, i] = np.mean(np.array(imgs[index]), axis=0)
+                    index += 1
+                img_bkg[i] = np.mean(np.array(imgs[index]), axis=0)
+                index += 1
+
+            for i in range(num_eng):
+                for j in range(num_pos):
+                    img_xanes[j,i] = (img_xanes[j,i] - img_dark) / (img_bkg[i] - img_dark)
+            # save data
+            fn = os.getcwd() + '/'
+            for j in range(num_pos):
+                fname = f'{fn}{scan_type}_id_{scan_id}_repeat_{repeat:02d}_pos_{j:02d}.h5'
+                print(f'saving {fname}')
+                with h5py.File(fname, 'w') as hf:
+                    hf.create_dataset('uid', data = uid)
+                    hf.create_dataset('scan_id', data = scan_id)
+                    hf.create_dataset('note', data = note)
+                    hf.create_dataset('scan_time', data = scan_time)
+                    hf.create_dataset('X_eng', data = eng_list)
+                    hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
+                    hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
+                    hf.create_dataset('img_xanes', data = np.array(img_xanes[j], dtype=np.float32))
+        except:
+            print(f'fails in export repeat# {repeat}')
+    del img_xanes
+    del img_bkg
+    del img_dark    
+    del imgs
+
+
+
 
 
 def export_multipos_2D_xanes_scan3(h):
@@ -518,7 +583,7 @@ def export_multipos_2D_xanes_scan3(h):
             img_xanes[j, i] = imgs[index]
             index += 1
 
-    imb_bkg = img[-num_eng:]
+    imb_bkg = imgs[-num_eng:]
 
     for i in range(num_eng):
         for j in range(num_pos):

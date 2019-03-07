@@ -90,6 +90,11 @@ shutter_status = EpicsSignal('XF:18IDA-PPS{PSh}Pos-Sts', name='shutter_status')
 
 shutter = TwoButtonShutter('XF:18IDA-PPS{PSh}', name='shutter')
 
+filter1 = EpicsSignal('XF:18IDB-UT{Fltr:1}Cmd:In-Cmd', name='filter1')
+filter2 = EpicsSignal('XF:18IDB-UT{Fltr:2}Cmd:In-Cmd', name='filter2')
+filter3 = EpicsSignal('XF:18IDB-UT{Fltr:3}Cmd:In-Cmd', name='filter3')
+filter4 = EpicsSignal('XF:18IDB-UT{Fltr:4}Cmd:In-Cmd', name='filter4')
+
 motor_txm = [clens.x, clens.y1, clens.y2, clens.z1, clens.z2, clens.p,
              aper.x, aper.y, aper.z,
              zp.x, zp.y, zp.z,
