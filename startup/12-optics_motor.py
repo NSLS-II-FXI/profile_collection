@@ -45,6 +45,6 @@ motor_optics = [cm.x, cm.yaw, cm.y, cm.p, cm.r, cm.xu, cm.xd, cm.yu, cm.ydi, cm.
                 pbsl.top, pbsl.bot, pbsl.ob, pbsl.ib]
 
 get_ipython().register_magics(BlueskyMagics)
-BlueskyMagics.positioners = motor_txm + motor_optics
+#BlueskyMagics.positioners = motor_txm + motor_optics
 
 

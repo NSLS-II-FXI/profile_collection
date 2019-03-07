@@ -164,7 +164,10 @@ def new_user():
         proposal_id = input('Proposal ID:')
         fn = pre + PI_name + '_Proposal_' + proposal_id
         
-    try:        os.mkdir(fn)
+    try:        
+        cmd = f'mkdir -m 777 {fn}'
+        os.system(cmd)
+        #os.mkdir(fn)
     except Exception:
         print('Found (user, proposal) existed\nEntering folder: {}'.format(os.getcwd()))
         os.chdir(fn)       
@@ -812,12 +815,14 @@ def get_scan_motor_pos(scan_id):
         try:
             mot_name = i.name
             if mot_name[:3] == 'pzt':
-                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 12.4f}         --->  {df[2][mot_name]: 12.4f}' )
+                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 14.6f}       --->  {df[2][mot_name]: 12.6f}' )
             else:
                 mot_parent_name = i.parent.name
                 offset_name = f'{mot_name}_user_offset'
+                offset_dir = f'{mot_name}_user_offset_dir'
                 offset_val = db[scan_id].config_data(mot_parent_name)["baseline"][0][offset_name]
-                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 12.4f} {i.motor_egu.value:>6s}  --->  {df[2][mot_name]: 12.4f} {i.motor_egu.value:>6s}      offset = {offset_val: 4.4f}') 
+                offset_dir_val =  db[scan_id].config_data(mot_parent_name)["baseline"][0][offset_dir]
+                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} {i.motor_egu.value:>4s}  --->  {df[2][mot_name]: 14.6f} {i.motor_egu.value:>4s}      offset = {offset_val: 121212121212121212121212set_dir = {offset_dir_val: 1d}') 
         except: 
             pass 
 

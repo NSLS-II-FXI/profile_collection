@@ -504,7 +504,10 @@ def export_multipos_2D_xanes_scan2(h):
     chunk_size = h.start['num_bkg_images']
     num_eng = h.start['num_eng']
     num_pos = h.start['num_pos']
-    repeat_num = h.start['plan_args']['repeat_num']
+    try:
+        repeat_num = h.start['plan_args']['repeat_num']
+    except:
+        repeat_num = 1
     imgs = list(h.data('Andor_image'))
 #    imgs = np.mean(imgs, axis=1)
     img_dark = np.array(imgs[0])

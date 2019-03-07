@@ -217,7 +217,7 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+          # 'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:  dimensions = [(motor_rot.hints['fields'], 'primary')]
@@ -347,7 +347,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -482,7 +482,7 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -618,7 +618,7 @@ def xanes_scan3(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -768,7 +768,7 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:  dimensions = [(motor_x.hints['fields'], 'primary')]
@@ -892,7 +892,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos': wh_pos(print_on_screen=0),
+           #'motor_pos': wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:  dimensions = [(zps.pi_r.hints['fields'], 'primary')]
@@ -965,7 +965,7 @@ def grid2D_rel(motor1, start1, stop1, num1, motor2, start2, stop2, num2, exposur
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:  dimensions = [(motor1.hints['fields'], 'primary')]
@@ -1105,7 +1105,7 @@ def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_t
                          },
            'plan_name': 'delay_scan',
            'hints': {},
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
            'operator': 'FXI'
             }
     _md.update(md or {})
@@ -1268,7 +1268,7 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -1334,12 +1334,12 @@ def multipos_2D_xanes_scan(eng_list, x_list, y_list, z_list, r_list, out_x, out_
 
 
 
-def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, exposure_time=0.2,  chunk_size=5, simu=False, relative_move_flag=1, note='', md=None):
+def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, repeat_num=1, exposure_time=0.2,  sleep_time=1, chunk_size=5, simu=False, relative_move_flag=1, note='', md=None):
     '''
     Different from multipos_2D_xanes_scan. In the current scan, it take image at all locations and then move out sample to take background image.
 
     For example:
-    RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, sleep_time=60, note='sample')
+    RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, exposure_time=0.1, sleep_time=60, chunk_size=5, relative_move_flag=1, note='sample')
     
     Inputs:
     --------
@@ -1373,6 +1373,9 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
     out_r: float, default is 0
         relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
         NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+    
+    repeat_num: integer, default is 1
+        repeating multiposition xanes scans
 
     exposure_time: float
            in unit of seconds
@@ -1382,11 +1385,16 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
 
     chunk_size: int
            number of background images == num of dark images ==  num of image for each energy
+   
+    relative_move_flag:
+          if 1: relative movement of out_x, out_y, out_z, and out_r
+          if 0: set absolute position of x, y, z, r to move out sample
 
     note: string
     
     '''    
-    txt = 'starting multipos_2D_xanes_scan3, containing following scans:'
+
+    txt = 'starting multipos_2D_xanes_scan2:'
     insert_text(txt)
     detectors=[Andor, ic3]
     period = max(0.05, exposure_time)
@@ -1428,7 +1436,9 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
            'plan_args': {'eng_list': 'eng_list',
                          'x_list': x_list, 'y_list': y_list, 'z_list': z_list, 'r_list': r_list,                    
                          'out_x': out_x, 'out_y': out_y, 'out_z': out_z, 'out_r': out_r,
-                         'exposure_time': exposure_time,                    
+                         'repeat_num': repeat_num,
+                         'exposure_time': exposure_time,
+                         'sleep_time': sleep_time,                    
                          'chunk_size': chunk_size,
                          'relative_move_flag': relative_move_flag,
                          'note': note if note else 'None',
@@ -1437,7 +1447,7 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -1457,23 +1467,26 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
 
 
         yield from _open_shutter(simu)
-        
-        for eng in eng_list:
-            yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
-            yield from _open_shutter(simu)
-            for i in range(num):
-                # take image at multiple positions
-                yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
-                yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
-                yield from trigger_and_read(list(detectors) + motor)
-            # move sample out to take background
-            yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=1, simu=simu)
-            # move sample in to the first position    
-            yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini)   
-          
-        # end of eng_list
-        # close shutter and sleep
-        yield from _close_shutter(simu)
+        for rep in range(repeat_num):
+            print(f'repeat multi-pos xanes scan #{rep}')
+            for eng in eng_list:
+                yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
+                yield from _open_shutter(simu)
+                for i in range(num):
+                    # take image at multiple positions
+                    yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
+                    yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
+                    yield from trigger_and_read(list(detectors) + motor)
+                # move sample out to take background
+                yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=1, simu=simu)
+                # move sample in to the first position    
+                yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini)            
+            # end of eng_list
+            # close shutter and sleep
+            yield from _close_shutter(simu)
+            # sleep 
+            print(f'\nsleep for {sleep_time} seconds ...')
+            yield from bps.sleep(sleep_time)
      
         yield from mv(zps.sx, x_list[0], zps.sy, y_list[0], zps.sz, z_list[0], zps.pi_r, r_list[0])
 
@@ -1489,9 +1502,9 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
 
 
 
-def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, exposure_time=0.2,  chunk_size=5, simu=False, relative_move_flag=1, note='', md=None):
+def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, repeat_num=1, exposure_time=0.2, sleep_time=1,  chunk_size=5, simu=False, relative_move_flag=1, note='', md=None):
     '''
-    Different from multipos_2D_xanes_scan. In the current scan, it take image at all locations and then move out sample to take background image.
+    Different from multipos_2D_xanes_scan3. In the current scan, it take image at all locations and then move out sample to take background image.
 
     For example:
     RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, sleep_time=60, note='sample')
@@ -1541,7 +1554,7 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
     note: string
     
     '''    
-    txt = 'starting multipos_2D_xanes_scan3, containing following scans:'
+    txt = 'starting multipos_2D_xanes_scan3'
     insert_text(txt)
     detectors=[Andor, ic3]
     period = max(0.05, exposure_time)
@@ -1581,7 +1594,9 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
            'plan_args': {'eng_list': 'eng_list',
                          'x_list': x_list, 'y_list': y_list, 'z_list': z_list, 'r_list': r_list,                    
                          'out_x': out_x, 'out_y': out_y, 'out_z': out_z, 'out_r': out_r,
-                         'exposure_time': exposure_time,                    
+                         'repeat_num': repeat_num,
+                         'exposure_time': exposure_time,   
+                         'sleep_time': sleep_time,                 
                          'chunk_size': chunk_size,
                          'relative_move_flag': relative_move_flag,
                          'note': note if note else 'None',
@@ -1590,7 +1605,7 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
-           'motor_pos':  wh_pos(print_on_screen=0),
+           #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
     try:   dimensions = [(motor.hints['fields'], 'primary')]
@@ -1609,23 +1624,27 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
         print(f'\nopening shutter, and start xanes scan: {chunk_size} images per each energy... ')
 
         yield from _open_shutter(simu)
-        
-        for eng in eng_list:
-            yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
-            yield from _open_shutter(simu)
-            for i in range(num):
-                # take image at multiple positions
-                yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
-                yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
+        for rep in range(repeat_num):
+            print(f'repeat multi-pos xanes scan #{rep}')
+            for eng in eng_list:
+                yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
+                yield from _open_shutter(simu)
+                for i in range(num):
+                    # take image at multiple positions
+                    yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
+                    yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
+                    yield from trigger_and_read(list(detectors) + motor)            
+            # move sample out to take background    
+            for eng in eng_list:
+                yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
+                yield from _move_sample_out(motor_x_out, motor_y_out, motor_z_out, motor_r_out)
                 yield from trigger_and_read(list(detectors) + motor)            
-        # move sample out to take background    
-        for eng in eng_list:
-            yield from move_zp_ccd(eng, move_flag=1, info_flag=0)
-            yield from _move_sample_out(motor_x_out, motor_y_out, motor_z_out, motor_r_out)
-            yield from trigger_and_read(list(detectors) + motor)
 
-        yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, 2)   
-        yield from _close_shutter(simu)   
+            yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, 2)   
+            yield from _close_shutter(simu)   
+            # sleep 
+            print(f'\nsleep for {sleep_time} seconds ...')
+            yield from bps.sleep(sleep_time)
         yield from mv(zps.sx, x_list[0], zps.sy, y_list[0], zps.sz, z_list[0], zps.pi_r, r_list[0])
 
     yield from inner_scan()
@@ -1641,7 +1660,7 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
 
 
 
-
+'''
 def repeat_multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, exposure_time=0.2,  chunk_size=5, repeat_num=1, sleep_time=60, simu=False, relative_move_flag=1, note='', md=None):
 
     txt = f'starting "repeat_multipos_2D_xanes_scan2", consists of following scans:'
@@ -1654,7 +1673,7 @@ def repeat_multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out
         yield from bps.sleep(sleep_time)
     insert_text('" repeat_multipos_2D_xanes_scan2" finished !')
 
-
+'''
         
 
 
