@@ -13,7 +13,7 @@ from scipy.signal import medfilt2d
 # GLOBAL_MAG =400 # total magnification
 # GLOBAL_MAG =350 # new commercial zone plate for low energy 5keV
 #GLOBAL_MAG =300 # new commercial zone plate for high energy 10keV
-GLOBAL_MAG =317.17 # new commercial zone plate for energy range 6.5 - 9keV
+GLOBAL_MAG =315 # new commercial zone plate for energy range 6.5 - 9keV
 GLOBAL_VLM_MAG = 10 # vlm magnification
 OUT_ZONE_WIDTH = 30 # 30 nm
 #ZONE_DIAMETER = 200 # 200 um  ### xridia zone plate
@@ -27,7 +27,7 @@ CALIBER_FLAG = 1
 CALIBER = {}
 
 def record_calib_pos1():
-    global CALIBER_FLAG
+    global CALIBER_FLAG, CURRENT_MAG_1, CURRENT_MAG_2
     #CALIBER['th2_pos1'] = pzt_dcm_th2.pos.value
     CALIBER['chi2_pos1'] = pzt_dcm_chi2.pos.value
     CALIBER['XEng_pos1'] = XEng.position
@@ -50,13 +50,14 @@ def record_calib_pos1():
         print(f'MAGNIFICATION_1 = {CURRENT_MAG_1}\nMAGNIFICATION_2 = {CURRENT_MAG_2}')
         CALIBER_FLAG = 0
     else:
-        GLOBAL_MAG = np.round(CURRENT_MAG_1 * 100) / 100.
+        
         CALIBER_FLAG = 1
+    GLOBAL_MAG = np.round(CURRENT_MAG_1 * 100) / 100.
     print(f'calib_pos1 recored: current Magnification = {CURRENT_MAG_1}')
 
 
 def record_calib_pos2():
-    global CALIBER_FLAG
+    global CALIBER_FLAG, CURRENT_MAG_1, CURRENT_MAG_2
     #CALIBER['th2_pos2'] = pzt_dcm_th2.pos.value
     CALIBER['chi2_pos2'] = pzt_dcm_chi2.pos.value
     CALIBER['XEng_pos2'] = XEng.position
@@ -77,8 +78,10 @@ def record_calib_pos2():
         print(f'MAGNIFICATION_1 = {CURRENT_MAG_1}\nMAGNIFICATION_2 = {CURRENT_MAG_2}')
         CALIBER_FLAG = 0
     else:
-        GLOBAL_MAG = np.round(CURRENT_MAG_2 * 100) / 100.
+        
         CALIBER_FLAG = 1
+
+    GLOBAL_MAG = np.round(CURRENT_MAG_2 * 100) / 100.
     print(f'calib_pos2 recored: current Magnification = {CURRENT_MAG_2}')
 
 
@@ -362,10 +365,8 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
         
         assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
 
-
         eng1 = CALIBER['XEng_pos1']
         eng2 = CALIBER['XEng_pos2']
-
         
         #pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
         pzt_dcm_chi2_eng1 = CALIBER['chi2_pos1']
@@ -414,7 +415,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
                 
                 yield from mv(th2_feedback, th2_motor_target)
                 yield from mv(th2_feedback_enable, 1)
-                yield from bps.sleep(1)
+                yield from bps.sleep(0.5)
+                if abs(eng_new - eng_ini) > 0.2:
+                    yield from bps.sleep(5 * abs(eng_new - eng_ini))   
                 
             else:
                 print ('This is calculation. No stages move') 
@@ -822,7 +825,7 @@ def get_scan_motor_pos(scan_id):
                 offset_dir = f'{mot_name}_user_offset_dir'
                 offset_val = db[scan_id].config_data(mot_parent_name)["baseline"][0][offset_name]
                 offset_dir_val =  db[scan_id].config_data(mot_parent_name)["baseline"][0][offset_dir]
-                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} {i.motor_egu.value:>4s}  --->  {df[2][mot_name]: 14.6f} {i.motor_egu.value:>4s}      offset = {offset_val: 121212121212121212121212set_dir = {offset_dir_val: 1d}') 
+                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} {i.motor_egu.value:>4s}  --->  {df[2][mot_name]: 14.6f} {i.motor_egu.value:>4s}      offset = {offset_val: 14.6f}    {offset_dir_val: 1d}') 
         except: 
             pass 
 

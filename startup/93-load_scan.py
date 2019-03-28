@@ -1,11 +1,29 @@
-def export_scan(scan_id, binning=4):
+#def export_scan(scan_id, binning=4):
+#    '''
+#    e.g. load_scan([0001, 0002]) 
+#    '''
+#    for item in scan_id:        
+#        export_single_scan(int(item), binning)  
+#        db.reg.clear_process_cache()
+        
+def export_scan(scan_id, scan_id_end=None, binning=4):
     '''
     e.g. load_scan([0001, 0002]) 
     '''
-    for item in scan_id:        
-        export_single_scan(int(item), binning)  
-        db.reg.clear_process_cache()
-        
+    if scan_id_end is None:
+        for item in scan_id:        
+            export_single_scan(int(item), binning)  
+            db.reg.clear_process_cache()
+    else:
+        for i in range(scan_id, scan_id_end+1):
+            try:
+                export_single_scan(int(i), binning)
+            except:
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print(message)
+                continue
+            db.reg.clear_process_cache()
 
 def export_single_scan(scan_id=-1, binning=4):
     h = db[scan_id]
@@ -45,7 +63,7 @@ def export_single_scan(scan_id=-1, binning=4):
         export_count_img(h)
     elif scan_type == 'multipos_2D_xanes_scan2':
         print('exporting multipos_2D_xanes_scan2: #{}'.format(scan_id))
-        export_multipos_2D_xanes_scan2_revise(h)
+        export_multipos_2D_xanes_scan2(h)
     elif scan_type == 'multipos_2D_xanes_scan3':
         print('exporting multipos_2D_xanes_scan3: #{}'.format(scan_id))
         export_multipos_2D_xanes_scan3(h)
@@ -161,11 +179,11 @@ def export_fly_scan(h):
         hf.create_dataset('scan_id', data = int(scan_id))
         hf.create_dataset('scan_time', data = scan_time)
         hf.create_dataset('X_eng', data = x_eng)
-        hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
-        hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
+        hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.int16))
+        hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.int16))
         hf.create_dataset('img_bkg_avg', data = np.array(img_bkg_avg, dtype=np.float32))
         hf.create_dataset('img_dark_avg', data = np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.float32))
+        hf.create_dataset('img_tomo', data = np.array(img_tomo, dtype=np.int16))
         hf.create_dataset('angle', data = img_angle)
         hf.create_dataset('x_ini', data = x_pos)
         hf.create_dataset('y_ini', data = y_pos)
@@ -297,8 +315,8 @@ def export_test_scan(h):
         hf.create_dataset('note', data = note)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)
-        hf.create_dataset('img', data = img_test.astype(np.float32))
-        hf.create_dataset('img_norm', data=img_norm.astype(np.float32))
+        hf.create_dataset('img', data = np.array(img_test, dtype=np.float32))
+        hf.create_dataset('img_norm', data=np.array(img_norm, dtype=np.float32))
 #    tifffile.imsave(fname_tif, img_norm)
     del img, img_test, img_bkg, img_dark, img_norm
 
@@ -446,7 +464,9 @@ def export_multipos_2D_xanes_scan2(h):
     scan_id = h.start['scan_id']  
     scan_time = h.start['time']
 #    x_eng = h.start['x_ray_energy']
-    x_eng = h.start['XEng']
+    x_eng = h.start['XEng'][1] 61748
+xf18id@xf18id-ws2:~/.ipython/profile_collection/startup$ 
+
     chunk_size = h.start['chunk_size']
     chunk_size = h.start['num_bkg_images']
     num_eng = h.start['num_eng']
@@ -509,6 +529,7 @@ def export_multipos_2D_xanes_scan2(h):
     except:
         repeat_num = 1
     imgs = list(h.data('Andor_image'))
+
 #    imgs = np.mean(imgs, axis=1)
     img_dark = np.array(imgs[0])
     img_dark = np.mean(img_dark, axis=0, keepdims=True) # revised here
@@ -586,7 +607,7 @@ def export_multipos_2D_xanes_scan3(h):
             img_xanes[j, i] = imgs[index]
             index += 1
 
-    imb_bkg = imgs[-num_eng:]
+    img_bkg = imgs[-num_eng:]
 
     for i in range(num_eng):
         for j in range(num_pos):
