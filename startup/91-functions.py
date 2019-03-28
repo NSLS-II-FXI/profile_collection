@@ -417,8 +417,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
                 yield from mv(th2_feedback_enable, 1)
                 yield from bps.sleep(0.5)
                 if abs(eng_new - eng_ini) > 0.2:
-                    yield from bps.sleep(5 * abs(eng_new - eng_ini))   
-                
+                    t = 10 * abs(eng_new - eng_ini)
+                    print(f'sleep for {t} sec')
+                    yield from bps.sleep(t)              
             else:
                 print ('This is calculation. No stages move') 
                 print ('Will move Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
