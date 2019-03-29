@@ -80,9 +80,10 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
         return super().resume()
 
     def unstage(self, *args, **kwargs):
-        super().unstage()
+        ret = super().unstage()
         from ophyd.utils import set_and_wait
         set_and_wait(self.hdf5.file_name, 'jibberish', timeout=5*60)
+        return ret
 
 
 class Manta(SingleTrigger, AreaDetector):
