@@ -79,10 +79,35 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
         self.hdf5.capture.put(1)
         return super().resume()
 
+    def stage(self):
+        import itertools
+        for j in itertools.count():
+            try:
+                return super().stage()
+            except TimeoutError:
+                N_try = 5
+                if j < 5:
+                    print(f"failed to stage on try{j}/{N_try}, may try again")
+                    continue
+                else:
+                    raise
+
     def unstage(self, *args, **kwargs):
-        ret = super().unstage()
+        import itertools
+        for j in itertools.count():
+            try:   
+                ret = super().unstage()
+            except TimeoutError:
+                N_try = 20
+                if j < N_try:
+                    print(f"failed to unstage on attempt {j}/{N_try}, may try again")
+                    continue    
+                else:
+                    raise
+            else:
+                break
         from ophyd.utils import set_and_wait
-        set_and_wait(self.hdf5.file_name, 'jibberish', timeout=5*60)
+        set_and_wait(self.hdf5.file_path, self.hdf5.file_path.get()[:-3], timeout=5*60)
         return ret
 
 
