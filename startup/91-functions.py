@@ -415,9 +415,10 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
                 
                 yield from mv(th2_feedback, th2_motor_target)
                 yield from mv(th2_feedback_enable, 1)
-                yield from bps.sleep(0.5)
-                if abs(eng_new - eng_ini) > 0.2:
-                    t = 10 * abs(eng_new - eng_ini)
+                yield from bps.sleep(0.1)
+                if abs(eng_new - eng_ini) >= 0.005:
+                    t = 50 * abs(eng_new - eng_ini)
+                    t = min(t, 5)
                     print(f'sleep for {t} sec')
                     yield from bps.sleep(t)              
             else:

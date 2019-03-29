@@ -459,7 +459,98 @@ def batch_recon(scan_list=[], sli=[], col=[], binning=2):
 
 
 
+def align_two_tomo_recon(file_path='.', files_recon=[], sli=[], row=[], col=[], ratio=1, sli_select=0, row_select=0, test_range=[-30, 30], sli_shift_guess=0, row_shift_guess=0, col_shift_guess=0, save_ref_image_flag=1):
 
+
+    fn_ref = files_recon[0]    
+    f_ref = h5py.File(fn_ref, 'r')
+    img_tmp = f_ref['img']
+
+    if not len(sli):
+        sli = list(np.arange(len(img_tmp)))
+    elif len(sli)==2:
+        sli = list(np.arange(sli[0], sli[1]))
+    img_tmp = np.array(img_tmp[0])
+
+    if not len(row):
+        row = list(np.arange(img_tmp.shape[0]))
+    elif len(row) == 2:
+        row = list(np.arange(row[0], row[1]))
+
+    if not len(col):
+        col = list(np.arange(img_tmp.shape[1]))
+    elif len(col) == 2:
+        col = list(np.arange(col[0], col[1]))
+
+    scan_id = np.array(f_ref['scan_id']) 
+    img_ref = np.array(f_ref['img'][sli])
+    img_ref = img_ref[:, row]
+    img_ref = img_ref[:, :, col]
+    img_ref = tomopy.circ_mask(img_ref, axis=0, ratio=ratio, val=0)
+    f_ref.close()
+    if save_ref_image_flag:
+        fn_ali = f'{file_path}/ali_recon_scan_{scan_id}_new.h5'
+        print(f'saving reference image {fn_ali}')
+        with h5py.File(fn_ali, 'w') as hf:
+            hf.create_dataset('img', data=img_ref)
+            hf.create_dataset('scan_id',data=scan_id)
+
+    if sli_select == 0 or sli_select-sli[0] >= img_ref.shape[0]:
+        sli_select = int(img_ref.shape[0]/2.0)
+    else:
+        sli_select = sli_select - sli[0]
+
+    if row_select == 0 or row_select-row[0] >= img_ref.shape[1]:
+        row_select = int(img_ref.shape[1]/2.0)
+    else:
+        row_select = row_select - row[0]
+
+
+    fn = files_recon[1]
+    f = h5py.File(fn, 'r')
+    scan_id = np.array(f['scan_id'])    
+    img_raw = np.array(f['img'][sli])
+    img_raw = img_raw[:, row]
+    img_raw = img_raw[:, :, col]
+    img_raw = tomopy.circ_mask(img_raw, axis=0, ratio=ratio, val=0)
+    f.close()
+
+    img_raw = shift(img_raw, [sli_shift_guess, row_shift_guess, col_shift_guess], order=1)
+
+    img_ali_3D = img_raw.copy()
+    fn_ali = f'{file_path}/ali_recon_scan_{scan_id}_new.h5'
+    print(f'aligning {fn} ...')
+
+    # align height first (sli)
+    t1 = np.squeeze(img_ref[:, row_select])
+    t1 = t1/np.mean(t1)
+    t1_fft = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(t1)))
+            
+    rang = np.arange(test_range[0], test_range[1])
+    corr_max = []
+    for j in rang + row_select:
+        t2 = np.squeeze(img_raw[:, j])
+        t2 = t2/np.mean(t2)
+        t2_fft = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(t2)))
+        tmp = np.fft.ifft2(t1_fft * np.conj(t2_fft))  
+        corr_max.append(np.max(tmp))      
+    _, idmax = idxmax(np.abs(corr_max))
+    row_shft = -rang[int(idmax)]
+    t2 = np.squeeze(img_raw[:, row_select])
+    _, sli_shft, cshft = align_img(t1, t2)
+    img_raw = shift(img_raw, [sli_shft, 0, 0], order=1)
+
+    # align row and col
+    t1 = img_ref[sli_select]
+    t1 = t1/np.mean(t1)
+    t1_fft = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(t1)))
+    t2 = img_raw[sli_select]
+    _, rshft, cshft = align_img(t1, t2)
+    img_ali_3D = shift(img_raw, [0, rshft, cshft], order=1)
+    print(f'saving {fn_ali} ... \n')
+    with h5py.File(fn_ali, 'w') as hf:
+        hf.create_dataset('img', data=img_ali_3D)
+        hf.create_dataset('scan_id',data=scan_id)
 
 
 

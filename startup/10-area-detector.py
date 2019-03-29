@@ -56,9 +56,9 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
 #    stats5 = Cpt(StatsPluginV33, 'Stats5:')
     trans1 = Cpt(TransformPlugin, 'Trans1:')
     roi1 = Cpt(ROIPlugin, 'ROI1:')
-#    roi2 = Cpt(ROIPlugin, 'ROI2:')
-#    roi3 = Cpt(ROIPlugin, 'ROI3:')
-#    roi4 = Cpt(ROIPlugin, 'ROI4:')
+    roi2 = Cpt(ROIPlugin, 'ROI2:')
+    roi3 = Cpt(ROIPlugin, 'ROI3:')
+    roi4 = Cpt(ROIPlugin, 'ROI4:')
     proc1 = Cpt(ProcessPlugin, 'Proc1:')
     
     hdf5 = Cpt(HDF5PluginWithFileStore,
@@ -102,8 +102,8 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
             try:
                 return super().stage()
             except TimeoutError:
-                N_try = 5
-                if j < 5:
+                N_try = 20
+                if j < 20:
                     print(f"failed to stage on try{j}/{N_try}, may try again")
                     continue
                 else:
@@ -123,8 +123,6 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
                     raise
             else:
                 break
-        from ophyd.utils import set_and_wait
-        set_and_wait(self.hdf5.file_path, self.hdf5.file_path.get()[:-3], timeout=5*60)
         return ret
   
  
