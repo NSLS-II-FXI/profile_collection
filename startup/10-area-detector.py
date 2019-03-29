@@ -33,13 +33,17 @@ class AndorCam(CamV33Mixin, AreaDetectorCam):
                 cpt.ensure_nonblocking()
 
 
-
 class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
     # AD v2.2.0 (at least) does not have this. It is present in v1.9.1.
     file_number_sync = None
 
     def get_frames_per_point(self):
         return self.parent.cam.num_images.get()
+
+    def make_filename(self):
+        # stash this so that it is available on resume
+        self._ret = super().make_filename()
+        return self._ret
 
 
 class AndorKlass(SingleTriggerV33, DetectorBase):
@@ -77,6 +81,19 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
 
     def resume(self):
         self.hdf5.capture.put(1)
+        # The AD HDF5 plugin bumps its file_number and starts writing into a
+        # *new file* because we toggled capturing off and on again.
+        # Generate a new Resource document for the new file.
+
+        # grab the stashed result from make_filename
+        filename, read_path, write_path = self.hdf5._ret
+        self.hdf5._fn = self.hdf5.file_template.get() % (read_path,
+                                               filename,
+                                               self.hdf5.file_number.get() - 1)
+                                               # file_number is *next*
+                                               # iteration
+        res_kwargs = {'frame_per_point': self.hdf5.get_frames_per_point()}
+        self.hdf5._generate_resource(res_kwargs)
         return super().resume()
 
     def stage(self):
@@ -109,8 +126,8 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
         from ophyd.utils import set_and_wait
         set_and_wait(self.hdf5.file_path, self.hdf5.file_path.get()[:-3], timeout=5*60)
         return ret
-
-
+  
+ 
 class Manta(SingleTrigger, AreaDetector):
     image = Cpt(ImagePlugin, 'image1:')
     stats1 = Cpt(StatsPluginV33, 'Stats1:')
@@ -145,6 +162,19 @@ class Manta(SingleTrigger, AreaDetector):
 
     def resume(self):
         self.hdf5.capture.put(1)
+        # The AD HDF5 plugin bumps its file_number and starts writing into a
+        # *new file* because we toggled capturing off and on again.
+        # Generate a new Resource document for the new file.
+
+        # grab the stashed result from make_filename
+        filename, read_path, write_path = self.hdf5._ret
+        self.hdf5._fn = self.hdf5.file_template.get() % (read_path,
+                                               filename,
+                                               self.hdf5.file_number.get() - 1)
+                                               # file_number is *next*
+                                               # iteration
+        res_kwargs = {'frame_per_point': self.hdf5.get_frames_per_point()}
+        self.hdf5._generate_resource(res_kwargs)
         return super().resume()
 
 
