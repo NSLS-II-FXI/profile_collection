@@ -96,7 +96,13 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
         self.hdf5._generate_resource(res_kwargs)
         return super().resume()
 
-
+    def unstage(self, *args, **kwargs):
+        ret = super().unstage()
+        from ophyd.utils import set_and_wait
+        set_and_wait(self.hdf5.file_name, 'jibberish', timeout=5*60)
+        return ret
+  
+ 
 class Manta(SingleTrigger, AreaDetector):
     image = Cpt(ImagePlugin, 'image1:')
     stats1 = Cpt(StatsPluginV33, 'Stats1:')

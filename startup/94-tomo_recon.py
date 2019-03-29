@@ -30,7 +30,7 @@ def find_rot(fn, thresh=0.05):
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[]):
    
    
     import tomopy 
@@ -50,6 +50,10 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
     prj_norm[prj_norm < 0] = 0    
     s = prj_norm.shape  
     prj_norm = prj_norm.reshape(s[0], 1, s[1])
+    if len(block_list):
+        allow_list = list(set(np.arange(len(prj_norm))) - set(block_list))
+        prj_norm = prj_norm[allow_list]
+        theta = theta[allow_list]
     if start==None or stop==None or steps==None:
         start = int(s[1]/2-50)
         stop = int(s[1]/2+50)
@@ -64,8 +68,10 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0):
         hf.create_dataset('img', data=img)
         hf.create_dataset('rot_cen', data=cen)
     
-    
-def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0):
+
+
+
+def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0, block_list=[]):
     '''
     reconstruct 3D tomography
     Inputs:
@@ -125,6 +131,7 @@ def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0):
     img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1], col[0]:col[1]])
     img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1], col[0]:col[1]])
     theta = np.array(f['angle']) / 180.0 * np.pi
+    eng = np.array(f['X_eng'])
     f.close() 
 
     s = img_tomo.shape
@@ -141,6 +148,13 @@ def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0):
     prj_norm[np.isinf(prj_norm)] = 0
     prj_norm[prj_norm < 0] = 0   
 
+    if len(block_list):
+        allow_list = list(set(np.arange(len(prj_norm))) - set(block_list))
+        prj_norm = prj_norm[allow_list]
+        theta = theta[allow_list]
+
+
+    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=5, wname='db5', sigma=1, pad=True)
     fout = 'recon_scan_' + str(scan_id) + str(slice_info) + str(col_info) + str(bin_info)
     '''
     if algorithm == 'gridrec':
@@ -174,10 +188,13 @@ def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0):
         with h5py.File(fout_h5, 'w') as hf:
             hf.create_dataset('img', data=rec)
             hf.create_dataset('scan_id', data=scan_id)        
+            hf.create_dataset('X_eng', data=eng)
         print('{} is saved.'.format(fout)) 
     del rec
     del img_tomo
     del prj_norm
+
+
 
 
 

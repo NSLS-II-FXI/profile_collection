@@ -316,7 +316,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_
         motor_r_out = out_r if out_r else motor_r_ini
 
 
-    rs_ini = zps_pi_r.velocity.value
+    rs_ini = zps.pi_r.velocity.value
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     _md = {'detectors': [det.name for det in detectors],
@@ -1224,7 +1224,7 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
 
     if relative_move_flag: 
         motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_inil + out_y if out_y else motor_y_ini
+        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
         motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
         motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
     else:
@@ -1334,12 +1334,12 @@ def multipos_2D_xanes_scan(eng_list, x_list, y_list, z_list, r_list, out_x, out_
 
 
 
-def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, repeat_num=1, exposure_time=0.2,  sleep_time=1, chunk_size=5, simu=False, relative_move_flag=1, note='', md=None):
+def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, repeat_num=1, exposure_time=0.2,  sleep_time=1, chunk_size=5, simu=False, relative_move_flag=True, note='', md=None):
     '''
     Different from multipos_2D_xanes_scan. In the current scan, it take image at all locations and then move out sample to take background image.
 
     For example:
-    RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, exposure_time=0.1, sleep_time=60, chunk_size=5, relative_move_flag=1, note='sample')
+    RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, exposure_time=0.1, sleep_time=60, chunk_size=5, relative_move_flag=True, note='sample')
     
     Inputs:
     --------
@@ -1410,7 +1410,7 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
 
     if relative_move_flag: 
         motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_inil + out_y if out_y else motor_y_ini
+        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
         motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
         motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
     else:
@@ -1767,7 +1767,7 @@ def multipos_count(x_list, y_list, z_list,  out_x=None, out_y=None, out_z=None, 
 
 
 
-def xanes_3D(eng_list, exposure_time=0.05, relative_rot_angle=180, period=0.05, out_x=0, out_y=0, out_z=0, out_r=0, rs=2, simu=False, relative_move_flag=1, traditional_sequence_flag=1, note=''):
+def xanes_3D(eng_list, exposure_time=0.05, relative_rot_angle=185, period=0.05, out_x=0, out_y=0, out_z=0, out_r=0, rs=2, simu=False, relative_move_flag=1, traditional_sequence_flag=1, note=''):
     txt = 'start 3D xanes scan, containing following fly_scan:\n'
     insert_text(txt)
     for eng in eng_list:        

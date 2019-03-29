@@ -172,6 +172,8 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
         # backgroud images
         yield from mv(zps.sx, x_out)
         yield from mv(zps.sy, y_out)
+        yield from mv(zps.sx, x_out, zps.sy, y_out)
+        yield from bps.sleep(0.5)
         yield from trigger_and_read(list(detectors)+[motor])
         # dark images
         yield from abs_set(shutter_close, 1, wait=True)
