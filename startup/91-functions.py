@@ -5,26 +5,6 @@ from operator import attrgetter
 from PIL import Image
 from scipy.signal import medfilt2d
 
-#from image_binning import bin_ndarray
-
-# GLOBAL_MAG = 377 in 2018Q3
-# GLOBAL_MAG = 371.43 in 2019Q1
-# GLOBAL_MAG =400 in 2019Q1 for vanandium K-edge
-# GLOBAL_MAG =400 # total magnification
-# GLOBAL_MAG =350 # new commercial zone plate for low energy 5keV
-#GLOBAL_MAG =300 # new commercial zone plate for high energy 10keV
-GLOBAL_MAG =315 # new commercial zone plate for energy range 6.5 - 9keV
-GLOBAL_VLM_MAG = 10 # vlm magnification
-OUT_ZONE_WIDTH = 30 # 30 nm
-#ZONE_DIAMETER = 200 # 200 um  ### xridia zone plate
-ZONE_DIAMETER = 244 # new commercial zone plate
-CURRENT_MAG_1 = GLOBAL_MAG
-CURRENT_MAG_2 = GLOBAL_MAG
-CALIBER_FLAG = 1
-
-
-
-CALIBER = {}
 
 def record_calib_pos1():
     global CALIBER_FLAG, CURRENT_MAG_1, CURRENT_MAG_2
@@ -34,7 +14,6 @@ def record_calib_pos1():
     CALIBER['zp_x_pos1'] = zp.x.position
     CALIBER['zp_y_pos1'] = zp.y.position
     CALIBER['th2_motor_pos1'] = th2_motor.position
-    
     
     #print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
     print(f'pzt_dcm_chi2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["chi2_pos1"]:2.4f}')
@@ -125,8 +104,10 @@ def show_global_para():
     print(f'GLOBAL_VLM_MAG = {GLOBAL_VLM_MAG} X') # vlm magnification
     print(f'OUT_ZONE_WIDTH = {OUT_ZONE_WIDTH} nm') # 30 nm
     print(f'ZONE_DIAMETER = {ZONE_DIAMETER} um') # 200 um
+    print(f'CURRENT_MAG_1 = {CURRENT_MAG_1} X') # calibration magnification at pos 1
+    print(f'CURRENT_MAG_2 = {CURRENT_MAG_2} X') # calibration magnification at pos 1
     print(f'\nFor Andor camera, current pixel size = {6500./GLOBAL_MAG:3.1f} nm')
-    print('\nChange parameters if necessary.')
+    print('\nChange parameters if necessary.\n\n')
 
 
 #def list_fun():
@@ -166,6 +147,9 @@ def new_user():
     else:
         proposal_id = input('Proposal ID:')
         fn = pre + PI_name + '_Proposal_' + proposal_id
+        export_pdf(1)
+        insert_txt('New user: {fn}\n')
+        export_pdf(1)
         
     try:        
         cmd = f'mkdir -m 777 {fn}'
@@ -302,8 +286,7 @@ def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
     if eng_ini < 4.000:    
         eng_ini = XEng.position # current beam energy
     check_eng_range([eng_new, eng_ini])
-  
-    
+      
     h = 6.6261e-34
     c = 3e8
     ec = 1.602e-19
@@ -407,18 +390,18 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1):
                     #print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
                     print ('move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
                     print ('move th2_motor: ({0:2.6f} deg --> {1:2.6f} deg)'.format(th2_motor_ini, th2_motor_target))
+                yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)                
                 yield from mv(th2_feedback_enable, 0)
-                yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
-                yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
-                #yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
-                #yield from mv(pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
-                
                 yield from mv(th2_feedback, th2_motor_target)
                 yield from mv(th2_feedback_enable, 1)
+                yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)                
+                #yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
+                #yield from mv(pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)              
+                
                 yield from bps.sleep(0.1)
                 if abs(eng_new - eng_ini) >= 0.005:
-                    t = 50 * abs(eng_new - eng_ini)
-                    t = min(t, 5)
+                    t = 10 * abs(eng_new - eng_ini)
+                    t = min(t, 2)
                     print(f'sleep for {t} sec')
                     yield from bps.sleep(t)              
             else:
@@ -637,7 +620,6 @@ def plot2dsum(scan_id = -1, fn='Det_Image', save_flag=0):
         find_areaDet = 1
     else:
         find_areaDet = 0
-
     if find_areaDet:        
         img = np.array(list(h.data(det)))
         if len(img.shape) == 4:
@@ -667,9 +649,6 @@ def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0):
     if n == 0:
         detectors = h.start['detectors']
         n = len(detectors)
-    
-#    y = list(h.data(detectors[0].name))
-#    x = np.arange(len(y))
     pos = h.table()
     try:
         st = h.start['plan_args']['start']
@@ -685,8 +664,7 @@ def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0):
         mot_time =  np.array(mot_time)   
         x = mot_time - mot_time[0]   
     else:
-        x = np.linspace(st, en, num)
-    
+        x = np.linspace(st, en, num)    
     fig=plt.figure()
     for i in range(n):
         det_name = detectors[i]
@@ -729,11 +707,18 @@ def readtiff(fn_pre='', num=1, x=[], bkg=0, roi=[]):
     plt.plot(x, img_sum, '.-')
     return img_stack, img_stack_roi
 
-def save_hdf(img, fn='img.h5',f_dir='./'):
-    f = f_dir + fn
-    with h5py.File(f, 'w') as hf:
-        hf.create_dataset('data', data = img)
 
+
+def save_hdf_file(fn, *args):
+    n = len(args)
+    assert n%2 == 0, 'even number of args only'
+    n = int(n/2)
+    j = 0
+    with h5py.File(fn, 'w') as hf:
+        for i in range(n):
+            j = int(2*i)
+            tmp = args[j+1]
+            hf.create_dataset(args[j], data=tmp)
 
 
 
@@ -748,14 +733,17 @@ def print_baseline_list():
              if not i%3:
                  tx.write('\n')
              tx.write(f'\t{txt:<30}')
-             i +=1 
-    
+             i +=1    
 
 
-def get_img(h, det='Andor'):
+def get_img(h, det='Andor', sli=[]):
     "Take in a Header and return a numpy array of detA1 image(s)."
-    img = list(h.data('Andor_image'))
-    return np.squeeze(np.array(img))
+    det_name = f'{det}_image'
+    if len(sli) == 2:
+        img = np.array(list(h.data('det_name'))[sli[0]:sli[1]])      
+    else:
+        img = np.array(list(h.data('det_name')))
+    return img
 
 
 def get_scan_parameter(scan_id=-1, print_flag=0):
@@ -771,9 +759,18 @@ def get_scan_parameter(scan_id=-1, print_flag=0):
 
     txt = ''
     for key, val in h.start['plan_args'].items():
+        if key == 'zone_plate':
+            continue
         txt += f'{key}={val}, '
     txt0 = f'#{scan_id}  (uid: {uid[:6]},  X_Eng: {X_eng} keV,  Time: {scan_time})\n'
-    txt = txt0 + scan_type + f'({txt[:-2]})' 
+    txt = txt0 + scan_type + f'({txt[:-2]})\n'
+    try:        
+        txt_tmp = ''
+        for zone_plate_key in h.start['plan_args']['zone_plate'].keys():
+            txt_tmp += f'{zone_plate_key}: {val[zone_plate_key]};    ' 
+        txt = txt + 'Zone Plate info:  ' + txt_tmp
+    except:
+        pass
     if print_flag:
         print(txt)
     return txt
@@ -795,10 +792,8 @@ def get_scan_timestamp(scan_id):
 
 
 
-
 def get_scan_file_name(scan_id):
     hdr = db[scan_id]
-
 #    print(scan_id, hdr.stop['exit_status'])  
     res_uids = list(db.get_resource_uids(hdr))
     for i, uid in enumerate(res_uids):
@@ -807,7 +802,6 @@ def get_scan_file_name(scan_id):
     fpath_root = res_doc['root']
     fpath_relative = res_doc['resource_path']
     fpath = fpath_root + '/' + fpath_relative
-
     fpath_remote = '/nsls2/xf18id1/backup/DATA/Andor/' + fpath_relative
     return print(f'local path: {fpath}\nremote path: {fpath_remote}')
 
@@ -831,6 +825,44 @@ def get_scan_motor_pos(scan_id):
         except: 
             pass 
 
+
+
+
+class IndexTracker(object):
+    def __init__(self, ax, X):
+        self.ax = ax
+        self._indx_txt = ax.set_title(' ', loc='center')
+        self.X = X
+        self.slices, rows, cols = X.shape
+        self.ind = self.slices//2
+
+        self.im = ax.imshow(self.X[self.ind, :, :], cmap='gray')
+        self.update()
+
+    def onscroll(self, event):
+        if event.button == 'up':
+            self.ind = (self.ind + 1) % self.slices
+        else:
+            self.ind = (self.ind - 1) % self.slices
+        self.update()
+
+    def update(self):
+        self.im.set_data(self.X[self.ind, :, :])
+        #self.ax.set_ylabel('slice %s' % self.ind)
+        self._indx_txt.set_text(f"frame {self.ind} of {self.slices}")
+        self.im.axes.figure.canvas.draw()
+
+    
+def image_scrubber(data, *, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
+    tracker = IndexTracker(ax, data)
+    # monkey patch the tracker onto the figure to keep it alive
+    fig._tracker = tracker
+    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    return tracker
 
 
 read_calib_file()

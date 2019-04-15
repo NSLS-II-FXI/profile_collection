@@ -329,4 +329,20 @@ def mosaic2d_lists(x_start, x_end, x_step, y_start, y_end, y_step, z, r):
 
     
 
+def multi_pos_3D_xanes(eng_list, x_list, y_list, z_list, r_list, exposure_time, relative_rot_angle, rs, out_x, out_y, out_z, note=''):
+    '''
+    the sample_out position is in its absolute value:
+    will move sample to out_x (um) out_y (um) out_z(um) and out_r (um) to take background image
 
+    to run:
+
+    RE(multi_pos_3D_xanes(Ni_eng_list, x_list=[a, b, c], y_list=[aa,bb,cc], z_list=[aaa,bbb, ccc], r_list=[0, 0, 0], exposure_time=0.05, relative_rot_angle=185, rs=3, out_x=1500, out_y=-1500, out_z=-770, out_r=0, note='NC')
+    '''
+    num_pos = len(x_list)
+    for i in range(num_pos):
+        print(f'currently, taking 3D xanes at position {i}\n')
+        yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
+        yield from bps.sleep(2)
+        note_pos = note + f'position_{i}'
+        yield from xanes_3D(eng_list, exposure_time=exposure_time, relative_rot_angle=relative_rot_angle, period=exposure_time, out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, rs=rs, simu=False, relative_move_flag=0, traditional_sequence_flag=1, note=note_pos)
+        insert_text(f'finished 3D xanes scan for {note_pos}')

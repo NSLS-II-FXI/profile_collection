@@ -177,6 +177,8 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
     note: string
     md: metadate (default: None)
     '''
+    global ZONE_PLATE
+
     detectors=[Andor]
     yield from abs_set(detectors[0].cam.acquire_time, exposure_time)
     yield from mv(Andor.cam.num_images, 1)
@@ -211,11 +213,13 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
                          'out_x': out_x, 'out_y': out_y, 'out_z': out_z, 'out_r': out_r,
                          'relative_move_flag': relative_move_flag,
                          'note': note if note else 'None'},
+                         'zone_plate': ZONE_PLATE,
            'plan_name': 'tomo_scan',
            'plan_pattern': 'linspace',
            'plan_pattern_module': 'numpy',
            'hints': {},
            'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
            'note': note if note else 'None',
           # 'motor_pos':  wh_pos(print_on_screen=0),
             }
@@ -293,6 +297,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_
 
 
     '''
+    global ZONE_PLATE
     detectors=[Andor, ic3]
     period = exposure_time if exposure_time >= 0.05 else 0.05
     yield from _set_andor_param(exposure_time, period, chunk_size)
@@ -341,11 +346,13 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_
                          'out_z': out_z,
                          'out_r': out_r,
                          'relative_move_flag': relative_move_flag,
-                         'note': note if note else 'None'
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE
                         },     
            'plan_name': 'xanes_scan',
            'hints': {},
            'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
            'note': note if note else 'None',
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
@@ -431,6 +438,7 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
         False: will really close/open shutter
 
     '''
+    global ZONE_PLATE
     detectors=[Andor, ic3]
     period = exposure_time if exposure_time >= 0.05 else 0.05
     yield from _set_andor_param(exposure_time,period, chunk_size)
@@ -476,11 +484,13 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
                          'out_z': out_z,
                          'our_r': out_r,
                          'relative_move_flag':relative_move_flag,
-                         'note': note if note else 'None'
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                          },              
            'plan_name': 'xanes_scan2',
            'hints': {},
            'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
            'note': note if note else 'None',
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
@@ -497,7 +507,6 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
         # take dark image
         print('\ntake {} dark images...'.format(chunk_size))
         yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
-
 
         print('\nopening shutter, and start xanes scan: {} images per each energy... '.format(chunk_size))
         yield from _open_shutter(simu)
@@ -566,6 +575,7 @@ def xanes_scan3(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
         False: will really close/open shutter
 
     '''
+    global ZONE_PLATE
     detectors=[Andor, ic3]
     period = exposure_time if exposure_time >= 0.05 else 0.05
     yield from _set_andor_param(exposure_time,period, chunk_size)
@@ -612,12 +622,14 @@ def xanes_scan3(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
                          'our_r': out_r,
                          'relative_move_flag':relative_move_flag,
                          'filters': [filt.name for filt in filters],
-                         'note': note if note else 'None'
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                          },              
            'plan_name': 'xanes_scan2',
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
+           'zone_plate': ZONE_PLATE,
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
@@ -692,6 +704,7 @@ def eng_scan(eng_start, eng_end, steps, num=10, detectors=[ic3, ic4], delay_time
         delay_time: float, delay time after moving motors, in sec
     
     '''
+    
     det = [det.name for det in detectors]
     det_name = ''
     for i in range(len(det)):
@@ -749,6 +762,7 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
     note: string    
 
     '''
+    global ZONE_PLATE
     # detectors=[ic3, ic4]
     motor_x = XEng
     motor_x_ini = motor_x.position # initial position of motor_x
@@ -761,13 +775,15 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
                          'num': num,
                          'detectors': 'detectors',
                          'delay_time': delay_time,
-                         'note': note if note else 'None'
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                          },   
            'plan_pattern': 'linspace',
            'plan_pattern_module': 'numpy',
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
+           'zone_plate': ZONE_PLATE,
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
@@ -842,7 +858,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
         False: will really close/open shutter
     
     '''
-
+    global ZONE_PLATE
     motor_x_ini = zps.sx.position
     motor_y_ini = zps.sy.position
     motor_z_ini = zps.sz.position
@@ -879,9 +895,10 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
                          'out_z': out_z,
                          'out_r': out_r,
                          'rs': rs,
-                         'note': note if note else 'None',
                          'relative_move_flag': relative_move_flag,
                          'traditional_sequence_flag': traditional_sequence_flag,
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                         },
            'plan_name': 'fly_scan',
            'num_bkg_images': chunk_size,
@@ -892,6 +909,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
+           'zone_plate': ZONE_PLATE,
            #'motor_pos': wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
@@ -929,7 +947,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
 
     uid = yield from fly_inner_scan()
     print('scan finished')
-    txt = get_scan_parameter()
+    txt = get_scan_parameter(print_flag=0)
     insert_text(txt)
     print(txt)
     return uid
@@ -939,7 +957,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
 
 def grid2D_rel(motor1, start1, stop1, num1, motor2, start2, stop2, num2, exposure_time=0.05, delay_time=0, note='', md=None):
     # detectors=[ic3, ic4]
-
+    global ZONE_PLATE
     detectors=[Andor, ic3]
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
@@ -959,12 +977,14 @@ def grid2D_rel(motor1, start1, stop1, num1, motor2, start2, stop2, num2, exposur
                          'motor2': motor2.name,'start2':start2, 'stop2':stop2, 'num2':num2,
                          'exposure_time':exposure_time, 'delay_time': delay_time,
                          'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                          },   
            'plan_pattern': 'linspace',
            'plan_pattern_module': 'numpy',
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
+           'zone_plate': ZONE_PLATE,
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
     _md.update(md or {})
@@ -1016,6 +1036,7 @@ def delay_count(detectors, num=1, delay=None, *, note='', plot_flag=0, md=None):
     same function as the default "count", 
     re_write it in order to add auto-logging
     """
+    global ZONE_PLATE
     if num is None:
         num_intervals = None
     else:
@@ -1024,10 +1045,11 @@ def delay_count(detectors, num=1, delay=None, *, note='', plot_flag=0, md=None):
            'num_points': num,
            'XEng': XEng.position,
            'num_intervals': num_intervals,
-           'plan_args': {'detectors': 'detectors', 'num': num, 'delay': delay},
+           'plan_args': {'detectors': 'detectors', 'num': num, 'delay': delay, 'zone_plate': ZONE_PLATE},
            'plan_name': 'delay_count',
            'hints': {},
            'note': note if note else 'None',
+           'zone_plate': ZONE_PLATE,
            }
     _md.update(md or {})
     _md['hints'].setdefault('dimensions', [(('time',), 'primary')])
@@ -1084,6 +1106,7 @@ def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_t
     note: string
     
     '''
+    global ZONE_PLATE
     if Andor in detectors:
         yield from _set_andor_param(exposure_time, period=exposure_time, chunk_size=1)
 
@@ -1101,9 +1124,11 @@ def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_t
                          'exposure_time':exposure_time,                       
                          'sleep_time': sleep_time,
                          'plot_flag': plot_flag,
-                         'note': note if note else 'None'
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                          },
            'plan_name': 'delay_scan',
+           'zone_plate': ZONE_PLATE,
            'hints': {},
            #'motor_pos':  wh_pos(print_on_screen=0),
            'operator': 'FXI'
@@ -1169,7 +1194,7 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
 
 
 
-def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2, note='', simu=False, relative_move_flag=1,rot_first_flag=1, md=None):
+def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2,  simu=False, relative_move_flag=1,rot_first_flag=1, note='',md=None):
     '''
     scanning large area by moving samples at different 2D block position, defined by x_range and y_range, only work for Andor camera at full resolution (2160 x 2560)
     for example, set x_range=[-1,1] and y_range=[-2, 2] will totally take 3 x 5 = 15 images and stitch them together
@@ -1212,7 +1237,7 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
         False: will really close/open shutter
               
     '''
-
+    global ZONE_PLATE
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
     detectors = [Andor, ic3]
     yield from _set_andor_param(exposure_time=exposure_time, period=exposure_time, chunk_size=1)
@@ -1263,10 +1288,14 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
                          'pxl': pxl,
                          'note': note if note else 'None',
                          'relative_move_flag': relative_move_flag,
+                         'rot_first_flag': rot_first_flag,
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                         },     
            'plan_name': 'raster_2D',
            'hints': {},
            'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
            'note': note if note else 'None',
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
@@ -1393,7 +1422,7 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
     note: string
     
     '''    
-
+    global ZONE_PLATE
     txt = 'starting multipos_2D_xanes_scan2:'
     insert_text(txt)
     detectors=[Andor, ic3]
@@ -1442,10 +1471,12 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
                          'chunk_size': chunk_size,
                          'relative_move_flag': relative_move_flag,
                          'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                         },     
            'plan_name': 'multipos_2D_xanes_scan2',
            'hints': {},
            'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
            'note': note if note else 'None',
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
@@ -1554,6 +1585,7 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
     note: string
     
     '''    
+    global ZONE_PLATE
     txt = 'starting multipos_2D_xanes_scan3'
     insert_text(txt)
     detectors=[Andor, ic3]
@@ -1600,10 +1632,12 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
                          'chunk_size': chunk_size,
                          'relative_move_flag': relative_move_flag,
                          'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                         },     
            'plan_name': 'multipos_2D_xanes_scan3',
            'hints': {},
            'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
            'note': note if note else 'None',
            #'motor_pos':  wh_pos(print_on_screen=0),
             }
@@ -1679,7 +1713,7 @@ def repeat_multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out
 
 
 def multipos_count(x_list, y_list, z_list,  out_x=None, out_y=None, out_z=None, out_r=None, exposure_time=0.1, repeat_num=1, sleep_time=0, note='', simu=False, relative_move_flag=1, md=None):
-
+    global ZONE_PLATE
     detectors = [Andor, ic3]
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
@@ -1697,12 +1731,14 @@ def multipos_count(x_list, y_list, z_list,  out_x=None, out_y=None, out_z=None, 
                          'repeat_num': repeat_num,
                          'sleep_time': sleep_time,
                          'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
                         },
            'plan_name': 'multipos_count',
            'num_dark_images': 10,
            'hints': {},
            'operator': 'FXI',
            'note': note if note else 'None',
+           'zone_plate': ZONE_PLATE,
            'motor_pos': wh_pos(print_on_screen=0),    
         }
 
