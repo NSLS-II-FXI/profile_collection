@@ -6,6 +6,15 @@ from PIL import Image
 from scipy.signal import medfilt2d
 
 
+def change_hdf5_source(cam, roi_name): 
+    yield from bps.mov(cam.hdf5.nd_array_port, roi_name) 
+    yield from bps.abs_set(cam.cam.acquire, 1) 
+    # TODO set to just 1 frame 
+    # TODO wait a msarter amount of time 
+    yield from bps.sleep(1) 
+
+
+
 def record_calib_pos1():
     global CALIBER_FLAG, CURRENT_MAG_1, CURRENT_MAG_2
     #CALIBER['th2_pos1'] = pzt_dcm_th2.pos.value
