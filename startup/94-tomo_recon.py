@@ -1,4 +1,13 @@
+import numpy as np
+
+def find_nearest(data, value):
+    data = np.array(data)
+    return np.abs(data - value).argmin()
+
+
 def find_rot(fn, thresh=0.05):
+    from pystackreg import StackReg
+    sr = StackReg(StackReg.TRANSLATION) 
     f = h5py.File(fn, 'r')
     img_bkg = np.squeeze(np.array(f['img_bkg_avg']))
     ang = np.array(list(f['angle']))
@@ -24,10 +33,17 @@ def find_rot(fn, thresh=0.05):
     row_shift = results[2]
     col_shift = results[3]
     rot_cen = s[1]/2 + col_shift/2 - 1 
+
+    tmat = sr.register(im1, im2) 
+    rshft = -tmat[1, 2]
+    cshft = -tmat[0, 2]
+    rot_cen0 = s[1]/2 + cshft/2 - 1
+
+    print(f'rot_cen = {rot_cen} or {rot_cen0}')
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[]):  
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0):  
     import tomopy 
     f = h5py.File(fn)
     tmp = np.array(f['img_bkg_avg'])
@@ -64,7 +80,10 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[]):
     with h5py.File(fout, 'w') as hf:
         hf.create_dataset('img', data=img)
         hf.create_dataset('rot_cen', data=cen)
+    img = tomopy.circ_mask(img, axis=0, ratio=0.6)
     tracker = image_scrubber(img)
+    if return_flag:
+        return img
 
 
 
