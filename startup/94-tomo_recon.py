@@ -43,7 +43,7 @@ def find_rot(fn, thresh=0.05):
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0):  
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1):  
     import tomopy 
     f = h5py.File(fn)
     tmp = np.array(f['img_bkg_avg'])
@@ -61,6 +61,7 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
     prj_norm[prj_norm < 0] = 0    
     s = prj_norm.shape  
     prj_norm = prj_norm.reshape(s[0], 1, s[1])
+    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
     pos = find_nearest(theta, theta[0]+np.pi)
     block_list = list(block_list) + list(np.arange(pos+1, len(theta)))
     if len(block_list):
@@ -70,11 +71,12 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
     if start==None or stop==None or steps==None:
         start = int(s[1]/2-50)
         stop = int(s[1]/2+50)
-        steps = 31
+        steps = 26
     cen = np.linspace(start, stop, steps)          
     img = np.zeros([len(cen), s[1], s[1]])
     for i in range(len(cen)):
-        print('{}: rotcen {}'.format(i+1, cen[i]))
+        if print_flag:
+            print('{}: rotcen {}'.format(i+1, cen[i]))
         img[i] = tomopy.recon(prj_norm, theta, center=cen[i], algorithm='gridrec')    
     fout = 'center_test.h5'
     with h5py.File(fout, 'w') as hf:
@@ -83,8 +85,22 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
     img = tomopy.circ_mask(img, axis=0, ratio=0.6)
     tracker = image_scrubber(img)
     if return_flag:
-        return img
+        return img, cen
 
+
+def img_variance(img):
+    import tomopy
+    s = img.shape
+    variance = np.zeros(s[0])
+    img = tomopy.circ_mask(img, axis=0, ratio=0.6)
+    for i in range(s[0]):
+        img[i] = medfilt2d(img[i], 5)
+        img_ = img[i].flatten()
+        t = img_>0
+        img_ = img_[t]
+        t = np.mean(img_)
+        variance[i] = np.sqrt(np.sum(np.power(np.abs(img_ - t), 2))/len(img_-1))
+    return variance
 
 
 def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0, block_list=[]):
