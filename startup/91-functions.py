@@ -731,6 +731,34 @@ def save_hdf_file(fn, *args):
 
 
 
+def export_ic3(scan_id=-1, return_flag=1, save_flag=0, plot_flag=0):
+    h = db[scan_id]
+    scan_id = h.start['scan_id']
+    pos = h.table()
+    scan_id = h.start['scan_id']
+    mot_day, mot_hour = pos['time'].dt.day, pos['time'].dt.hour,
+    mot_min, mot_sec, mot_msec = pos['time'].dt.minute, pos['time'].dt.second, pos['time'].dt.microsecond
+    mot_time = mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
+    mot_time =  np.array(mot_time)
+    x = mot_time - mot_time[0]
+    y = list(h.data('ic3'))
+
+    if save_flag:
+        fn = f'ic3_scan_{scan_id}.txt'
+        data = np.zeros([len(x), 2])
+        data[:,0] = x
+        data[:,1] = y
+        np.savetxt(fn, data)
+        print(f'{fn} is saved')
+    if plot_flag:
+        plt.figure()
+        plt.plot(x,y)
+    if return_flag:
+        return x, y
+
+
+
+
 ########################################################################
 ########################################################################
 

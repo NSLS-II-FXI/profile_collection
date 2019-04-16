@@ -185,4 +185,33 @@ def xanes_fit_demo():
 
 
 
+def temp():
+    #os.mkdir('recon_image')
+    scan_id = np.arange(15198, 15256)
+    n = len(scan_id)
+    for i in range(n):
+        fn = f'fly_scan_id_{int(scan_id[i])}.h5'
+        print(f'reconstructing: {fn} ... ')
+        img = get_img(db[int(scan_id[i])], sli=[0,1])
+        s = img.shape
+        if s[-1] > 2000:
+            sli = [200, 1900]
+            binning = 2
+        else:
+            sli = [100, 950]
+            binning = 1
+        rot_cen = find_rot(fn)
+        recon(fn, rot_cen, sli=sli, binning=binning)
+        try:
+            f_recon = f'recon_scan_{int(scan_id[i])}_sli_{sli[0]}_{sli[1]}_bin{binning}.h5'
+            f = h5py.File(f_recon, 'r')
+            sli_choose = int((sli[0]+sli[1])/2)
+            img_recon = np.array(f['img'][sli_choose], dtype=np.float32)
+            sid = scan_id[i]
+            f.close()
+            fn_img_save = f'recon_image/recon_{int(sid)}_sli_{sli_choose}.tiff'
+            print(f'saving {fn_img_save}\n')
+            io.imsave(fn_img_save, img_recon)
+        except:
+            pass
 
