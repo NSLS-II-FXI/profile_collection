@@ -18,7 +18,7 @@ def export_scan(scan_id, scan_id_end=None, binning=4):
         for i in range(scan_id, scan_id_end+1):
             try:
                 export_single_scan(int(i), binning)
-            except:
+            except Exception as ex:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print(message)
@@ -449,13 +449,22 @@ def export_raster_2D(h, binning=4):
     new_dir = f'{cwd}/raster_scan_{scan_id}'
     if not os.path.exists(new_dir):
         os.mkdir(new_dir) 
+    '''
     s = img.shape
     tmp = bin_ndarray(img, new_shape=(s[0], int(s[1]/binning), int(s[2]/binning)))
     for i in range(num_img):  
         fout = f'{new_dir}/img_{i:02d}_binning_{binning}.tiff'
         print(f'saving {fout}')
         tifffile.imsave(fout, np.array(tmp[i], dtype=np.float32))
-    
+    '''
+    fn_h5_save = f'{new_dir}/img_{i:02d}_binning_{binning}.h5'
+    with h5py.File(fn_h5_save, 'w') as hf:
+        hf.create_dataset('img_patch', data = np.array(img_patch_bin, np.float32))    
+        hf.create_dataset('img', data = np.array(img, np.float32))
+        hf.create_dataset('img_dark', data = np.array(img_dark_avg, np.float32))       
+        hf.create_dataset('img_bkg', data = np.array(img_bkg_avg, np.float32)) 
+
+
 '''    
 def export_multipos_2D_xanes_scan2(h):
     scan_type = h.start['plan_name']
