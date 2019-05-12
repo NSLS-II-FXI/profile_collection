@@ -196,6 +196,8 @@ def insert_screen_shot(ratio=0.6):
 ###############################
 
 def export_pdf(merge_flag=0):
+    if len(PDF_ARGS) == 0:
+        reset_pdf()
     try:
         PDF_ARGS['C_canvas'].showPage()
         PDF_ARGS['C_canvas'].save()

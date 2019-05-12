@@ -1,5 +1,5 @@
 import numpy as np
-
+import tomopy
 def find_nearest(data, value):
     data = np.array(data)
     return np.abs(data - value).argmin()
@@ -45,7 +45,7 @@ def find_rot(fn, thresh=0.05):
 
 def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1):  
     import tomopy 
-    f = h5py.File(fn)
+    f = h5py.File(fn, 'r')
     tmp = np.array(f['img_bkg_avg'])
     s = tmp.shape
     if sli == 0: sli = int(s[1]/2)
@@ -103,7 +103,7 @@ def img_variance(img):
     return variance
 
 
-def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0, block_list=[]):
+def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[]):
     '''
     reconstruct 3D tomography
     Inputs:
@@ -112,22 +112,20 @@ def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0, b
         filename of scan, e.g. 'fly_scan_0001.h5'
     rot_cen: float
         rotation center
-    algorithm: string
-        choose from 'gridrec' and 'mlem'
     sli: list
         a range of slice to recontruct, e.g. [100:300]
-    num_iter: int
-        iterations for 'mlem' algorithm
     bingning: int
         binning the reconstruted 3D tomographic image 
     zero_flag: bool 
         if 1: set negative pixel value to 0
         if 0: keep negative pixel value
+    block_list: list
+        a list of index for the projections that will not be considered in reconstruction
         
     '''
-    import tomopy
+    
     from PIL import Image
-    f = h5py.File(fn)
+    f = h5py.File(fn, 'r')
     tmp = np.array(f['img_bkg_avg'])
     s = tmp.shape
     slice_info = ''
@@ -143,6 +141,7 @@ def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0, b
         slice_info = '_slice_{}_{}'.format(sli[0], sli[1])
     else:
         print('non valid slice id, will take reconstruction for the whole object')    
+    '''
     if len(col) == 0:
         col = [0, s[2]]
     elif len(col) == 1 and col[0] >=0 and col[0] <= s[2]:
@@ -153,65 +152,81 @@ def recon(fn, rot_cen, sli=[], col=[], binning=None, zero_flag=0, tiff_flag=0, b
     else:
         col = [0, s[2]]
         print('invalid col id, will take reconstruction for the whole object')
-
-    rot_cen = rot_cen - col[0]    
+    '''
+    #rot_cen = rot_cen - col[0] 
     scan_id = np.array(f['scan_id'])
-    img_tomo = np.array(f['img_tomo'][:, sli[0]:sli[1], :])
-    img_tomo = np.array(img_tomo[:, :, col[0]:col[1]])
-    img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1], col[0]:col[1]])
-    img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1], col[0]:col[1]])
     theta = np.array(f['angle']) / 180.0 * np.pi
     eng = np.array(f['X_eng'])
-    f.close() 
-    s = img_tomo.shape
-    if not binning == None:
-        img_tomo = bin_ndarray(img_tomo, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
-        img_bkg = bin_ndarray(img_bkg, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
-        img_dark = bin_ndarray(img_dark, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
-        rot_cen = rot_cen * 1.0 / binning 
-        bin_info = f'_bin{int(binning)}'
-    prj = (img_tomo - img_dark) / (img_bkg - img_dark)
-    prj_norm = -np.log(prj)
-    prj_norm[np.isnan(prj_norm)] = 0
-    prj_norm[np.isinf(prj_norm)] = 0
-    prj_norm[prj_norm < 0] = 0   
 
     pos = find_nearest(theta, theta[0]+np.pi)
     block_list = list(block_list) + list(np.arange(pos+1, len(theta)))
-    if len(block_list):
-        allow_list = list(set(np.arange(len(prj_norm))) - set(block_list))
-        prj_norm = prj_norm[allow_list]
-        theta = theta[allow_list]
+    allow_list = list(set(np.arange(len(theta))) - set(block_list))
+    theta = theta[allow_list]
+    tmp = np.squeeze(np.array(f['img_tomo'][0]))
+    s = tmp.shape
+    
+    sli_step = 40
+    sli_total = np.arange(sli[0], sli[1])
+    binning = binning if binning else 1
+    bin_info = f'_bin_{binning}'
+    #rec = np.zeros([int(len(sli_total)/binning), int(s[1]/binning), int(s[1]/binning)], dtype=np.float32)
+    n_steps = int(len(sli_total) / sli_step)
+    rot_cen = rot_cen * 1.0 / binning 
+    try:
+        rec = np.zeros([sli_step*n_steps // binning, s[1] // binning, s[1] // binning], dtype=np.float32)
+    except:
+        print('Cannot allocate memory')
+    for i in range(n_steps):
+       
+        sli_sub = [i * sli_step + sli_total[0], min((i+1)*sli_step+sli_total[0],  sli_total[-1]+1)]
+        if len(sli_sub) == 0:
+            continue
+        print(f'recon {i+1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ')
+        img_tomo = np.array(f['img_tomo'][:, sli_sub[0]:sli_sub[1], :])
+        #img_tomo = np.array(img_tomo[:, :, col[0]:col[1]])
+        img_bkg = np.array(f['img_bkg_avg'][:, sli_sub[0]:sli_sub[1]])
+        img_dark = np.array(f['img_dark_avg'][:, sli_sub[0]:sli_sub[1]])
 
-    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
-    fout = f'recon_scan_{str(scan_id)}{str(slice_info)}{str(col_info)}{str(bin_info)}'
-  
-    if tiff_flag:
-        cwd = os.getcwd()
-        try:
-            os.mkdir(cwd+f'/{fout}')
-        except:
-            print(cwd+f'/{fout} existed')
-        for i in range(prj_norm.shape[1]):
-            print(f'recon slice: {i:04d}/{prj_norm.shape[1]-1}')
-            rec = tomopy.recon(prj_norm[:, i:i+1,:], theta, center=rot_cen, algorithm='gridrec')
-            
-            if zero_flag:
-                rec[rec<0] = 0
-            img = Image.fromarray(rec[0])
-            fout_tif = cwd + f'/{fout}' + f'/{i+sli[0]:04d}.tiff' 
-            img.save(fout_tif)
-    else:
-        rec = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
-        if zero_flag:
-            rec[rec<0] = 0
-        fout_h5 = f'{fout}.h5'
-        with h5py.File(fout_h5, 'w') as hf:
-            hf.create_dataset('img', data=rec)
-            hf.create_dataset('scan_id', data=scan_id)        
-            hf.create_dataset('X_eng', data=eng)
-        print(f'{fout} is saved.') 
+        s = img_tomo.shape
+        '''
+        t = [s[1] // binning, s[2] // binning]
+        img_tomo = img_tomo[:, :int(t[0]*binning), :int(t[1]*binning)]
+        img_bkg = img_bkg[:, :int(t[0]*binning), :int(t[1]*binning)]
+        img_dark = img_dark[:, :int(t[0]*binning), :int(t[1]*binning)]
+        '''
+        img_tomo = bin_ndarray(img_tomo, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
+        img_bkg = bin_ndarray(img_bkg, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
+        img_dark = bin_ndarray(img_dark, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
+        
+        bin_info = f'_bin{int(binning)}'
+
+        prj = (img_tomo - img_dark) / (img_bkg - img_dark)
+        prj_norm = -np.log(prj)
+        prj_norm[np.isnan(prj_norm)] = 0
+        prj_norm[np.isinf(prj_norm)] = 0
+        prj_norm[prj_norm < 0] = 0   
+
+        prj_norm = prj_norm[allow_list]       
+
+        prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
+        rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
+        rec[i*sli_step // binning : i*sli_step // binning + rec_sub.shape[0]] = rec_sub
+
+    f.close()
+
+
+    fout = f'recon_scan_{str(scan_id)}{str(slice_info)}{str(bin_info)}'
+    if zero_flag:
+        rec[rec<0] = 0
+    fout_h5 = f'{fout}.h5'
+    with h5py.File(fout_h5, 'w') as hf:
+        hf.create_dataset('img', data=np.array(rec, dtype=np.float32))
+        hf.create_dataset('scan_id', data=scan_id)        
+        hf.create_dataset('X_eng', data=eng)
+        hf.create_dataset('rot_cen', data=rot_cen)
+    print(f'{fout} is saved.') 
     del rec
+    del rec_sub
     del img_tomo
     del prj_norm
 

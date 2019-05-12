@@ -157,7 +157,7 @@ def new_user():
         proposal_id = input('Proposal ID:')
         fn = pre + PI_name + '_Proposal_' + proposal_id
         export_pdf(1)
-        insert_txt('New user: {fn}\n')
+        insert_text(f'New user: {fn}\n')
         export_pdf(1)
         
     try:        
@@ -777,10 +777,10 @@ def get_img(h, det='Andor', sli=[]):
     "Take in a Header and return a numpy array of detA1 image(s)."
     det_name = f'{det}_image'
     if len(sli) == 2:
-        img = np.array(list(h.data('det_name'))[sli[0]:sli[1]])      
+        img = np.array(list(h.data(det_name))[sli[0]:sli[1]])      
     else:
-        img = np.array(list(h.data('det_name')))
-    return img
+        img = np.array(list(h.data(det_name)))
+    return np.squeeze(img)
 
 
 def get_scan_parameter(scan_id=-1, print_flag=0):

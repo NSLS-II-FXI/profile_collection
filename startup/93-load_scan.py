@@ -12,7 +12,13 @@ def export_scan(scan_id, scan_id_end=None, binning=4):
     '''
     if scan_id_end is None:
         for item in scan_id:        
-            export_single_scan(int(item), binning)  
+            try:
+                export_single_scan(int(item), binning)  
+            except Exception as ex:
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                message = template.format(type(ex).__name__, ex.args)
+                print(message)
+                continue
             db.reg.clear_process_cache()
     else:
         for i in range(scan_id, scan_id_end+1):
@@ -67,6 +73,9 @@ def export_single_scan(scan_id=-1, binning=4):
     elif scan_type == 'multipos_2D_xanes_scan3':
         print('exporting multipos_2D_xanes_scan3: #{}'.format(scan_id))
         export_multipos_2D_xanes_scan3(h)
+    elif scan_type == 'delay_scan':
+        print('exporting delay_scan #{}'.format(scan_id))
+        export_delay_scan(h)
     else:
         print('Un-recognized scan type ......')
         
@@ -327,7 +336,8 @@ def export_count_img(h):
     load images (e.g. RE(count([Andor], 10)) ) and save to .h5 file
     '''    
     uid = h.start['uid']
-    img = get_img(h)
+    det = h.start['detectors'][0]
+    img = get_img(h, det)
     scan_id = h.start['scan_id']
     fn = 'count_id_' + str(scan_id) + '.h5'
     with h5py.File(fn, 'w') as hf:
@@ -335,6 +345,33 @@ def export_count_img(h):
         hf.create_dataset('uid',data=uid)
         hf.create_dataset('scan_id',data=scan_id)
 
+
+def export_delay_scan(h):
+    det = h.start['detectors'][0]
+    scan_type = h.start['plan_name']
+    scan_id = h.start['scan_id']
+    uid = h.start['uid']  
+    x_eng = h.start['XEng']
+    note = h.start['plan_args']['note'] if h.start['plan_args']['note'] else 'None'
+    mot_name = h.start['plan_args']['motor']
+    mot_start = h.start['plan_args']['start']
+    mot_stop = h.start['plan_args']['stop']
+    mot_steps = h.start['plan_args']['steps']
+    if det == 'detA1' or det == 'Andor':
+        img = get_img(h, det)
+        fname = scan_type + '_id_' + str(scan_id) + '.h5'
+        with h5py.File(fname, 'w') as hf:
+            hf.create_dataset('img', data = np.array(img, dtype=np.float32))
+            hf.create_dataset('uid', data = uid)
+            hf.create_dataset('scan_id', data = scan_id)
+            hf.create_dataset('X_eng', data = x_eng)
+            hf.create_dataset('note', data = note)
+            hf.create_dataset('start', data = mot_start)
+            hf.create_dataset('stop', data = mot_stop)
+            hf.create_dataset('steps', data = mot_steps)
+            hf.create_dataset('motor', data = mot_name)
+    else:
+        print('no image stored in this scan')
 
 
 def export_multipos_count(h):

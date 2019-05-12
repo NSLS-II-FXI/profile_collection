@@ -166,6 +166,9 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
     @run_decorator(md=_md)
     def inner_scan():
         yield from abs_set(shutter_open, 1, wait=True)
+        yield from bps.sleep(1)
+        yield from abs_set(shutter_open, 1)
+        yield from bps.sleep(1)
         for x in my_var:
             yield from mv(motor, x)
             yield from trigger_and_read(list(detectors)+[motor])
@@ -179,12 +182,13 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
         yield from abs_set(shutter_close, 1)
+        yield from bps.sleep(1)
         yield from trigger_and_read(list(detectors)+[motor])        
         # move back zone_plate and sample y 
         yield from mv(zps.sx, x_ini)
         yield from mv(zps.sy, y_ini)
         yield from mv(zp.z, z_ini)
-        yield from abs_set(shutter_open, 1, wait=True)
+        #yield from abs_set(shutter_open, 1, wait=True)
     uid = yield from inner_scan()
 
     txt = get_scan_parameter()
@@ -312,6 +316,64 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
     txt_finish = '## "load_cell_scan()" finished'
     insert_text(txt_finish)
 
+
+
+def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
+    '''
+    At every position in the tm_pitch_list, scan the ssa_h_ctr_list 
+    Use as:
+
+
+    Inputs:
+    --------
+    tm_pitch_list: tm incident angle list
+
+    ssa_h_ctr_list: ssa h ceter list    
+    
+    ssa_start: float, start energy in unit of keV
+
+    ssa_end: float, end of energy in unit of keV
+
+    steps:  num of steps from eng_start to eng_end
+
+    delay_time: delay_time between each energy step, in unit of sec
+    '''
+    from matplotlib.pyplot import legend
+    txt1 = f'tm_pitch_scan(tm_pitch_list, ssa_start={ssa_h_start}, ssa_end={ssa_h_end}, steps={steps}, delay_time={delay_time})'
+    txt2 = f'tm_pitch_list = {tm_pitch_list}'
+
+    txt = '##' + txt1 + '\n' + txt2 + '\n' +' Consisting of:\n'
+    insert_text(txt)
+
+    tm_pitch_ini = tm.p.position
+
+    num_tm_pitch_pos = len(tm_pitch_list)
+
+    lines = []
+    labels = []
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    for tm_pos in tm_pitch_list:
+        yield from mv(tm.p, tm_pos)
+        yield from bps.sleep(1)
+        yield from delay_scan([ic3], ssa.h_ctr, ssa_h_start, ssa_h_end, steps, sleep_time=delay_time)
+        h = db[-1]
+        y = np.array(list(h.data(ic3.name)))
+        x = np.linspace(ssa_h_start, ssa_h_end, steps)
+        line,  = ax1.plot(x, y, '.-')
+        label = str(tm_pos)
+        lines.append(line)
+        labels.append(label)
+ 
+    
+    legend(lines, labels)
+    plt.show()
+    ax1.title.set_text('scan_id: {}-{}, ic3'.format(h.start['scan_id']-num_tm_pitch_pos+1, h.start['scan_id']))       
+        
+    yield from mv(tm.p, tm_pitch_ini)
+    print(f'moving tm_pitch back to initial position: {tm.p.position} mrad')
+    txt_finish = '## "tm_pitch_scan()" finished'
+    insert_text(txt_finish)
 ###########################
 def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     '''

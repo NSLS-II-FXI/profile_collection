@@ -1045,7 +1045,7 @@ def delay_count(detectors, num=1, delay=None, *, note='', plot_flag=0, md=None):
            'num_points': num,
            'XEng': XEng.position,
            'num_intervals': num_intervals,
-           'plan_args': {'detectors': 'detectors', 'num': num, 'delay': delay, 'zone_plate': ZONE_PLATE},
+           'plan_args': {'detectors': 'detectors', 'num': num, 'delay': delay,  'note': note, 'zone_plate': ZONE_PLATE},
            'plan_name': 'delay_count',
            'hints': {},
            'note': note if note else 'None',
@@ -1079,7 +1079,7 @@ def delay_count(detectors, num=1, delay=None, *, note='', plot_flag=0, md=None):
     return uid    
 
 
-def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_time=1.0, plot_flag=0, note='', md=None):
+def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_time=1.0, plot_flag=0, note='', md=None, simu=False):
     '''
     add sleep_time to regular 'scan' for each scan_step
 
@@ -1150,7 +1150,19 @@ def delay_scan(detectors, motor, start, stop, steps, exposure_time=0.1,  sleep_t
             yield from bps.sleep(sleep_time)
             yield from trigger_and_read(list(detectors + [motor]))
         yield from mv(motor, motor_ini)
-    uid = yield from delay_inner_scan()
+        
+    if simu:
+       uid = yield from delay_inner_scan()
+    else:   
+        yield from abs_set(shutter_open, 1, wait=True)
+        yield from bps.sleep(1)
+        yield from abs_set(shutter_open, 1)
+        yield from bps.sleep(1)    
+        uid = yield from delay_inner_scan()
+        yield from abs_set(shutter_close, 1, wait=True)
+        yield from bps.sleep(1)
+        yield from abs_set(shutter_close, 1)
+        yield from bps.sleep(1)    
     h = db[-1]
     scan_id = h.start['scan_id']
     if plot_flag:   
@@ -1535,10 +1547,10 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
 
 def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, out_y=0, out_z=0, out_r=0, repeat_num=1, exposure_time=0.2, sleep_time=1,  chunk_size=5, simu=False, relative_move_flag=1, note='', md=None):
     '''
-    Different from multipos_2D_xanes_scan3. In the current scan, it take image at all locations and then move out sample to take background image.
+    Different from multipos_2D_xanes_scan2. In the current scan, it take image at all locations at all energies and then move out sample to take background image at all energies again.
 
     For example:
-    RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, sleep_time=60, note='sample')
+    RE(multipos_2D_xanes_scan3(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, sleep_time=60, note='sample')
     
     Inputs:
     --------
@@ -1794,7 +1806,7 @@ def multipos_count(x_list, y_list, z_list,  out_x=None, out_y=None, out_z=None, 
                 yield from mv(zps.pi_r, r_ini)
             yield from _close_shutter(simu=simu)
             print(f'sleep for {sleep_time} sec ...')
-            yield from bps.sleep(sleep_time)    
+               
     yield from inner_scan()
     print('scan finished')
     txt = get_scan_parameter()
@@ -1814,6 +1826,16 @@ def xanes_3D(eng_list, exposure_time=0.05, relative_rot_angle=185, period=0.05, 
         yield from fly_scan(exposure_time, relative_rot_angle=relative_rot_angle, period=period, out_x=out_x, out_y=out_y, out_z=out_z, out_r= out_r, rs=rs, note=my_note, simu=simu, relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag)
         yield from bps.sleep(1)
     export_pdf(1)
+    
+    
+def fly_scan_repeat(exposure_time=0.03, relative_rot_angle = 185, period=0.05, chunk_size=20, out_x=0, out_y=-100, out_z=0,  out_r=0, rs=6, note='', repeat=1, sleep_time=0, simu=False, relative_move_flag=1, traditional_sequence_flag=1, md=None):    
+    for i in range(repeat):
+        yield from fly_scan(exposure_time=exposure_time, relative_rot_angle = relative_rot_angle, period=period, chunk_size=chunk_size, 
+                 out_x=out_x, out_y=out_y, out_z=out_z,  out_r=out_r, rs=rs, note=note, simu=simu, 
+                 relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag, md=md)    
+        if i != repeat-1:         
+            yield from bps.sleep(sleep_time) 
+    export_pdf(1)    
 
 
 
