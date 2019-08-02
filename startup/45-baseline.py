@@ -18,5 +18,9 @@ sd.baseline = [
     pzt_tm_loadcell,
     V4,
     V5,
+    filter1,
+    filter2,
+    filter3, 
+    filter4,
 ]
 bec.disable_baseline()

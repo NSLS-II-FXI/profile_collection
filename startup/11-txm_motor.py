@@ -104,5 +104,5 @@ motor_txm = [clens.x, clens.y1, clens.y2, clens.z1, clens.z2, clens.p,
              DetU.x, DetU.y, DetU.z,
              DetD.x, DetD.y, DetD.z,
              ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr,
-             XEng]
+             XEng, filter1, filter2, filter3, filter4]
 

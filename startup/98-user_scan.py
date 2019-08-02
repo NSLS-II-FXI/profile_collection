@@ -329,7 +329,7 @@ def mosaic2d_lists(x_start, x_end, x_step, y_start, y_end, y_step, z, r):
 
     
 
-def multi_pos_3D_xanes(eng_list, x_list, y_list, z_list, r_list, exposure_time, relative_rot_angle, rs, out_x, out_y, out_z, note=''):
+def multi_pos_3D_xanes(eng_list, x_list=[0], y_list=[0], z_list=[0], r_list=[0], exposure_time= 0.05, relative_rot_angle=182, rs=2,):
     '''
     the sample_out position is in its absolute value:
     will move sample to out_x (um) out_y (um) out_z(um) and out_r (um) to take background image
@@ -346,3 +346,218 @@ def multi_pos_3D_xanes(eng_list, x_list, y_list, z_list, r_list, exposure_time, 
         note_pos = note + f'position_{i}'
         yield from xanes_3D(eng_list, exposure_time=exposure_time, relative_rot_angle=relative_rot_angle, period=exposure_time, out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, rs=rs, simu=False, relative_move_flag=0, traditional_sequence_flag=1, note=note_pos)
         insert_text(f'finished 3D xanes scan for {note_pos}')
+
+
+
+def multi_pos_2D_and_3D_xanes(elements=['Ni'], sam_in_pos_list_2D=[[0, 0, 0, 0]], sam_out_pos_list_2D=[[0, 0, 0, 0]], sam_in_pos_list_3D=[[0, 0, 0, 0]], sam_out_pos_list_3D=[[0, 0, 0, 0]], exposure_time=[0.05], relative_rot_angle=182, rs=1, note=''):
+    sam_in_pos_list_2D = np.asarray(sam_in_pos_list_2D)
+    sam_out_pos_list_2D = np.asarray(sam_out_pos_list_2D)    
+    sam_in_pos_list_3D = np.asarray(sam_in_pos_list_3D)
+    sam_out_pos_list_3D = np.asarray(sam_out_pos_list_3D)
+    exposure_time = np.asarray(exposure_time)
+    if exposure_time.shape[0] == 1:
+        exposure_time = np.ones(len(elements))*exposure_time[0]
+    elif len(elements) != exposure_time.shape[0]:
+        # to do in bs manner
+        pass
+
+    eng_list = []
+    for ii in elements:
+        eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
+
+    for ii in range(sam_in_pos_list_2D.shape[0]):
+        for jj in range(len(elements)):
+            x_list = [sam_in_pos_list_2D[ii, 0]]
+            y_list = [sam_in_pos_list_2D[ii, 1]]
+            z_list = [sam_in_pos_list_2D[ii, 2]]
+            r_list = [sam_in_pos_list_2D[ii, 3]]
+            out_x = sam_out_pos_list_2D[ii, 0]
+            out_y = sam_out_pos_list_2D[ii, 1]
+            out_z = sam_out_pos_list_2D[ii, 2]
+            out_r = sam_out_pos_list_2D[ii, 3]
+            yield from multipos_2D_xanes_scan2(eng_list[jj], x_list, y_list, z_list, r_list, 
+                                               out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, 
+                                               exposure_time=exposure_time[jj], chunk_size=5,
+                                               simu=False, relative_move_flag=True, note=note, md=None, sleep_time=0, repeat_num=1)
+
+    for ii in range(sam_in_pos_list_3D.shape[0]):
+        for jj in range(len(elements)):
+            x_list = [sam_in_pos_list_3D[ii, 0]]
+            y_list = [sam_in_pos_list_3D[ii, 1]]
+            z_list = [sam_in_pos_list_3D[ii, 2]]
+            r_list = [sam_in_pos_list_3D[ii, 3]]
+            out_x = sam_out_pos_list_3D[ii, 0]
+            out_y = sam_out_pos_list_3D[ii, 1]
+            out_z = sam_out_pos_list_3D[ii, 2]
+            out_r = sam_out_pos_list_3D[ii, 3]
+            yield from multi_pos_3D_xanes(eng_list[jj], x_list, y_list, z_list, r_list, 
+                                          exposure_time=exposure_time[jj], relative_rot_angle=relative_rot_angle, rs=rs, 
+                                          out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, note=note, simu=False, 
+                                          relative_move_flag=1, traditional_sequence_flag=1, sleep_time=0, repeat=1) 
+
+
+def zps_motor_scan_with_Andor(motors, starts, ends, num_steps, out_x=100, out_y=0, out_z=0, out_r=0, exposure_time=None, period=None, chunk_size=1, note='', relative_move_flag=1, simu=False, rot_first_flag=0, md=None):
+    global ZONE_PLATE 
+    detectors = [Andor, ic3]
+
+#    if len(out_x) != len(motors):
+#        out_x = [out_x[0]] * len(motors)
+#        
+#    if len(out_y) != len(motors):
+#        out_y = [out_y[0]] * len(motors)  
+#        
+#    if len(out_z) != len(motors):
+#        out_z = [out_z[0]] * len(motors)
+#
+#    if len(out_r) != len(motors):
+#        out_r = [out_r[0]] * len(motors)        
+
+    def _set_andor_param():
+        yield from mv(Andor.cam.acquire, 0)
+        yield from mv(Andor.cam.image_mode, 0)
+        yield from mv(Andor.cam.num_images, chunk_size)
+        yield from mv(Andor.cam.acquire_time, exposure_time)
+        Andor.cam.acquire_period.put(period)
+        
+    if exposure_time is not None:
+        yield from _set_andor_param()
+
+    mot_ini = []
+    mot_start = []
+    mot_end = []
+    for start, end, motor in zip(starts, ends, motors):
+        mot_ini.append(getattr(motor, 'position'))
+        mot_start.append(getattr(motor, 'position')+start)
+        mot_end.append(getattr(motor, 'position')+end)
+     
+    mot_num_step = np.int_(num_steps)    
+#        
+#
+#    motor_out = []        
+#    if relative_move_flag:  
+#        for motor in motors:
+#            motor_out.append(motor_ini + out)
+
+    motor_x_ini = zps.sx.position    
+    motor_y_ini = zps.sy.position
+    motor_z_ini = zps.sz.position
+    motor_r_ini = zps.pi_r.position
+    if relative_move_flag: 
+        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+    else:
+        motor_x_out = out_x if out_x else motor_x_ini
+        motor_y_out = out_y if out_y else motor_y_ini
+        motor_z_out = out_z if out_z else motor_z_ini
+        motor_r_out = out_r if out_r else motor_r_ini
+    
+    
+    
+    print('hello1')
+    _md = {'detectors': [det.name for det in detectors],
+           'motors': [mot.name for mot in motors],
+           'num_bkg_images': 5,
+           'num_dark_images': 5,
+           'mot_start': starts,
+           'motor_end': ends,
+           'motor_num_step': mot_num_step,
+           'out_x': out_x,
+           'out_y': out_y,
+           'out_z': out_z,
+           'out_r': out_r,
+           'exposure_time': exposure_time,
+           'chunk_size': chunk_size,
+           'XEng': XEng.position,
+           'plan_args': {'mot_start': mot_start,
+                         'mot_end': mot_end,
+                         'mot_num_step': mot_num_step,
+                         'exposure_time': exposure_time, 
+                         'chunk_size': chunk_size,
+                         'out_x': out_x,
+                         'out_y': out_y,
+                         'out_z': out_z,
+                         'out_r': out_r,
+                         'note': note if note else 'None',
+                         'relative_move_flag': relative_move_flag,
+                         'rot_first_flag': rot_first_flag,
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
+                        },     
+           'plan_name': 'zps_motor_scan_with_Andor',
+           'hints': {},
+           'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
+           'note': note if note else 'None',
+           #'motor_pos':  wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    try:   dimensions = [(motors.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):  pass
+    else:   _md['hints'].setdefault('dimensions', dimensions)
+
+    @stage_decorator(list(detectors) + motors)
+    @run_decorator(md=_md)
+    def zps_motor_scan_inner():
+        # take dark image
+        print('take 5 dark image')
+        yield from _take_dark_image(detectors, motors, num_dark=5)
+
+        print('open shutter ...')
+        yield from _open_shutter(simu)
+
+        print('taking mosaic image ...')
+        if len(motors) == 1:
+            mot_pos = np.linspace(mot_start[0], mot_end[0], mot_num_step[0], endpoint=False)
+        elif len(motors) == 2:
+            mot_pos_coor1, mot_pos_coor2 = np.meshgrid(np.linspace(mot_start[0], mot_end[0], mot_num_step[0], endpoint=False),
+                                                       np.linspace(mot_start[1], mot_end[1], mot_num_step[1], endpoint=False))
+            mot_pos = np.array([mot_pos_coor1.flatten(), mot_pos_coor2.flatten()])                                                       
+        elif len(motors) == 3:
+            mot_pos_coor1, mot_pos_coor2, mot_pos_coor3 = np.meshgrid(np.linspace(mot_start[0], mot_end[0], mot_num_step[0], endpoint=False),
+                                                                      np.linspace(mot_start[1], mot_end[1], mot_num_step[1], endpoint=False),
+                                                                      np.linspace(mot_start[2], mot_end[2], mot_num_step[2], endpoint=False))   
+            mot_pos = np.array([mot_pos_coor1.flatten(), mot_pos_coor2.flatten(), mot_pos_coor3.flatten()])                                                                      
+        elif len(motors) == 4:
+            mot_pos_coor1, mot_pos_coor2, mot_pos_coor3, mot_pos_coor4 = np.meshgrid(np.linspace(mot_start[0], mot_end[0], mot_num_step[0], endpoint=False),
+                                                                                     np.linspace(mot_start[1], mot_end[1], mot_num_step[1], endpoint=False),
+                                                                                     np.linspace(mot_start[2], mot_end[2], mot_num_step[2], endpoint=False),
+                                                                                     np.linspace(mot_start[3], mot_end[3], mot_num_step[3], endpoint=False))  
+            mot_pos = np.array([mot_pos_coor1.flatten(), mot_pos_coor2.flatten(), mot_pos_coor3.flatten(), mot_pos_coor4.flatten()])    
+
+        for jj in range(mot_pos.shape[1]): 
+#            yield from mv(motors, mot_pos[:, jj])
+            for ii in range(len(motors)):
+                yield from mv(motors[ii], mot_pos[ii, jj])                                                                                  
+            yield from _take_image(detectors, motors, 1) 
+
+        print('moving sample out to take 5 background image')
+        yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motors, num_bkg=5, simu=simu,traditional_sequence_flag=rot_first_flag)    
+
+        # move sample in
+        yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, repeat=1,trans_first_flag=1-rot_first_flag)
+
+        print('closing shutter')
+        yield from _close_shutter(simu) 
+  
+    yield from zps_motor_scan_inner()
+    yield from mv(Andor.cam.image_mode, 1)
+    print('scan finished')
+    txt = get_scan_parameter()
+    insert_text(txt)
+    print(txt)    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

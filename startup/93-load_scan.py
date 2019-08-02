@@ -52,6 +52,12 @@ def export_single_scan(scan_id=-1, binning=4):
     elif scan_type == 'z_scan':
         print('exporting z_scan: #{}'.format(scan_id))
         export_z_scan(h)
+    elif scan_type == 'z_scan2':
+        print('exporting z_scan2: #{}'.format(scan_id))
+        export_z_scan2(h)
+    elif scan_type == 'z_scan3':
+        print('exporting z_scan3: #{}'.format(scan_id))
+        export_z_scan2(h)
     elif scan_type == 'test_scan':
         print('exporting test_scan: #{}'.format(scan_id))
         export_test_scan(h)    
@@ -292,6 +298,47 @@ def export_z_scan(h):
         hf.create_dataset('img', data = img_zscan)
         hf.create_dataset('img_norm', data=img_norm)
     del img, img_zscan, img_bkg, img_dark, img_norm
+
+
+
+def export_z_scan2(h):
+    scan_type = h.start['plan_name']
+    scan_id = h.start['scan_id']
+    uid = h.start['uid']
+    try:
+        x_eng = h.start['XEng']
+    except:
+        x_eng = h.start['x_ray_energy']
+    num = h.start['plan_args']['steps']
+    chunk_size = h.start['plan_args']['chunk_size']
+    note = h.start['plan_args']['note'] if h.start['plan_args']['note'] else 'None'
+    img = np.mean(np.array(list(h.data('Andor_image'))), axis=1)
+    img = np.squeeze(img)
+    img_dark = img[0]
+    l1 = np.arange(1, len(img), 2)
+    l2 = np.arange(2, len(img), 2)
+
+    img_zscan = img[l1]
+    img_bkg = img[l2]
+        
+    img_norm = (img_zscan - img_dark) / (img_bkg - img_dark)
+    img_norm[np.isnan(img_norm)] = 0
+    img_norm[np.isinf(img_norm)] = 0
+
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'
+    with h5py.File(fname, 'w') as hf:
+        hf.create_dataset('uid', data = uid)
+        hf.create_dataset('scan_id', data = scan_id)
+        hf.create_dataset('note', data = note)
+        hf.create_dataset('X_eng', data = x_eng)
+        hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
+        hf.create_dataset('img_dark', data = img_dark)
+        hf.create_dataset('img', data = img_zscan)
+        hf.create_dataset('img_norm', data=np.array(img_norm, dtype=np.float32))
+    del img, img_zscan, img_bkg, img_dark, img_norm
+
+
+
 
     
 def export_test_scan(h):

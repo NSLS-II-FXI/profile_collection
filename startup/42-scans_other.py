@@ -199,6 +199,187 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
     return uid
 
 
+def z_scan2(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, note='', md=None):
+    '''
+    scan the zone-plate to find best focus
+    use as:
+    z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, fn='/home/xf18id/Documents/tmp/z_scan.h5', note='', md=None)
+
+    Input:
+    ---------
+    start: float, relative starting position of zp_z
+
+    stop: float, relative stop position of zp_z
+
+    steps: int, number of steps between [start, stop]
+
+    out_x: float, relative amount to move sample out for zps.sx
+
+    out_y: float, relative amount to move sample out for zps.sy
+
+    chunk_size: int, number of images per each subscan (for Andor camera)
+
+    exposure_time: float, exposure time for each image
+
+    note: str, experiment notes 
+
+    '''
+
+    detectors=[Andor]
+    motor = [zps.sx, zps.sy, zps.sz, zps.sz, zp.z]    
+    zp_ini = zp.z.position # zp.z intial position
+    zp_start = zp_ini + start
+    zp_stop = zp_ini + stop
+#    detectors = [Andor]
+    y_ini = zps.sy.position # sample y position (initial)
+    y_out = y_ini + out_y # sample y position (out-position)
+    x_ini = zps.sx.position
+    x_out = x_ini + out_x
+    z_ini = zps.sz.position
+    z_out = z_ini
+    
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
+    yield from mv(Andor.cam.num_images, chunk_size)
+    yield from mv(Andor.cam.acquire_time, exposure_time)
+    Andor.cam.acquire_period.put(exposure_time)
+
+    _md = {'detectors': [det.name for det in detectors],
+           'motors': [mot.name for mot in motor],
+           'XEng': XEng.position,
+           'plan_args': {'start': start, 'stop': stop, 'steps': steps,
+                         'out_x': out_x, 'out_y': out_y, 'chunk_size':chunk_size,                            
+                         'exposure_time': exposure_time,
+                         'note': note if note else 'None'},
+           'plan_name': 'z_scan2',
+           'plan_pattern': 'linspace',
+           'plan_pattern_module': 'numpy',
+           'hints': {},
+           'operator': 'FXI',
+           #'motor_pos': wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    my_var = np.linspace(zp_start, zp_stop, steps)
+    try:   dimensions = [(motor.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):  pass
+    else:   _md['hints'].setdefault('dimensions', dimensions)
+
+    @stage_decorator(list(detectors) + motor)
+    @run_decorator(md=_md)
+    def z_inner_scan():
+
+        # take dark image
+        yield from _take_dark_image(detectors, motor)
+        yield from _open_shutter()
+        for z_pos in my_var:
+            yield from mv(zps.sx, x_ini, zps.sy, y_ini, zp.z, z_pos)
+            yield from bps.sleep(0.1)
+            yield from mv(zps.sx, x_ini, zps.sy, y_ini, zp.z, z_pos)
+            yield from bps.sleep(0.1)
+            yield from _take_image(detectors, motor=motor, num=1)
+            yield from _take_bkg_image(out_x=x_out, out_y=y_out, out_z=z_out, out_r=0, detectors=detectors, motor=motor)
+                    
+        # move back zone_plate and sample y 
+        yield from mv(zps.sx, x_ini, zps.sy, y_ini, zps.sz, z_ini, zp.z, zp_ini)
+        #yield from abs_set(shutter_open, 1, wait=True)
+    yield from z_inner_scan()
+
+    txt = get_scan_parameter()
+    insert_text(txt)
+    print(txt)
+ 
+
+def z_scan3(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, note='', md=None):
+    '''
+    scan the zone-plate to find best focus
+    use as:
+    z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, fn='/home/xf18id/Documents/tmp/z_scan.h5', note='', md=None)
+
+    Input:
+    ---------
+    start: float, relative starting position of zp_z
+
+    stop: float, relative stop position of zp_z
+
+    steps: int, number of steps between [start, stop]
+
+    out_x: float, relative amount to move sample out for zps.sx
+
+    out_y: float, relative amount to move sample out for zps.sy
+
+    chunk_size: int, number of images per each subscan (for Andor camera)
+
+    exposure_time: float, exposure time for each image
+
+    note: str, experiment notes 
+
+    '''
+
+    detectors=[Andor]
+    motor = [zps.sx, zps.sy, zps.sz, zps.sz, zp.z]    
+
+#    detectors = [Andor]
+    y_ini = zps.sy.position # sample y position (initial)
+    y_out = y_ini + out_y # sample y position (out-position)
+    x_ini = zps.sx.position
+    x_out = x_ini + out_x
+    z_ini = zps.sz.position
+    z_out = z_ini
+
+    z_start = z_ini + start
+    z_stop = z_ini + stop
+    
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
+    yield from mv(Andor.cam.num_images, chunk_size)
+    yield from mv(Andor.cam.acquire_time, exposure_time)
+    Andor.cam.acquire_period.put(exposure_time)
+
+    _md = {'detectors': [det.name for det in detectors],
+           'motors': [mot.name for mot in motor],
+           'XEng': XEng.position,
+           'plan_args': {'start': start, 'stop': stop, 'steps': steps,
+                         'out_x': out_x, 'out_y': out_y, 'chunk_size':chunk_size,                            
+                         'exposure_time': exposure_time,
+                         'note': note if note else 'None'},
+           'plan_name': 'z_scan3',
+           'plan_pattern': 'linspace',
+           'plan_pattern_module': 'numpy',
+           'hints': {},
+           'operator': 'FXI',
+           #'motor_pos': wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    
+    try:   dimensions = [(motor.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):  pass
+    else:   _md['hints'].setdefault('dimensions', dimensions)
+    
+    @stage_decorator(list(detectors) + motor)
+    @run_decorator(md=_md)
+    def z_inner_scan():
+        my_var = np.linspace(z_start, z_stop, steps)
+        # take dark image
+        yield from _take_dark_image(detectors, motor)
+        yield from _open_shutter()
+        for z_pos in my_var:
+            yield from mv(zps.sx, x_ini, zps.sy, y_ini, zps.sz, z_pos)
+            yield from bps.sleep(0.1)
+            yield from mv(zps.sx, x_ini, zps.sy, y_ini, zps.sz, z_pos)
+            yield from bps.sleep(0.1)
+            yield from _take_image(detectors, motor=motor, num=1)
+            yield from _take_bkg_image(out_x=x_out, out_y=y_out, out_z=z_out, out_r=0, detectors=detectors, motor=motor)
+                    
+        # move back zone_plate and sample y 
+        yield from mv(zps.sx, x_ini, zps.sy, y_ini, zps.sz, z_ini)
+        #yield from abs_set(shutter_open, 1, wait=True)
+    yield from z_inner_scan()
+
+    txt = get_scan_parameter()
+    insert_text(txt)
+    print(txt)
+
+
 #####################
 
 

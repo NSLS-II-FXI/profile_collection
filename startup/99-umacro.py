@@ -215,3 +215,42 @@ def temp():
         except:
             pass
 
+
+def multipos_tomo(exposure_time, x_list, y_list, z_list, out_x, out_y, out_z, out_r, rs, relative_rot_angle = 185, period=0.05, relative_move_flag=0, traditional_sequence_flag=1, repeat=1, sleep_time=0, note=''):
+    n = len(x_list)
+    txt = f'starting multiposition_flyscan: (repeating for {repeat} times)'
+    insert_text(txt)
+    for rep in range(repeat):
+        for i in range(n):
+            txt = f'\n################\nrepeat #{rep+1}:\nmoving to the {i+1} position: x={x_list[i]}, y={y_list[i]}, z={z_list[i]}'
+            print(txt)
+            insert_text(txt)
+            yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i])
+            yield from fly_scan(exposure_time=exposure_time, relative_rot_angle=relative_rot_angle, period=period, chunk_size=20, out_x=out_x, out_y=out_y, out_z=out_z,  out_r=out_r, rs=rs,
+ simu=False, relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag, note=note, md=None)
+        print(f'sleeping for {sleep_time:3.1f} s')
+        yield from bps.sleep(sleep_time)
+
+
+def create_lists(x0, y0, z0, dx, dy, dz, Nx, Ny, Nz):
+    Ntotal=Nx*Ny*Nz
+    x_list=np.zeros(Ntotal)
+    y_list=np.zeros(Ntotal)
+    z_list=np.zeros(Ntotal)
+
+    j = 0
+    for iz in range(Nz):
+        for ix in range(Nx):
+            for iy in range(Ny):
+                j = iy + ix*Ny + iz * Ny * Nx #!!!
+                y_list[j] = y0 + dy * iy
+                x_list[j] = x0 + dx * ix
+                z_list[j] = z0 + dz * iz
+
+    return x_list, y_list, z_list
+
+
+
+
+    
+

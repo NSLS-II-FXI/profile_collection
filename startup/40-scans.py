@@ -2,7 +2,7 @@ import uuid
 import sys
 import time
 from warnings import warn
-from bluesky.plan_stubs import mv, mvr
+from bluesky.plan_stubs import mv, mvr, abs_set
 from ophyd.sim import motor1 as fake_motor
 from ophyd.sim import motor2 as fake_x_motor
 import subprocess
@@ -99,10 +99,15 @@ def _open_shutter(simu=False):
 
 
 def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
-    yield from mv(Andor.cam.acquire, 0)
-    yield from mv(Andor.cam.image_mode, 0)
-    yield from mv(Andor.cam.num_images, chunk_size)
-    yield from mv(Andor.cam.acquire_time, exposure_time)
+#    yield from mv(Andor.cam.acquire, 0)
+#    yield from mv(Andor.cam.image_mode, 0)
+#    yield from mv(Andor.cam.num_images, chunk_size)
+#    yield from mv(Andor.cam.acquire_time, exposure_time)
+    
+    yield from abs_set(Andor.cam.acquire, 0, wait=True)
+    yield from abs_set(Andor.cam.image_mode, 0, wait=True)
+    yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
+    yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
     Andor.cam.acquire_period.put(period)
 
 
@@ -878,7 +883,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
-    offset_angle = -2.0 * rs
+    offset_angle = -1.0 * rs
     current_rot_angle = zps.pi_r.position
 
     target_rot_angle = current_rot_angle + relative_rot_angle
@@ -946,6 +951,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
         yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, trans_first_flag=traditional_sequence_flag)
 
     uid = yield from fly_inner_scan()
+    yield from mv(Andor.cam.image_mode, 1)
     print('scan finished')
     txt = get_scan_parameter(print_flag=0)
     insert_text(txt)
@@ -1504,6 +1510,7 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
         num = len(x_list) # num of position points
         print(f'\ntake {chunk_size} dark images...')
         yield from _take_dark_image(detectors, motor, num_dark=1, simu=False)
+        yield from bps.sleep(1)
 
         # start repeating xanes scan
         print(f'\nopening shutter, and start xanes scan: {chunk_size} images per each energy... ')
@@ -1828,17 +1835,58 @@ def xanes_3D(eng_list, exposure_time=0.05, relative_rot_angle=185, period=0.05, 
     export_pdf(1)
     
     
-def fly_scan_repeat(exposure_time=0.03, relative_rot_angle = 185, period=0.05, chunk_size=20, out_x=0, out_y=-100, out_z=0,  out_r=0, rs=6, note='', repeat=1, sleep_time=0, simu=False, relative_move_flag=1, traditional_sequence_flag=1, md=None):    
-    for i in range(repeat):
-        yield from fly_scan(exposure_time=exposure_time, relative_rot_angle = relative_rot_angle, period=period, chunk_size=chunk_size, 
-                 out_x=out_x, out_y=out_y, out_z=out_z,  out_r=out_r, rs=rs, note=note, simu=simu, 
-                 relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag, md=md)    
-        if i != repeat-1:         
-            yield from bps.sleep(sleep_time) 
-    export_pdf(1)    
+#def fly_scan_repeat(exposure_time=0.03, relative_rot_angle = 185, period=0.05, chunk_size=20, out_x=0, out_y=-100, out_z=0,  out_r=0, rs=6, note='', repeat=1, sleep_time=0, simu=False, relative_move_flag=1, traditional_sequence_flag=1, md=None):    
+#    for i in range(repeat):
+#        yield from fly_scan(exposure_time=exposure_time, relative_rot_angle = relative_rot_angle, period=period, chunk_size=chunk_size, 
+#                 out_x=out_x, out_y=out_y, out_z=out_z,  out_r=out_r, rs=rs, note=note, simu=simu, 
+#                 relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag, md=md)    
+#        if i != repeat-1:         
+#            yield from bps.sleep(sleep_time) 
+#    export_pdf(1)    
 
 
+def fly_scan_repeat(exposure_time=0.03, relative_rot_angle = 185, period=0.05, chunk_size=20, x_list=[], y_list=[], z_list=[], out_x=0, out_y=-100, out_z=0,  out_r=0, rs=6, note='', repeat=1, sleep_time=0, simu=False, relative_move_flag=1, traditional_sequence_flag=1, md=None):    
+    nx = len(x_list) 
+    ny = len(y_list)
+    nz = len(z_list)
+    if nx==0 & ny==0 & nz==0:
+        for i in range(repeat):
+            yield from fly_scan(exposure_time=exposure_time, relative_rot_angle = relative_rot_angle, period=period, chunk_size=chunk_size, 
+                     out_x=out_x, out_y=out_y, out_z=out_z,  out_r=out_r, rs=rs, note=note, simu=simu, 
+                     relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag, md=md)    
+            print(f'Scan at time point {i:3d} is finished; sleep for {sleep_time:3.1f} seconds now.') 
+            insert_text(f'Scan at time point {i:3d} is finished; sleep for {sleep_time:3.1f} seconds now.')
+            if i != repeat-1:         
+                yield from bps.sleep(sleep_time)
+        export_pdf(1)       
+    else:
+        if nx!=ny or nx!=nz or ny!=nz:
+            print('!!!!! Position lists are not equal in length. Please check your position list definition !!!!!') 
+        else:
+            for i in range(repeat):
+                for j in range(nx):
+                    yield from mv(zps.sx, x_list[j], zps.sy, y_list[j], zps.sz, z_list[j])
+                    yield from fly_scan(exposure_time=exposure_time, relative_rot_angle = relative_rot_angle, period=period, chunk_size=chunk_size, 
+                             out_x=out_x, out_y=out_y, out_z=out_z,  out_r=out_r, rs=rs, note=note, simu=simu, 
+                             relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag, md=md) 
+                insert_text(f'Scan at time point {i:3d} is finished; sleep for {sleep_time:3.1f} seconds now.')
+                print(f'Scan at time point {i:3d} is finished; sleep for {sleep_time:3.1f} seconds now.')         
+                if i != repeat-1:         
+                    yield from bps.sleep(sleep_time)
+            export_pdf(1)       
 
+
+def multi_pos_xanes_3D(eng_list, x_list, y_list, z_list, r_list, exposure_time=0.05, relative_rot_angle=185, period=0.05, out_x=0, out_y=0, out_z=0, out_r=0, rs=2, simu=False, relative_move_flag=1, traditional_sequence_flag=1, note='', sleep_time=0, repeat=1): 
+    n = len(x_list) 
+    for rep in range(repeat): 
+        for i in range(n): 
+            yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i]) 
+            txt = f'start xanes_3D at pos1: x={x_list[i]}, y={y_list[i]}, z={z_list[i]}\nrepeat:{rep}' 
+            insert_text(txt) 
+            print(f'{txt}\n##########################\n\n\n\n') 
+            yield from xanes_3D(eng_list, exposure_time, relative_rot_angle, period, out_x, out_y, out_z, out_r, rs, simu, relative_move_flag, traditional_sequence_flag, note) 
+        print(f'sleep for {sleep_time} sec\n\n\n\n') 
+        yield from bps.sleep(sleep_time) 
 
 
 
