@@ -14,6 +14,10 @@ class Lakeshore336Setpoint(PVPositioner):
     setpoint = Cpt(EpicsSignal, 'T-SP')
     done = Cpt(EpicsSignalRO, 'Sts:Ramp-Sts')
     ramp_enabled = Cpt(EpicsSignal, 'Enbl:Ramp-Sel')
+    ramp_rate = Cpt(EpicsSignal, 'Val:Ramp-SP')
+    p_gain = Cpt(EpicsSignal, 'Gain:P-RB')
+    i_gain = Cpt(EpicsSignal, 'Gain:I-RB')
+    d_gain = Cpt(EpicsSignal, 'Gain:D-RB')
     done_value = 0
 
 
@@ -21,6 +25,7 @@ class Lakeshore336Channel(Device):
     T = Cpt(EpicsSignalRO, 'T-I')
     V = Cpt(EpicsSignalRO, 'Val:Sens-I')
     status = Cpt(EpicsSignalRO, 'T-Sts')
+
 
 
 def _temp_fields(chans, **kwargs):
@@ -38,6 +43,14 @@ class Lakeshore336(Device):
     out2 = Cpt(Lakeshore336Setpoint, '-Out:2}')
     out3 = Cpt(Lakeshore336Setpoint, '-Out:3}')
     out4 = Cpt(Lakeshore336Setpoint, '-Out:4}')
+    ChanA = Cpt(Lakeshore336Channel, '-Chan:A}')
+    ChanB = Cpt(Lakeshore336Channel, '-Chan:B}')
+    ChanC = Cpt(Lakeshore336Channel, '-Chan:C}')
+    ChanD = Cpt(Lakeshore336Channel, '-Chan:D}')
 
 
 lakeshore336 = Lakeshore336('XF:18ID-ES{Env:01' , name='lakeshore336')
+
+motor_lakeshore = [lakeshore336.ChanC.T, lakeshore336.out3.setpoint, lakeshore336.out3.readback, lakeshore336.out3.p_gain, 
+                   lakeshore336.out3.i_gain, lakeshore336.out3.d_gain, lakeshore336.out3.ramp_rate, 
+                   lakeshore336.out3.ramp_enabled]

@@ -6,6 +6,18 @@
 #        export_single_scan(int(item), binning)  
 #        db.reg.clear_process_cache()
         
+
+def write_lakeshore_to_file(h, fname):
+    scan_id = h.start['scan_id']
+    for tmp in h.start.keys():
+        if 'T_' in tmp:
+            lakeshore_info = get_lakeshore_param(scan_id, print_flag=0, return_flag=1)           
+            with h5py.File(fname, 'a') as hf:
+                for key, value in lakeshore_info.items():
+                    hf.create_dataset(key, data=value)
+            break
+
+
 def export_scan(scan_id, scan_id_end=None, binning=4):
     '''
     e.g. load_scan([0001, 0002]) 
@@ -118,6 +130,10 @@ def export_tomo_scan(h):
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img_tomo', data = img_tomo)
         hf.create_dataset('angle', data = img_angle)
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
     del img
     del img_tomo
     del img_dark
@@ -186,8 +202,8 @@ def export_fly_scan(h):
     img_angle = mot_pos_interp[:pos2-chunk_size] # rotation angles
     img_tomo = imgs[:pos2-chunk_size]  # tomo images
     
-    fname = scan_type + '_id_' + str(scan_id) + '.h5'
-    
+    fname = scan_type + '_id_' + str(scan_id) + '.h5'  
+
     with h5py.File(fname, 'w') as hf:
         hf.create_dataset('note', data = note)
         hf.create_dataset('uid', data = uid)
@@ -204,6 +220,12 @@ def export_fly_scan(h):
         hf.create_dataset('y_ini', data = y_pos)
         hf.create_dataset('z_ini', data = z_pos)
         hf.create_dataset('r_ini', data = r_pos)
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
+    
     del img_tomo
     del img_dark
     del img_bkg
@@ -264,6 +286,12 @@ def export_xanes_scan(h):
         hf.create_dataset('img_bkg', data = np.array(img_bkg_avg, dtype=np.float32))
         hf.create_dataset('img_dark', data = np.array(img_dark_avg, dtype=np.float32))
         hf.create_dataset('img_xanes', data = np.array(img_xanes_norm, dtype=np.float32))
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
+
     del img_xanes, img_dark, img_bkg, img_xanes_avg, img_dark_avg
     del img_bkg_avg, imgs, img_xanes_norm
 
@@ -297,6 +325,12 @@ def export_z_scan(h):
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img', data = img_zscan)
         hf.create_dataset('img_norm', data=img_norm)
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
+
     del img, img_zscan, img_bkg, img_dark, img_norm
 
 
@@ -335,9 +369,13 @@ def export_z_scan2(h):
         hf.create_dataset('img_dark', data = img_dark)
         hf.create_dataset('img', data = img_zscan)
         hf.create_dataset('img_norm', data=np.array(img_norm, dtype=np.float32))
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
+
     del img, img_zscan, img_bkg, img_dark, img_norm
-
-
 
 
     
@@ -374,6 +412,12 @@ def export_test_scan(h):
         hf.create_dataset('img', data = np.array(img_test, dtype=np.float32))
         hf.create_dataset('img_norm', data=np.array(img_norm, dtype=np.float32))
 #    tifffile.imsave(fname_tif, img_norm)
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
+
     del img, img_test, img_bkg, img_dark, img_norm
 
 
@@ -391,6 +435,10 @@ def export_count_img(h):
         hf.create_dataset('img',data=img.astype(np.float32))
         hf.create_dataset('uid',data=uid)
         hf.create_dataset('scan_id',data=scan_id)
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
 
 
 def export_delay_scan(h):
@@ -417,6 +465,10 @@ def export_delay_scan(h):
             hf.create_dataset('stop', data = mot_stop)
             hf.create_dataset('steps', data = mot_steps)
             hf.create_dataset('motor', data = mot_name)
+        try:
+            write_lakeshore_to_file(h, fname)
+        except:
+            print('fails to write lakeshore info into {fname}')
     else:
         print('no image stored in this scan')
 
@@ -453,6 +505,10 @@ def export_multipos_count(h):
         hf.create_dataset('note', data = note)
         for i in range(num_of_position):
             hf.create_dataset(f'img_pos{i+1}', data=np.squeeze(img_group[i])) 
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
 
 
 def export_grid2D_rel(h):
@@ -547,7 +603,10 @@ def export_raster_2D(h, binning=4):
         hf.create_dataset('img', data = np.array(img, np.float32))
         hf.create_dataset('img_dark', data = np.array(img_dark_avg, np.float32))       
         hf.create_dataset('img_bkg', data = np.array(img_bkg_avg, np.float32)) 
-
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print('fails to write lakeshore info into {fname}')
 
 '''    
 def export_multipos_2D_xanes_scan2(h):
@@ -661,6 +720,10 @@ def export_multipos_2D_xanes_scan2(h):
                     hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
                     hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
                     hf.create_dataset('img_xanes', data = np.array(img_xanes[j], dtype=np.float32))
+                try:
+                    write_lakeshore_to_file(h, fname)
+                except:
+                    print('fails to write lakeshore info into {fname}')
         except:
             print(f'fails in export repeat# {repeat}')
     del img_xanes
@@ -718,6 +781,11 @@ def export_multipos_2D_xanes_scan3(h):
             hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
             hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
             hf.create_dataset('img_xanes', data = np.array(img_xanes[j], dtype=np.float32))
+
+        try:
+            write_lakeshore_to_file(h, fname)
+        except:
+            print('fails to write lakeshore info into {fname}')
     del img_xanes
     del img_bkg
     del img_dark    

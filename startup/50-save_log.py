@@ -7,7 +7,7 @@ import subprocess
 import threading
 from datetime import datetime
 
-BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt
+BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt + motor_lakeshore
 
 
 class Auto_Log_Save(object):

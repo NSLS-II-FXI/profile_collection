@@ -969,7 +969,7 @@ def get_scan_motor_pos(scan_id):
         try:
             mot_name = i.name
             if mot_name[:3] == 'pzt':
-                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 14.6f}       --->  {df[2][mot_name]: 12.6f}' )
+                print(f'{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} ' )
             else:
                 mot_parent_name = i.parent.name
                 offset_name = f'{mot_name}_user_offset'
@@ -979,7 +979,27 @@ def get_scan_motor_pos(scan_id):
                 print(f'{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} {i.motor_egu.value:>4s}  --->  {df[2][mot_name]: 14.6f} {i.motor_egu.value:>4s}      offset = {offset_val: 14.6f}    {offset_dir_val: 1d}') 
         except: 
             pass 
+    try:
+        for tmp in db[scan_id].start.keys():   # if 'T_enabled' has been assigned in md in scan()'
+            if 'T_' in tmp:
+                get_lakeshore_param(scan_id, print_flag=1)
+                break
+    except:
+        pass
+               
 
+
+def get_lakeshore_param(scan_id, print_flag=0, return_flag=0):
+    h = db[scan_id]
+    df = h.table('baseline').T 
+    mot_info = {}
+    for mot in motor_lakeshore:
+        mot_info[f'{mot.name}'] = df[1][mot.name]
+        if print_flag:
+            print(f'{mot.name:32s}::   {df[1][mot.name]:>4.1f}')
+    if return_flag:
+        return mot_info
+    
 
 
 
