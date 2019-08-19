@@ -821,7 +821,7 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
 
 
 
-def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=None, out_y=2000, out_z=None,  out_r=None, rs=1, note='', simu=False, relative_move_flag=1, traditional_sequence_flag=1, md=None):
+def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=None, out_y=2000, out_z=None,  out_r=None, rs=1, note='', simu=False, relative_move_flag=1, traditional_sequence_flag=1, filters=[], md=None):
     '''
     Inputs:
     -------
@@ -883,7 +883,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
-    offset_angle = -1.0 * rs
+    offset_angle = -1. * rs
     current_rot_angle = zps.pi_r.position
 
     target_rot_angle = current_rot_angle + relative_rot_angle
@@ -902,6 +902,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
                          'rs': rs,
                          'relative_move_flag': relative_move_flag,
                          'traditional_sequence_flag': traditional_sequence_flag,
+                         'filters': [filt.name for filt in filters] if filters else 'None', 
                          'note': note if note else 'None',
                          'zone_plate': ZONE_PLATE,
                         },
@@ -940,16 +941,21 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
         print ('\nshutter opened, taking tomo images...')
         yield from mv(zps.pi_r, current_rot_angle + offset_angle)
         status = yield from abs_set(zps.pi_r, target_rot_angle, wait=False)
-        yield from bps.sleep(2)
+        yield from bps.sleep(1)
         while not status.done:
             yield from trigger_and_read(list(detectors) + motor)
         # bkg images
         print ('\nTaking background images...')
         yield from _set_rotation_speed(rs=30)
+        for flt in filters:
+            yield from mv(flt, 1)
+            yield from mv(flt, 1)        
+        yield from bps.sleep(1)
         yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=1, simu=False, traditional_sequence_flag=traditional_sequence_flag)
         yield from _close_shutter(simu=simu)
         yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, trans_first_flag=traditional_sequence_flag)
-
+        for flt in filters:
+            yield from mv(flt, 0)
     uid = yield from fly_inner_scan()
     yield from mv(Andor.cam.image_mode, 1)
     print('scan finished')
