@@ -50,6 +50,8 @@ def send_email(subject,
 
 '''
 
+import numpy as np
+
 
 def user_scan(exposure_time, period, out_x, out_y, out_z, rs=1, out_r=0, xanes_flag=False, xanes_angle=0, note=''):
 # Ni
@@ -349,52 +351,245 @@ def multi_pos_3D_xanes(eng_list, x_list=[0], y_list=[0], z_list=[0], r_list=[0],
 
 
 
-def multi_pos_2D_and_3D_xanes(elements=['Ni'], sam_in_pos_list_2D=[[0, 0, 0, 0]], sam_out_pos_list_2D=[[0, 0, 0, 0]], sam_in_pos_list_3D=[[0, 0, 0, 0]], sam_out_pos_list_3D=[[0, 0, 0, 0]], exposure_time=[0.05], relative_rot_angle=182, rs=1, note=''):
+#def multi_pos_2D_and_3D_xanes(elements=['Ni'], sam_in_pos_list_2D=[[[0, 0, 0, 0],]], sam_out_pos_list_2D=[[[0, 0, 0, 0],]], sam_in_pos_list_3D=[[[0, 0, 0, 0],]], sam_out_pos_list_3D=[[[0, 0, 0, 0],]], exposure_time=[0.05], relative_rot_angle=182, relative_move_flag=False, rs=1, note=''):
+#    sam_in_pos_list_2D = np.asarray(sam_in_pos_list_2D)
+#    sam_out_pos_list_2D = np.asarray(sam_out_pos_list_2D)    
+#    sam_in_pos_list_3D = np.asarray(sam_in_pos_list_3D)
+#    sam_out_pos_list_3D = np.asarray(sam_out_pos_list_3D)
+#    exposure_time = np.asarray(exposure_time)
+#    if exposure_time.shape[0] == 1:
+#        exposure_time = np.ones(len(elements))*exposure_time[0]
+#    elif len(elements) != exposure_time.shape[0]:
+#        # to do in bs manner
+#        pass
+#
+#    eng_list = []
+#    for ii in elements:
+#        eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
+#
+#    for ii in range(sam_in_pos_list_2D.shape[0]):
+#        for jj in range(len(elements)):
+#            x_list = [sam_in_pos_list_2D[ii, :, 0]]
+#            y_list = [sam_in_pos_list_2D[ii, :, 1]]
+#            z_list = [sam_in_pos_list_2D[ii, :, 2]]
+#            r_list = [sam_in_pos_list_2D[ii, :, 3]]
+#            out_x = sam_out_pos_list_2D[ii, :, 0]
+#            out_y = sam_out_pos_list_2D[ii, :, 1]
+#            out_z = sam_out_pos_list_2D[ii, :, 2]
+#            out_r = sam_out_pos_list_2D[ii, :, 3]
+#            yield from multipos_2D_xanes_scan2(eng_list[jj], x_list, y_list, z_list, r_list, 
+#                                               out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, 
+#                                               exposure_time=exposure_time[jj], chunk_size=5,
+#                                               simu=False, relative_move_flag=relative_move_flag, note=note, md=None, sleep_time=0, repeat_num=1)
+#
+#    for ii in range(sam_in_pos_list_3D.shape[0]):
+#        for jj in range(len(elements)):
+#            x_list = [sam_in_pos_list_3D[ii, :, 0]]
+#            y_list = [sam_in_pos_list_3D[ii, :, 1]]
+#            z_list = [sam_in_pos_list_3D[ii, :, 2]]
+#            r_list = [sam_in_pos_list_3D[ii, :, 3]]
+#            out_x = sam_out_pos_list_3D[ii, :, 0]
+#            out_y = sam_out_pos_list_3D[ii, :, 1]
+#            out_z = sam_out_pos_list_3D[ii, :, 2]
+#            out_r = sam_out_pos_list_3D[ii, :, 3]
+#            yield from multi_pos_3D_xanes(eng_list[jj], x_list, y_list, z_list, r_list, 
+#                                          exposure_time=exposure_time[jj], relative_rot_angle=relative_rot_angle, rs=rs, 
+#                                          out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, note=note, simu=False, 
+#                                          relative_move_flag=relative_move_flag, traditional_sequence_flag=1, sleep_time=0, repeat=1) 
+
+
+#def multi_pos_2D_xanes_and_3D_tomo(elements=['Ni'], sam_in_pos_list_2D=[[[0, 0, 0, 0]]], sam_out_pos_list_2D=[[[0, 0, 0, 0]]], sam_in_pos_list_3D=[[[0, 0, 0, 0]]], sam_out_pos_list_3D=[[[0, 0, 0, 0]]],
+#                                  exposure_time_2D=[0.05], exposure_time_3D=[0.05], relative_rot_angle=182, rs=1, eng_3D=[8.4], note='', relative_move_flag=False):
+#    sam_in_pos_list_2D = np.asarray(sam_in_pos_list_2D)
+#    sam_out_pos_list_2D = np.asarray(sam_out_pos_list_2D)    
+#    sam_in_pos_list_3D = np.asarray(sam_in_pos_list_3D)
+#    sam_out_pos_list_3D = np.asarray(sam_out_pos_list_3D)
+#    exposure_time_2D = np.asarray(exposure_time_2D)
+#    exposure_time_3D = np.asarray(exposure_time_3D)
+#    if exposure_time_2D.shape[0] == 1:
+#        exposure_time_2D = np.ones(len(elements))*exposure_time_2D[0]
+#    elif len(elements) != exposure_time_2D.shape[0]:
+#        # to do in bs manner
+#        pass
+#    
+#    if exposure_time_3D.shape[0] == 1:
+#        exposure_time_3D = np.ones(len(elements))*exposure_time_3D[0]
+#    elif len(elements) != exposure_time_3D.shape[0]:
+#        # to do in bs manner
+#        pass
+#
+#    eng_list = []
+#    for ii in elements:
+#        eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
+#
+#    for ii in range(sam_in_pos_list_2D.shape[0]):
+#        for jj in range(len(elements)):
+#            x_list = sam_in_pos_list_2D[ii, :, 0]
+#            y_list = sam_in_pos_list_2D[ii, :, 1] 
+#            z_list = sam_in_pos_list_2D[ii, :, 2]
+#            r_list = sam_in_pos_list_2D[ii, :, 3]
+#            out_x = sam_out_pos_list_2D[ii, 0]
+#            out_y = sam_out_pos_list_2D[ii, 1]
+#            out_z = sam_out_pos_list_2D[ii, 2]
+#            out_r = sam_out_pos_list_2D[ii, 3]
+#            print(x_list)
+#            print(y_list)
+#            print(z_list)
+#            print(r_list)
+#            print(out_x)
+#            print(out_y)
+#            print(out_z)
+#            print(out_r)
+#            yield from multipos_2D_xanes_scan2(eng_list[jj], x_list, y_list, z_list, r_list, 
+#                                               out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, 
+#                                               exposure_time=exposure_time_2D[jj], chunk_size=5,
+#                                               simu=False, relative_move_flag=relative_move_flag, note=note, md=None, sleep_time=0, repeat_num=1)
+#
+#    for ii in range(sam_in_pos_list_3D.shape[0]):
+#        for jj in range(len(elements)):
+#            x_list = sam_in_pos_list_3D[ii, :, 0]
+#            y_list = sam_in_pos_list_3D[ii, :, 1]
+#            z_list = sam_in_pos_list_3D[ii, :, 2]
+#            r_list = sam_in_pos_list_3D[ii, :, 3]
+#            out_x = sam_out_pos_list_3D[ii, 0]
+#            out_y = sam_out_pos_list_3D[ii, 1]
+#            out_z = sam_out_pos_list_3D[ii, 2]
+#            out_r = sam_out_pos_list_3D[ii, 3]
+#            yield from multi_pos_xanes_3D(eng_3D, x_list, y_list, z_list, r_list, 
+#                                          exposure_time=exposure_time_3D[jj], relative_rot_angle=relative_rot_angle, rs=rs, 
+#                                          out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, note=note, simu=False, 
+#                                          relative_move_flag=relative_move_flag, traditional_sequence_flag=1, sleep_time=0, repeat=1) 
+
+def  multi_pos_2D_and_3D_xanes(elements=['Ni'], sam_in_pos_list_2D=[[[0, 0, 0, 0]]], sam_out_pos_list_2D=[[[0, 0, 0, 0]]], sam_in_pos_list_3D=[[[0, 0, 0, 0]]], sam_out_pos_list_3D=[[[0, 0, 0, 0]]],
+                                  exposure_time_2D=[0.05], exposure_time_3D=[0.05], relative_rot_angle=182, rs=1, note='', relative_move_flag=0, simu=False):
     sam_in_pos_list_2D = np.asarray(sam_in_pos_list_2D)
     sam_out_pos_list_2D = np.asarray(sam_out_pos_list_2D)    
     sam_in_pos_list_3D = np.asarray(sam_in_pos_list_3D)
     sam_out_pos_list_3D = np.asarray(sam_out_pos_list_3D)
-    exposure_time = np.asarray(exposure_time)
-    if exposure_time.shape[0] == 1:
-        exposure_time = np.ones(len(elements))*exposure_time[0]
-    elif len(elements) != exposure_time.shape[0]:
+    exposure_time_2D = np.asarray(exposure_time_2D)
+    exposure_time_3D = np.asarray(exposure_time_3D)
+    if exposure_time_2D.shape[0] == 1:
+        exposure_time_2D = np.ones(len(elements))*exposure_time_2D[0]
+    elif len(elements) != exposure_time_2D.shape[0]:
+        # to do in bs manner
+        pass
+    
+    if exposure_time_3D.shape[0] == 1:
+        exposure_time_3D = np.ones(len(elements))*exposure_time_3D[0]
+    elif len(elements) != exposure_time_3D.shape[0]:
         # to do in bs manner
         pass
 
     eng_list = []
     for ii in elements:
         eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
+    eng_list = np.array(eng_list)    
 
-    for ii in range(sam_in_pos_list_2D.shape[0]):
-        for jj in range(len(elements)):
-            x_list = [sam_in_pos_list_2D[ii, 0]]
-            y_list = [sam_in_pos_list_2D[ii, 1]]
-            z_list = [sam_in_pos_list_2D[ii, 2]]
-            r_list = [sam_in_pos_list_2D[ii, 3]]
-            out_x = sam_out_pos_list_2D[ii, 0]
-            out_y = sam_out_pos_list_2D[ii, 1]
-            out_z = sam_out_pos_list_2D[ii, 2]
-            out_r = sam_out_pos_list_2D[ii, 3]
-            yield from multipos_2D_xanes_scan2(eng_list[jj], x_list, y_list, z_list, r_list, 
-                                               out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, 
-                                               exposure_time=exposure_time[jj], chunk_size=5,
-                                               simu=False, relative_move_flag=True, note=note, md=None, sleep_time=0, repeat_num=1)
+    if  sam_in_pos_list_2D.size != 0:
+        for ii in range(sam_in_pos_list_2D.shape[0]):
+            for jj in range(len(elements)):
+                x_list = sam_in_pos_list_2D[ii, :, 0]
+                y_list = sam_in_pos_list_2D[ii, :, 1] 
+                z_list = sam_in_pos_list_2D[ii, :, 2]
+                r_list = sam_in_pos_list_2D[ii, :, 3]
+                out_x = sam_out_pos_list_2D[ii, :, 0]
+                out_y = sam_out_pos_list_2D[ii, :, 1]
+                out_z = sam_out_pos_list_2D[ii, :, 2]
+                out_r = sam_out_pos_list_2D[ii, :, 3]
+                print(x_list)
+                print(y_list)
+                print(z_list)
+                print(r_list)
+                print(out_x)
+                print(out_y)
+                print(out_z)
+                print(out_r)
+                yield from multipos_2D_xanes_scan2(eng_list[jj], x_list, y_list, z_list, r_list, 
+                                                   out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, 
+                                                   exposure_time=exposure_time_2D[jj], chunk_size=5,
+                                                   simu=simu, relative_move_flag=relative_move_flag, note=note, md=None, sleep_time=0, repeat_num=1)
 
-    for ii in range(sam_in_pos_list_3D.shape[0]):
-        for jj in range(len(elements)):
-            x_list = [sam_in_pos_list_3D[ii, 0]]
-            y_list = [sam_in_pos_list_3D[ii, 1]]
-            z_list = [sam_in_pos_list_3D[ii, 2]]
-            r_list = [sam_in_pos_list_3D[ii, 3]]
-            out_x = sam_out_pos_list_3D[ii, 0]
-            out_y = sam_out_pos_list_3D[ii, 1]
-            out_z = sam_out_pos_list_3D[ii, 2]
-            out_r = sam_out_pos_list_3D[ii, 3]
-            yield from multi_pos_3D_xanes(eng_list[jj], x_list, y_list, z_list, r_list, 
-                                          exposure_time=exposure_time[jj], relative_rot_angle=relative_rot_angle, rs=rs, 
-                                          out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, note=note, simu=False, 
-                                          relative_move_flag=1, traditional_sequence_flag=1, sleep_time=0, repeat=1) 
+    if sam_in_pos_list_3D.size != 0:    
+        for ii in range(sam_in_pos_list_3D.shape[0]):
+            for jj in range(len(elements)):
+                x_list = sam_in_pos_list_3D[ii, :, 0]
+                y_list = sam_in_pos_list_3D[ii, :, 1]
+                z_list = sam_in_pos_list_3D[ii, :, 2]
+                r_list = sam_in_pos_list_3D[ii, :, 3]
+                out_x = sam_out_pos_list_3D[ii, :, 0]
+                out_y = sam_out_pos_list_3D[ii, :, 1]
+                out_z = sam_out_pos_list_3D[ii, :, 2]
+                out_r = sam_out_pos_list_3D[ii, :, 3]
+                yield from multi_pos_xanes_3D(eng_list[jj], x_list, y_list, z_list, r_list, 
+                                              exposure_time=exposure_time_3D[jj], relative_rot_angle=relative_rot_angle, rs=rs, 
+                                              out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, note=note, simu=simu, 
+                                              relative_move_flag=relative_move_flag, traditional_sequence_flag=1, sleep_time=0, repeat=1) 
 
+def multi_pos_2D_xanes_and_3D_tomo(elements=['Ni'], sam_in_pos_list_2D=[[[0, 0, 0, 0]]], sam_out_pos_list_2D=[[[0, 0, 0, 0]]], sam_in_pos_list_3D=[[[0, 0, 0, 0]]], sam_out_pos_list_3D=[[[0, 0, 0, 0]]],
+                                  exposure_time_2D=[0.05], exposure_time_3D=[0.05], relative_rot_angle=182, rs=1, eng_3D=[10, 60], note='', relative_move_flag=0, simu=False):
+    sam_in_pos_list_2D = np.asarray(sam_in_pos_list_2D)
+    sam_out_pos_list_2D = np.asarray(sam_out_pos_list_2D)    
+    sam_in_pos_list_3D = np.asarray(sam_in_pos_list_3D)
+    sam_out_pos_list_3D = np.asarray(sam_out_pos_list_3D)
+    exposure_time_2D = np.asarray(exposure_time_2D)
+    exposure_time_3D = np.asarray(exposure_time_3D)
+    if exposure_time_2D.shape[0] == 1:
+        exposure_time_2D = np.ones(len(elements))*exposure_time_2D[0]
+    elif len(elements) != exposure_time_2D.shape[0]:
+        # to do in bs manner
+        pass
+    
+    if exposure_time_3D.shape[0] == 1:
+        exposure_time_3D = np.ones(len(elements))*exposure_time_3D[0]
+    elif len(elements) != exposure_time_3D.shape[0]:
+        # to do in bs manner
+        pass
+
+    eng_list = []
+    for ii in elements:
+        eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
+    eng_list = np.array(eng_list)    
+
+    if  sam_in_pos_list_2D.size != 0:
+        for ii in range(sam_in_pos_list_2D.shape[0]):
+            for jj in range(len(elements)):
+                x_list = sam_in_pos_list_2D[ii, :, 0]
+                y_list = sam_in_pos_list_2D[ii, :, 1] 
+                z_list = sam_in_pos_list_2D[ii, :, 2]
+                r_list = sam_in_pos_list_2D[ii, :, 3]
+                out_x = sam_out_pos_list_2D[ii, :, 0]
+                out_y = sam_out_pos_list_2D[ii, :, 1]
+                out_z = sam_out_pos_list_2D[ii, :, 2]
+                out_r = sam_out_pos_list_2D[ii, :, 3]
+                print(x_list)
+                print(y_list)
+                print(z_list)
+                print(r_list)
+                print(out_x)
+                print(out_y)
+                print(out_z)
+                print(out_r)
+                yield from multipos_2D_xanes_scan2(eng_list[jj], x_list, y_list, z_list, r_list, 
+                                                   out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, 
+                                                   exposure_time=exposure_time_2D[jj], chunk_size=5,
+                                                   simu=simu, relative_move_flag=relative_move_flag, note=note, md=None, sleep_time=0, repeat_num=1)
+
+    if sam_in_pos_list_3D.size != 0:    
+        for ii in range(sam_in_pos_list_3D.shape[0]):
+            for jj in range(len(elements)):
+                x_list = sam_in_pos_list_3D[ii, :, 0]
+                y_list = sam_in_pos_list_3D[ii, :, 1]
+                z_list = sam_in_pos_list_3D[ii, :, 2]
+                r_list = sam_in_pos_list_3D[ii, :, 3]
+                out_x = sam_out_pos_list_3D[ii, :, 0]
+                out_y = sam_out_pos_list_3D[ii, :, 1]
+                out_z = sam_out_pos_list_3D[ii, :, 2]
+                out_r = sam_out_pos_list_3D[ii, :, 3]
+                yield from multi_pos_xanes_3D(eng_list[jj, eng_3D], x_list, y_list, z_list, r_list, 
+                                              exposure_time=exposure_time_3D[jj], relative_rot_angle=relative_rot_angle, rs=rs, 
+                                              out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, note=note, simu=simu, 
+                                              relative_move_flag=relative_move_flag, traditional_sequence_flag=1, sleep_time=0, repeat=1) 
+                                          
 
 def zps_motor_scan_with_Andor(motors, starts, ends, num_steps, out_x=100, out_y=0, out_z=0, out_r=0, exposure_time=None, period=None, chunk_size=1, note='', relative_move_flag=1, simu=False, rot_first_flag=0, md=None):
     global ZONE_PLATE 
@@ -551,7 +746,38 @@ def zps_motor_scan_with_Andor(motors, starts, ends, num_steps, out_x=100, out_y=
     
     
     
+def diff_tomo(sam_in_pos_list=[[0, 0, 0, 0],], sam_out_pos_list=[[0, 0, 0, 0],],
+              exposure=[0.05], period=[0.05], relative_rot_angle=182, rs=1, eng=None, note='', 
+              filters=[], relative_move_flag=0, md=None): 
+    sam_in_pos_list = np.array(sam_in_pos_list)
+    sam_out_pos_list = np.array(sam_out_pos_list)          
+           
+    if eng is None:
+        print('Please specify two energies as a list for differential tomo scans.')                  
+        return
     
+    if len(exposure) != sam_in_pos_list.shape[0]:
+        exposure = np.ones(sam_in_pos_list.shape[0]) * exposure[0]
+        
+    if len(period) != sam_in_pos_list.shape[0]:
+        period = np.ones(sam_in_pos_list.shape[0]) * period[0]    
+        
+    for jj in range(sam_in_pos_list.shape[0]):
+        for ii in range(len(eng)):
+            yield from move_zp_ccd(eng[ii], move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0)
+            yield from mv(zps.sx, sam_in_pos_list[jj, 0], 
+                          zps.sy, sam_in_pos_list[jj, 1], 
+                          zps.sz, sam_in_pos_list[jj, 2])
+            yield from mv(zps.pi_r, sam_in_pos_list[jj, 3])
+            yield from fly_scan(exposure_time=exposure[jj], relative_rot_angle=relative_rot_angle, 
+                                period=period[jj], chunk_size=20, 
+                                out_x=sam_out_pos_list[jj, 0], out_y=sam_out_pos_list[jj, 1], 
+                                out_z=sam_out_pos_list[jj, 2], out_r=sam_out_pos_list[jj, 3], 
+                                rs=rs, note=note, simu=False, 
+                                relative_move_flag=relative_move_flag, traditional_sequence_flag=1, 
+                                filters=filters, md=md)
+        
+        
     
     
     

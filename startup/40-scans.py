@@ -525,6 +525,7 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
         yield from _close_shutter(simu=simu)
 
     yield from xanes_inner_scan()
+    #yield from mv(Andor.cam.image_mode, 1)
     txt1 = get_scan_parameter()
     eng_list = np.round(eng_list, 5)
     if len(eng_list) > 10:
@@ -819,6 +820,152 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
     insert_text(txt)
     print(txt) 
 
+# ### Backup before modification 09/23/2019
+#
+#def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=None, out_y=2000, out_z=None,  out_r=None, rs=1, note='', simu=False, relative_move_flag=1, traditional_sequence_flag=1, filters=[], md=None):
+#    '''
+#    Inputs:
+#    -------
+#    exposure_time: float, in unit of sec
+#
+#    relative_rot_angle: float, 
+#        total rotation angles start from current rotary stage (zps.pi_r) position
+#
+#    period: float, in unit of sec
+#        period of taking images, "period" should >= "exposure_time"
+#
+#    chunk_size: int, default setting is 20
+#        number of images taken for each trigger of Andor camera
+#
+#    out_x: float, default is 0
+#        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+#        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+#
+#    out_y: float, default is 0
+#        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+#        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+#
+#    out_z: float, default is 0
+#        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+#        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+#
+#    out_r: float, default is 0
+#        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+#        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+#
+#    rs: float, default is 1
+#        rotation speed in unit of deg/sec
+#
+#    note: string
+#        adding note to the scan
+#
+#    simu: Bool, default is False
+#        True: will simulate closing/open shutter without really closing/opening
+#        False: will really close/open shutter
+#    
+#    '''
+#    global ZONE_PLATE
+#    motor_x_ini = zps.sx.position
+#    motor_y_ini = zps.sy.position
+#    motor_z_ini = zps.sz.position
+#    motor_r_ini = zps.pi_r.position
+#
+#    if relative_move_flag: 
+#        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
+#        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
+#        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
+#        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+#    else:
+#        motor_x_out = out_x if out_x else motor_x_ini
+#        motor_y_out = out_y if out_y else motor_y_ini
+#        motor_z_out = out_z if out_z else motor_z_ini
+#        motor_r_out = out_r if out_r else motor_r_ini
+#
+#    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+#
+#    detectors = [Andor, ic3]
+#    offset_angle = -0.5 * rs
+#    current_rot_angle = zps.pi_r.position
+#
+#    target_rot_angle = current_rot_angle + relative_rot_angle
+#    _md = {'detectors': ['Andor'],
+#           'motors': [mot.name for mot in motor],
+#           'XEng': XEng.position,
+#           'ion_chamber': ic3.name,
+#           'plan_args': {'exposure_time': exposure_time,
+#                         'relative_rot_angle': relative_rot_angle,
+#                         'period': period,
+#                         'chunk_size': chunk_size,
+#                         'out_x': out_x,
+#                         'out_y': out_y,
+#                         'out_z': out_z,
+#                         'out_r': out_r,
+#                         'rs': rs,
+#                         'relative_move_flag': relative_move_flag,
+#                         'traditional_sequence_flag': traditional_sequence_flag,
+#                         'filters': [filt.name for filt in filters] if filters else 'None', 
+#                         'note': note if note else 'None',
+#                         'zone_plate': ZONE_PLATE,
+#                        },
+#           'plan_name': 'fly_scan',
+#           'num_bkg_images': chunk_size,
+#           'num_dark_images': chunk_size,
+#           'chunk_size': chunk_size,
+#           'plan_pattern': 'linspace',
+#           'plan_pattern_module': 'numpy',
+#           'hints': {},
+#           'operator': 'FXI',
+#           'note': note if note else 'None',
+#           'zone_plate': ZONE_PLATE,
+#           #'motor_pos': wh_pos(print_on_screen=0),
+#            }
+#    _md.update(md or {})
+#    try:  dimensions = [(zps.pi_r.hints['fields'], 'primary')]
+#    except (AttributeError, KeyError):    pass
+#    else: _md['hints'].setdefault('dimensions', dimensions)
+#
+#    yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=chunk_size)
+#    yield from _set_rotation_speed(rs=rs)
+#    print('set rotation speed: {} deg/sec'.format(rs))
+#
+#
+#    @stage_decorator(list(detectors) + motor)
+#    @bpp.monitor_during_decorator([zps.pi_r])
+#    @run_decorator(md=_md)
+#    def fly_inner_scan():
+#        #close shutter, dark images: numer=chunk_size (e.g.20)
+#        print('\nshutter closed, taking dark images...')
+#        yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+#
+#        #open shutter, tomo_images
+#        yield from _open_shutter(simu=simu)
+#        print ('\nshutter opened, taking tomo images...')
+#        yield from mv(zps.pi_r, current_rot_angle + offset_angle)
+#        status = yield from abs_set(zps.pi_r, target_rot_angle, wait=False)
+#        yield from bps.sleep(1)
+#        while not status.done:
+#            yield from trigger_and_read(list(detectors) + motor)
+#        # bkg images
+#        print ('\nTaking background images...')
+#        yield from _set_rotation_speed(rs=30)
+#        for flt in filters:
+#            yield from mv(flt, 1)
+#            yield from mv(flt, 1)        
+#        yield from bps.sleep(1)
+#        yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=1, simu=False, traditional_sequence_flag=traditional_sequence_flag)
+#        yield from _close_shutter(simu=simu)
+#        yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, trans_first_flag=traditional_sequence_flag)
+#        for flt in filters:
+#            yield from mv(flt, 0)
+#    uid = yield from fly_inner_scan()
+#    yield from mv(Andor.cam.image_mode, 1)
+#    print('scan finished')
+#    txt = get_scan_parameter(print_flag=0)
+#    insert_text(txt)
+#    print(txt)
+#    return uid
+
+
 
 
 def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=None, out_y=2000, out_z=None,  out_r=None, rs=1, note='', simu=False, relative_move_flag=1, traditional_sequence_flag=1, filters=[], md=None):
@@ -883,7 +1030,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
-    offset_angle = -1. * rs
+    offset_angle = -0.5 * rs
     current_rot_angle = zps.pi_r.position
 
     target_rot_angle = current_rot_angle + relative_rot_angle
@@ -947,6 +1094,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
         # bkg images
         print ('\nTaking background images...')
         yield from _set_rotation_speed(rs=30)
+#        yield from abs_set(zps.pi_r.velocity, rs)
         for flt in filters:
             yield from mv(flt, 1)
             yield from mv(flt, 1)        
@@ -963,9 +1111,7 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
     insert_text(txt)
     print(txt)
     return uid
-
-
-
+    
 
 def grid2D_rel(motor1, start1, stop1, num1, motor2, start2, stop2, num2, exposure_time=0.05, delay_time=0, note='', md=None):
     # detectors=[ic3, ic4]
@@ -1218,7 +1364,7 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
 
 
 
-def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2,  simu=False, relative_move_flag=1,rot_first_flag=1, note='',md=None):
+def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2,  simu=False, relative_move_flag=1,rot_first_flag=1, note='', scan_x_flag=1, md=None):
     '''
     scanning large area by moving samples at different 2D block position, defined by x_range and y_range, only work for Andor camera at full resolution (2160 x 2560)
     for example, set x_range=[-1,1] and y_range=[-2, 2] will totally take 3 x 5 = 15 images and stitch them together
@@ -1255,6 +1401,10 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
     pxl: float, pixel size, default is 17.2, in unit of nm/pix
 
     note: string
+
+    scan_x_flag: 1 or 0
+        if 1: scan x and y
+        if 0: scan z and y
 
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
@@ -1314,6 +1464,7 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
                          'relative_move_flag': relative_move_flag,
                          'rot_first_flag': rot_first_flag,
                          'note': note if note else 'None',
+                         'scan_x_flag': scan_x_flag,
                          'zone_plate': ZONE_PLATE,
                         },     
            'plan_name': 'raster_2D',
@@ -1340,8 +1491,12 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
 
         print('taking mosaic image ...')
         for ii in np.arange(x_range[0],x_range[1]+1):
-            yield from mv(zps.sx, motor_x_ini + ii*img_sizeX*pxl*1.0/1000)
-            yield from mv(zps.sx, motor_x_ini + ii*img_sizeX*pxl*1.0/1000)
+            if scan_x_flag == 1:
+                yield from mv(zps.sx, motor_x_ini + ii*img_sizeX*pxl*1.0/1000)
+                yield from mv(zps.sx, motor_x_ini + ii*img_sizeX*pxl*1.0/1000)
+            else:
+                yield from mv(zps.sz, motor_z_ini + ii*img_sizeX*pxl*1.0/1000)
+                yield from mv(zps.sz, motor_z_ini + ii*img_sizeX*pxl*1.0/1000)
             sleep_time = (x_range[-1] - x_range[0]) * img_sizeX*pxl*1.0/1000 / 600
             yield from bps.sleep(sleep_time)
             for jj in np.arange(y_range[0], y_range[1]+1):
@@ -1445,7 +1600,16 @@ def multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
 
     note: string
     
-    '''    
+    '''  
+    print(eng_list)
+    print(x_list)
+    print(y_list)
+    print(z_list)
+    print(r_list)
+    print(out_x)
+    print(out_y)
+    print(out_z)
+    print(out_r)
     global ZONE_PLATE
     txt = 'starting multipos_2D_xanes_scan2:'
     insert_text(txt)
@@ -1838,6 +2002,7 @@ def xanes_3D(eng_list, exposure_time=0.05, relative_rot_angle=185, period=0.05, 
         print(f'current energy: {eng}')
         yield from fly_scan(exposure_time, relative_rot_angle=relative_rot_angle, period=period, out_x=out_x, out_y=out_y, out_z=out_z, out_r= out_r, rs=rs, note=my_note, simu=simu, relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag)
         yield from bps.sleep(1)
+    yield from mv(Andor.cam.image_mode, 1)    
     export_pdf(1)
     
     

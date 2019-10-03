@@ -291,7 +291,7 @@ def z_scan2(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=
 
 def z_scan3(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, note='', md=None):
     '''
-    scan the zone-plate to find best focus
+    scan the sample z to find best focus
     use as:
     z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, fn='/home/xf18id/Documents/tmp/z_scan.h5', note='', md=None)
 

@@ -57,6 +57,9 @@ def record_calib_pos1():
     GLOBAL_MAG = np.round(CURRENT_MAG_1 * 100) / 100.
     print(f'calib_pos1 recored: current Magnification = {CURRENT_MAG_1}')
 
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x1-x2)**2 + (y1-y2)**2)
+
 
 def record_calib_pos2():
     global CALIBER_FLAG, CURRENT_MAG_1, CURRENT_MAG_2
@@ -501,7 +504,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
                         print ('move DetU_y: ({0:2.4f} um --> {1:2.4f} um)'.format(DetU_y_ini, DetU_y_target))
     
                 yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
-                yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)                
+#                yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)                
                 yield from mv(th2_feedback_enable, 0)
                 yield from mv(th2_feedback, th2_motor_target)
                 yield from mv(th2_feedback_enable, 1)
@@ -987,6 +990,14 @@ def get_scan_motor_pos(scan_id):
     except:
         pass
                
+
+def reprint_scan(scan_id):
+    from bluesky.callbacks.best_effort import BestEffortCallback
+    mybec = BestEffortCallback()
+    h = db[scan_id]
+    for name, doc in h.documents():
+        mybec(name, doc)
+
 
 
 def get_lakeshore_param(scan_id, print_flag=0, return_flag=0):
