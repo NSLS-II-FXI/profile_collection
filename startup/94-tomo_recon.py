@@ -43,7 +43,7 @@ def find_rot(fn, thresh=0.05):
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0, level=9):  
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0):  
     import tomopy 
     f = h5py.File(fn, 'r')
     tmp = np.array(f['img_tomo'][0])
@@ -66,7 +66,7 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
     s = prj_norm.shape  
     prj_norm = prj_norm.reshape(s[0], 1, s[1])
     prj_norm -= bkg_level
-    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=level, wname='db5', sigma=1, pad=True)
+    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
     pos = find_nearest(theta, theta[0]+np.pi)
     block_list = list(block_list) + list(np.arange(pos+1, len(theta)))
     if len(block_list):
@@ -108,7 +108,7 @@ def img_variance(img):
     return variance
 
 
-def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_level=0, txm_normed_flag=0, level=9):
+def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_level=0, txm_normed_flag=0, read_full_memory=0):
     '''
     reconstruct 3D tomography
     Inputs:
@@ -174,15 +174,19 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
     sli_total = np.arange(sli[0], sli[1])
     binning = binning if binning else 1
     bin_info = f'_bin_{binning}'
-    #rec = np.zeros([int(len(sli_total)/binning), int(s[1]/binning), int(s[1]/binning)], dtype=np.float32)
+  
     n_steps = int(len(sli_total) / sli_step)
     rot_cen = rot_cen * 1.0 / binning 
+
+    if read_full_memory:
+        sli_step = sli[1] - sli[0]
+        n_steps = 1
+
     try:
         rec = np.zeros([sli_step*n_steps // binning, s[1] // binning, s[1] // binning], dtype=np.float32)
     except:
         print('Cannot allocate memory')
-    for i in range(n_steps):
-       
+    for i in range(n_steps):       
         sli_sub = [i * sli_step + sli_total[0], min((i+1)*sli_step+sli_total[0],  sli_total[-1]+1)]
         if len(sli_sub) == 0:
             continue
@@ -192,7 +196,7 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
         img_tomo = bin_ndarray(img_tomo, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
         
         if txm_normed_flag:
-            prj = img_tomo
+            prj = img_tomo / (binning * binning)
         else:
             img_bkg = np.array(f['img_bkg_avg'][:, sli_sub[0]:sli_sub[1]])
             img_dark = np.array(f['img_dark_avg'][:, sli_sub[0]:sli_sub[1]])
@@ -206,7 +210,7 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
 
         prj_norm = prj_norm[allow_list]       
 
-        prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=level, wname='db5', sigma=1, pad=True)
+        prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
         prj_norm -= bkg_level
         rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
         rec[i*sli_step // binning : i*sli_step // binning + rec_sub.shape[0]] = rec_sub
