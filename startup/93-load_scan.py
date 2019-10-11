@@ -82,6 +82,9 @@ def export_single_scan(scan_id=-1, binning=4):
     elif scan_type == 'raster_2D':
         print('exporting raster_2D: #{}'.format(scan_id))
         export_raster_2D(h, binning)
+    elif scan_type == 'raster_2D_2':
+        print('exporting raster_2D_2: #{}'.format(scan_id))
+        export_raster_2D(h, binning)
     elif scan_type == 'count' or scan_type == 'delay_count':
         print('exporting count: #{}'.format(scan_id))
         export_count_img(h)
@@ -536,6 +539,91 @@ def export_grid2D_rel(h):
             img.save(fname_tif)
 
     
+def export_raster_2D_2(h, binning=4):
+    import tifffile
+    from skimage import io
+    uid = h.start['uid']
+    note = h.start['note']
+    scan_type = 'grid2D_rel'
+    scan_id = h.start['scan_id']   
+    scan_time = h.start['time'] 
+    num_dark = 5
+    num_bkg = h.start['plan_args']['num_bkg']
+    x_eng = h.start['XEng']
+    x_range = h.start['plan_args']['x_range']
+    y_range = h.start['plan_args']['y_range']
+    img_sizeX = h.start['plan_args']['img_sizeX']
+    img_sizeY = h.start['plan_args']['img_sizeY']
+    pix = h.start['plan_args']['pxl']
+
+    img_raw = np.squeeze(np.array(list(h.data('Andor_image'))))
+    img_dark_avg = np.mean(img_raw[:num_dark], axis=0, keepdims=True)
+    s = img_dark_avg.shape    
+    #img_bkg_avg = np.mean(img_raw[-num_bkg:], axis=0, keepdims = True)
+    #img = img_raw[num_dark:-num_bkg]
+
+    num_img = (x_range[1] - x_range[0] + 1) * (y_range[1] - y_range[0] + 1)
+    img = np.zeros([num_img, s[1], s[2]])
+    for i in range(num_img):
+        index = num_dark + i*num_bkg + i
+        img_bkg_avg = np.mean(img_raw[index+1: index+1+num_bkg], axis=0, keepdims=True)
+        img[i] = (img_raw[index] - img_dark_avg)/(img_bkg_avg-img_dark_avg)
+
+    s = img.shape
+
+    x_num = round((x_range[1]-x_range[0])+1)
+    y_num = round((y_range[1]-y_range[0])+1)
+    x_list = np.linspace(x_range[0], x_range[1], x_num) 
+    y_list = np.linspace(y_range[0], y_range[1], y_num) 
+    row_size = y_num * s[1]
+    col_size = x_num * s[2]
+    img_patch = np.zeros([1, row_size, col_size])
+    index = 0
+    pos_file_for_print = np.zeros([x_num*y_num, 4])
+    pos_file = ['cord_x\tcord_y\tx_pos_relative\ty_pos_relative\n']
+    index=0
+    for i in range(int(x_num)):
+        for j in range(int(y_num)):
+            img_patch[0, j*s[1]:(j+1)*s[1], i*s[2]:(i+1)*s[2]] = img[index]
+            pos_file_for_print[index] = [x_list[i], y_list[j], x_list[i]*pix*img_sizeX/1000, y_list[j]*pix*img_sizeY/1000]
+            pos_file.append( f'{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i]*pix*img_sizeX/1000:3.3f}\t\t{y_list[j]*pix*img_sizeY/1000:3.3f}\n') 
+            index = index + 1
+    s = img_patch.shape
+    img_patch_bin = bin_ndarray(img_patch, new_shape=(1, int(s[1]/binning), int(s[2]/binning)))
+    fout_h5 = f'raster2D_scan_{scan_id}_binning_{binning}.h5'
+    fout_tiff = f'raster2D_scan_{scan_id}_binning_{binning}.tiff' 
+    fout_txt = f'raster2D_scan_{scan_id}_cord.txt'     
+    print(f'{pos_file_for_print}')
+    io.imsave(fout_tiff,  np.array(img_patch_bin[0], dtype=np.float32))
+    with open(f'{fout_txt}','w+') as f:
+        f.writelines(pos_file)
+    #tifffile.imsave(fout_tiff, np.array(img_patch_bin, dtype=np.float32))
+    num_img = int(x_num) * int(y_num)
+    cwd=os.getcwd()
+    new_dir = f'{cwd}/raster_scan_{scan_id}'
+    if not os.path.exists(new_dir):
+        os.mkdir(new_dir) 
+    '''
+    s = img.shape
+    tmp = bin_ndarray(img, new_shape=(s[0], int(s[1]/binning), int(s[2]/binning)))
+    for i in range(num_img):  
+        fout = f'{new_dir}/img_{i:02d}_binning_{binning}.tiff'
+        print(f'saving {fout}')
+        tifffile.imsave(fout, np.array(tmp[i], dtype=np.float32))
+    '''
+    fn_h5_save = f'{new_dir}/img_{i:02d}_binning_{binning}.h5'
+    with h5py.File(fn_h5_save, 'w') as hf:
+        hf.create_dataset('img_patch', data = np.array(img_patch_bin, np.float32))    
+        hf.create_dataset('img', data = np.array(img, np.float32))
+        hf.create_dataset('img_dark', data = np.array(img_dark_avg, np.float32))       
+        hf.create_dataset('img_bkg', data = np.array(img_bkg_avg, np.float32)) 
+    try:
+        write_lakeshore_to_file(h, fn_h5_save)
+    except:
+        print(f'fails to write lakeshore info into {fn_h5_save}')
+
+
+
 def export_raster_2D(h, binning=4):
     import tifffile
     uid = h.start['uid']
@@ -604,9 +692,11 @@ def export_raster_2D(h, binning=4):
         hf.create_dataset('img_dark', data = np.array(img_dark_avg, np.float32))       
         hf.create_dataset('img_bkg', data = np.array(img_bkg_avg, np.float32)) 
     try:
-        write_lakeshore_to_file(h, fname)
+        write_lakeshore_to_file(h, fn_h5_save)
     except:
-        print('fails to write lakeshore info into {fname}')
+        print(f'fails to write lakeshore info into {fn_h5_save}')
+
+
 
 '''    
 def export_multipos_2D_xanes_scan2(h):

@@ -43,29 +43,30 @@ def find_rot(fn, thresh=0.05):
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0):  
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0, level=9):  
     import tomopy 
     f = h5py.File(fn, 'r')
-    tmp = np.array(f['img_bkg_avg'])
-    s = tmp.shape
+    tmp = np.array(f['img_tomo'][0])
+    s = [1, tmp.shape[0], tmp.shape[1]]
     if sli == 0: sli = int(s[1]/2)
     img_tomo = np.array(f['img_tomo'][:, sli, :])
-    img_bkg = np.array(f['img_bkg_avg'][:, sli, :])
-    img_dark = np.array(f['img_dark_avg'][:, sli, :])
     theta = np.array(f['angle']) / 180.0 * np.pi
-    f.close()
+    
     if txm_normed_flag:
-        prj_norm = img_norm
+        prj = img_tomo
     else:
+        img_bkg = np.array(f['img_bkg_avg'][:, sli, :])
+        img_dark = np.array(f['img_dark_avg'][:, sli, :])
         prj = (img_tomo - img_dark) / (img_bkg - img_dark)
-        prj_norm = -np.log(prj)
+    f.close()
+    prj_norm = -np.log(prj)
     prj_norm[np.isnan(prj_norm)] = 0
     prj_norm[np.isinf(prj_norm)] = 0
     prj_norm[prj_norm < 0] = 0    
     s = prj_norm.shape  
     prj_norm = prj_norm.reshape(s[0], 1, s[1])
     prj_norm -= bkg_level
-    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
+    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=level, wname='db5', sigma=1, pad=True)
     pos = find_nearest(theta, theta[0]+np.pi)
     block_list = list(block_list) + list(np.arange(pos+1, len(theta)))
     if len(block_list):
@@ -107,7 +108,7 @@ def img_variance(img):
     return variance
 
 
-def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_level=0, txm_normed_flag=0):
+def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_level=0, txm_normed_flag=0, level=9):
     '''
     reconstruct 3D tomography
     Inputs:
@@ -130,8 +131,8 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
     
     from PIL import Image
     f = h5py.File(fn, 'r')
-    tmp = np.array(f['img_bkg_avg'])
-    s = tmp.shape
+    tmp = np.array(f['img_tomo'][0])
+    s = [1, tmp.shape[0], tmp.shape[1]]
     slice_info = ''
     bin_info = ''
     col_info = ''
@@ -191,22 +192,22 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
         img_tomo = bin_ndarray(img_tomo, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
         
         if txm_normed_flag:
-            prj_norm = img_tomo
+            prj = img_tomo
         else:
             img_bkg = np.array(f['img_bkg_avg'][:, sli_sub[0]:sli_sub[1]])
             img_dark = np.array(f['img_dark_avg'][:, sli_sub[0]:sli_sub[1]])
             img_bkg = bin_ndarray(img_bkg, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
             img_dark = bin_ndarray(img_dark, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
             prj = (img_tomo - img_dark) / (img_bkg - img_dark)
-            prj_norm = -np.log(prj)
+        prj_norm = -np.log(prj)
         prj_norm[np.isnan(prj_norm)] = 0
         prj_norm[np.isinf(prj_norm)] = 0
         prj_norm[prj_norm < 0] = 0   
 
         prj_norm = prj_norm[allow_list]       
 
-        prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
-	prj_norm -= bkg_level
+        prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=level, wname='db5', sigma=1, pad=True)
+        prj_norm -= bkg_level
         rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
         rec[i*sli_step // binning : i*sli_step // binning + rec_sub.shape[0]] = rec_sub
 

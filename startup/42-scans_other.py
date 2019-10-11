@@ -141,7 +141,7 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    Andor.cam.acquire_period.put(exposure_time)
+    Andor.cam.acquire_period.put(np.max([exposure_time, 0.05]))
 
     _md = {'detectors': [det.name for det in detectors],
            'motors': [motor.name],
@@ -188,7 +188,9 @@ def z_scan(start=-0.03, stop=0.03, steps=5, out_x=-100, out_y=-100, chunk_size=1
         yield from mv(zps.sx, x_ini)
         yield from mv(zps.sy, y_ini)
         yield from mv(zp.z, z_ini)
-        #yield from abs_set(shutter_open, 1, wait=True)
+        
+        yield from abs_set(shutter_open, 1, wait=True)
+        yield from mv(Andor.cam.image_mode, 1)
     uid = yield from inner_scan()
 
     txt = get_scan_parameter()

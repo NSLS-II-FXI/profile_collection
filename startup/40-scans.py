@@ -1521,6 +1521,165 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
 
 
 
+def raster_2D_scan2(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2,  num_bkg=1, simu=False, relative_move_flag=1,rot_first_flag=1, note='', scan_x_flag=1, md=None):
+    '''
+    scanning large area by moving samples at different 2D block position, defined by x_range and y_range, only work for Andor camera at full resolution (2160 x 2560)
+    for example, set x_range=[-1,1] and y_range=[-2, 2] will totally take 3 x 5 = 15 images and stitch them together
+
+    Different from raster_2D_scan that this scan will take backgound image for every movement
+
+    Inputs:
+    -------
+
+    x_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size 
+
+    y_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size
+
+    exposure_time: float
+
+    out_x: float, default is 0
+        relative movement of sample in "x" direction using zps.sx to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_y: float, default is 0
+        relative movement of sample in "y" direction using zps.sy to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_z: float, default is 0
+        relative movement of sample in "z" direction using zps.sz to move out sample (in unit of um)
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+
+    out_r: float, default is 0
+        relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
+        NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
+       
+    img_sizeX: int, default is 2560, it is the pixel number for Andor camera horizontal
+
+    img_sizeY: int, default is 2160, it is the pixel number for Andor camera vertical
+
+    pxl: float, pixel size, default is 17.2, in unit of nm/pix
+
+    note: string
+
+    scan_x_flag: 1 or 0
+        if 1: scan x and y
+        if 0: scan z and y
+
+    simu: Bool, default is False
+        True: will simulate closing/open shutter without really closing/opening
+        False: will really close/open shutter
+              
+    '''
+    global ZONE_PLATE
+    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    detectors = [Andor, ic3]
+    yield from _set_andor_param(exposure_time=exposure_time, period=exposure_time, chunk_size=1)
+
+    motor_x_ini = zps.sx.position    
+    motor_y_ini = zps.sy.position
+    motor_z_ini = zps.sz.position
+    motor_r_ini = zps.pi_r.position
+
+    if relative_move_flag: 
+        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+    else:
+        motor_x_out = out_x if out_x else motor_x_ini
+        motor_y_out = out_y if out_y else motor_y_ini
+        motor_z_out = out_z if out_z else motor_z_ini
+        motor_r_out = out_r if out_r else motor_r_ini
+
+
+    img_sizeX = np.int(img_sizeX)
+    img_sizeY = np.int(img_sizeY)
+    x_range = np.int_(x_range)
+    y_range = np.int_(y_range)
+    
+    print('hello1')
+    _md = {'detectors': [det.name for det in detectors],
+           'motors': [mot.name for mot in motor],
+           'num_bkg_images': 5,
+           'num_dark_images': 5,
+           'x_range': x_range,
+           'y_range': y_range,
+           'out_x': out_x,
+           'out_y': out_y,
+           'out_z': out_z,
+           'exposure_time': exposure_time,
+           'XEng': XEng.position,
+           'plan_args': {'x_range': x_range,
+                         'y_range': y_range,
+                         'exposure_time': exposure_time,                         
+                         'out_x': out_x,
+                         'out_y': out_y,
+                         'out_z': out_z,
+                         'out_r': out_r,
+                         'img_sizeX': img_sizeX,
+                         'img_sizeY': img_sizeY,
+                         'pxl': pxl,
+                         'num_bkg': num_bkg,
+                         'note': note if note else 'None',
+                         'relative_move_flag': relative_move_flag,
+                         'rot_first_flag': rot_first_flag,
+                         'note': note if note else 'None',
+                         'scan_x_flag': scan_x_flag,
+                         'zone_plate': ZONE_PLATE,
+                        },     
+           'plan_name': 'raster_2D_2',
+           'hints': {},
+           'operator': 'FXI',
+           'zone_plate': ZONE_PLATE,
+           'note': note if note else 'None',
+           #'motor_pos':  wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    try:   dimensions = [(motor.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):  pass
+    else:   _md['hints'].setdefault('dimensions', dimensions)
+
+    @stage_decorator(list(detectors) + motor)
+    @run_decorator(md=_md)
+    def raster_2D_inner():
+        # take dark image
+        print('take 5 dark image')
+        yield from _take_dark_image(detectors, motor, num_dark=5, simu=simu)
+
+        print('open shutter ...')
+        yield from _open_shutter(simu)
+
+        print('taking mosaic image ...')
+        for ii in np.arange(x_range[0],x_range[1]+1):
+
+            for jj in np.arange(y_range[0], y_range[1]+1):
+                if scan_x_flag == 1:
+                    yield from mv(zps.sx, motor_x_ini + ii*img_sizeX*pxl*1.0/1000)
+                    yield from mv(zps.sx, motor_x_ini + ii*img_sizeX*pxl*1.0/1000)
+                else:
+                    yield from mv(zps.sz, motor_z_ini + ii*img_sizeX*pxl*1.0/1000)
+                    yield from mv(zps.sz, motor_z_ini + ii*img_sizeX*pxl*1.0/1000)
+                yield from mv(zps.sy, motor_y_ini + jj*img_sizeY*pxl*1.0/1000)
+                yield from _take_image(detectors, motor, 1)
+#                yield from trigger_and_read(list(detectors) + motor)
+                yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=num_bkg, simu=simu,traditional_sequence_flag=rot_first_flag)
+
+        #print('moving sample out to take 5 background image')
+        #yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=5, simu=simu,traditional_sequence_flag=rot_first_flag)
+        
+        # move sample in
+        yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, repeat=1,trans_first_flag=1-rot_first_flag)
+
+        print('closing shutter')
+        yield from _close_shutter(simu)
+    
+    yield from raster_2D_inner()
+    txt = get_scan_parameter()
+    insert_text(txt)
+    print(txt)
+
+
+
 
 def multipos_2D_xanes_scan(eng_list, x_list, y_list, z_list, r_list, out_x, out_y, out_z, out_r, chunk_size=5, exposure_time=0.1, repeat_num=1, sleep_time=0, relative_move_flag=1, note=''):
     num = len(x_list)
