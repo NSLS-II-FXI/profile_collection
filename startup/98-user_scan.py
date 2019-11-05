@@ -781,8 +781,58 @@ def diff_tomo(sam_in_pos_list=[[0, 0, 0, 0],], sam_out_pos_list=[[0, 0, 0, 0],],
     
     
     
-    
-    
+
+def damon_scan():
+
+    for n in range(iters):
+        '''
+        yield from move_zp_ccd(6.5)
+        for i in range(4):
+            yield from mv(filter2, 1)
+            yield from mv(filter4, 1)
+        yield from xanes_scan2() # for Mn
+
+        
+        yield from move_zp_ccd(9)
+        for i in range(4):
+            yield from mv(filter2, 1)
+            yield from mv(filter4, 1)
+        yield from xanes_scan2() # for Cu
+        '''
+
+        yield from move_zp_ccd(6.5)
+        for i in range(4):
+            yield from mv(filter2, 1)
+            yield from mv(filter4, 1)
+        yield from multipos_xanes_scan2([Mn_eng_list[0], Mn_eng_list[40]], exporesure....)
+        
+        yield from move_zp_ccd(9)
+        for i in range(4):
+            yield from mv(filter2, 1)
+            yield from mv(filter4, 1)
+        yield from xanes_scan2([Cu_eng_list[0], Mn_eng_list[40]], exporesure....)
+
+
+        yield from bps.sleep(10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     
     

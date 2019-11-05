@@ -43,30 +43,57 @@ def find_rot(fn, thresh=0.05):
     return rot_cen
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0):  
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0, denoise_flag=0):  
     import tomopy 
     f = h5py.File(fn, 'r')
     tmp = np.array(f['img_tomo'][0])
     s = [1, tmp.shape[0], tmp.shape[1]]
+
+    if denoise_flag:
+        import skimage.restoration as skr
+        addition_slice = 100
+        psf = 2
+        psf = np.ones([psf, psf])/(psf**2)
+        reg = None
+        balance = 0.3
+        is_real=True
+        clip = True
+    else:
+        addition_slice = 0
+
+
     if sli == 0: sli = int(s[1]/2)
-    img_tomo = np.array(f['img_tomo'][:, sli, :])
+    sli_exp = [np.max([0, sli-addition_slice//2]), np.min([sli+addition_slice//2+1, s[1]])]
+
     theta = np.array(f['angle']) / 180.0 * np.pi
+    
+    img_tomo = np.array(f['img_tomo'][:, sli_exp[0]:sli_exp[1], :])     
     
     if txm_normed_flag:
         prj = img_tomo
     else:
-        img_bkg = np.array(f['img_bkg_avg'][:, sli, :])
-        img_dark = np.array(f['img_dark_avg'][:, sli, :])
+        img_bkg = np.array(f['img_bkg_avg'][:, sli_exp[0]:sli_exp[1], :])
+        img_dark = np.array(f['img_dark_avg'][:, sli_exp[0]:sli_exp[1], :])
         prj = (img_tomo - img_dark) / (img_bkg - img_dark)
     f.close()
     prj_norm = -np.log(prj)
     prj_norm[np.isnan(prj_norm)] = 0
     prj_norm[np.isinf(prj_norm)] = 0
     prj_norm[prj_norm < 0] = 0    
-    s = prj_norm.shape  
-    prj_norm = prj_norm.reshape(s[0], 1, s[1])
+
     prj_norm -= bkg_level
+
     prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
+    if denoise_flag: # denoise using wiener filter
+        ss = prj_norm.shape
+        for i in range(ss[0]):
+           prj_norm[i] = skr.wiener(prj_norm[i], psf=psf, reg=reg, balance=balance, is_real=is_real, clip=clip)
+    
+    s = prj_norm.shape  
+    if len(s) == 2:
+        prj_norm = prj_norm.reshape(s[0], 1, s[1])
+        s = prj_norm.shape    
+
     pos = find_nearest(theta, theta[0]+np.pi)
     block_list = list(block_list) + list(np.arange(pos+1, len(theta)))
     if len(block_list):
@@ -74,30 +101,29 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
         prj_norm = prj_norm[allow_list]
         theta = theta[allow_list]
     if start==None or stop==None or steps==None:
-        start = int(s[1]/2-50)
-        stop = int(s[1]/2+50)
+        start = int(s[2]/2-50)
+        stop = int(s[2]/2+50)
         steps = 26
     cen = np.linspace(start, stop, steps)          
-    img = np.zeros([len(cen), s[1], s[1]])
+    img = np.zeros([len(cen), s[2], s[2]])
     for i in range(len(cen)):
         if print_flag:
             print('{}: rotcen {}'.format(i+1, cen[i]))
-        img[i] = tomopy.recon(prj_norm, theta, center=cen[i], algorithm='gridrec')    
+        img[i] = tomopy.recon(prj_norm[:, addition_slice:addition_slice+1], theta, center=cen[i], algorithm='gridrec')    
     fout = 'center_test.h5'
     with h5py.File(fout, 'w') as hf:
         hf.create_dataset('img', data=img)
         hf.create_dataset('rot_cen', data=cen)
-    img = tomopy.circ_mask(img, axis=0, ratio=0.6)
+    img = tomopy.circ_mask(img, axis=0, ratio=0.8)
     tracker = image_scrubber(img)
     if return_flag:
         return img, cen
-
 
 def img_variance(img):
     import tomopy
     s = img.shape
     variance = np.zeros(s[0])
-    img = tomopy.circ_mask(img, axis=0, ratio=0.6)
+    img = tomopy.circ_mask(img, axis=0, ratio=0.8)
     for i in range(s[0]):
         img[i] = medfilt2d(img[i], 5)
         img_ = img[i].flatten()
@@ -108,7 +134,7 @@ def img_variance(img):
     return variance
 
 
-def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_level=0, txm_normed_flag=0, read_full_memory=0):
+def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_level=0, txm_normed_flag=0, read_full_memory=0, denoise_flag=0, fw_level=9):
     '''
     reconstruct 3D tomography
     Inputs:
@@ -126,7 +152,10 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
         if 0: keep negative pixel value
     block_list: list
         a list of index for the projections that will not be considered in reconstruction
-        
+    denoise_flag: int
+        0: no denoising on projection image
+        1: wiener denoising
+        2: gaussian denoising   
     '''
     
     from PIL import Image
@@ -136,16 +165,19 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
     slice_info = ''
     bin_info = ''
     col_info = ''
-
+    sli_step = 40
     if len(sli) == 0:
         sli = [0, s[1]]
+        sli[1] = int((sli[1] - sli[0]) // sli_step * sli_step)
     elif len(sli) == 1 and sli[0] >=0 and sli[0] <= s[1]:
         sli = [sli[0], sli[0]+1]
         slice_info = '_slice_{}'.format(sli[0])
     elif len(sli) == 2 and sli[0] >=0 and sli[1] <= s[1]:
+        sli[1] = int((sli[1] - sli[0]) // sli_step * sli_step) + sli[0]
         slice_info = '_slice_{}_{}'.format(sli[0], sli[1])
     else:
-        print('non valid slice id, will take reconstruction for the whole object')    
+        print('non valid slice id, will take reconstruction for the whole object')  
+          
     '''
     if len(col) == 0:
         col = [0, s[2]]
@@ -169,8 +201,9 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
     theta = theta[allow_list]
     tmp = np.squeeze(np.array(f['img_tomo'][0]))
     s = tmp.shape
+    f.close()
+
     
-    sli_step = 40
     sli_total = np.arange(sli[0], sli[1])
     binning = binning if binning else 1
     bin_info = f'_bin_{binning}'
@@ -182,40 +215,43 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
         sli_step = sli[1] - sli[0]
         n_steps = 1
 
+    # optional
+    if denoise_flag:
+        add_slice = min(sli_step // 2, 20)
+        wiener_param = {}
+        psf = 2
+        wiener_param['psf'] = np.ones([psf, psf])/(psf**2)
+        wiener_param['reg'] = None
+        wiener_param['balance'] = 0.3
+        wiener_param['is_real']=True
+        wiener_param['clip'] = True
+    else:
+        add_slice = 0
+        wiener_param = []
+
     try:
         rec = np.zeros([sli_step*n_steps // binning, s[1] // binning, s[1] // binning], dtype=np.float32)
     except:
         print('Cannot allocate memory')
-    for i in range(n_steps):       
-        sli_sub = [i * sli_step + sli_total[0], min((i+1)*sli_step+sli_total[0],  sli_total[-1]+1)]
-        if len(sli_sub) == 0:
-            continue
-        print(f'recon {i+1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ')
-        img_tomo = np.array(f['img_tomo'][:, sli_sub[0]:sli_sub[1], :])
-        s = img_tomo.shape
-        img_tomo = bin_ndarray(img_tomo, (s[0], int(s[1]/binning), int(s[2]/binning)), 'sum')
-        
-        if txm_normed_flag:
-            prj = img_tomo / (binning * binning)
+
+
+    for i in range(n_steps):    
+        if i == 0:
+            sli_sub = [sli_total[0], sli_total[0]+sli_step] 
+            current_sli = sli_sub
+        elif i == n_steps-1:
+            sli_sub = [i*sli_step+sli_total[0], len(sli_total)+sli[0]]
+            current_sli = sli_sub
         else:
-            img_bkg = np.array(f['img_bkg_avg'][:, sli_sub[0]:sli_sub[1]])
-            img_dark = np.array(f['img_dark_avg'][:, sli_sub[0]:sli_sub[1]])
-            img_bkg = bin_ndarray(img_bkg, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
-            img_dark = bin_ndarray(img_dark, (1, int(s[1]/binning), int(s[2]/binning)), 'sum')
-            prj = (img_tomo - img_dark) / (img_bkg - img_dark)
-        prj_norm = -np.log(prj)
-        prj_norm[np.isnan(prj_norm)] = 0
-        prj_norm[np.isinf(prj_norm)] = 0
-        prj_norm[prj_norm < 0] = 0   
-
-        prj_norm = prj_norm[allow_list]       
-
-        prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
-        prj_norm -= bkg_level
+            sli_sub = [i*sli_step+sli_total[0], (i+1)*sli_step+sli_total[0]]
+            current_sli = [sli_sub[0]-add_slice, sli_sub[1]+add_slice] 
+        print(f'recon {i+1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ')
+        prj_norm = proj_normalize(fn, current_sli, txm_normed_flag, binning, allow_list, bkg_level, fw_level=fw_level)       
+        prj_norm = denoise(prj_norm, wiener_param, denoise_flag)
+        if i!=0 and i!=n_steps-1:
+            prj_norm = prj_norm[:, add_slice//binning:sli_step//binning+add_slice//binning]
         rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
         rec[i*sli_step // binning : i*sli_step // binning + rec_sub.shape[0]] = rec_sub
-
-    f.close()
 
     bin_info = f'_bin{int(binning)}'  
     fout = f'recon_scan_{str(scan_id)}{str(slice_info)}{str(bin_info)}'
@@ -227,11 +263,63 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
         hf.create_dataset('scan_id', data=scan_id)        
         hf.create_dataset('X_eng', data=eng)
         hf.create_dataset('rot_cen', data=rot_cen)
+        hf.create_dataset('binning', data=binning)
     print(f'{fout} is saved.') 
     del rec
-    del rec_sub
-    del img_tomo
+    #del img_tomo
     del prj_norm
+
+
+def denoise(prj_norm, wiener_param, denoise_flag):
+    if not denoise_flag or not len(wiener_param):
+        return prj_norm
+    elif denoise_flag == 1:  # Wiener denoise
+        import skimage.restoration as skr
+        ss = prj_norm.shape
+        psf = wiener_param['psf']
+        reg = wiener_param['reg']
+        balance = wiener_param['balance']
+        is_real = wiener_param['is_real']
+        clip = wiener_param['clip']
+        for j in range(ss[0]):
+            prj_norm[j] = skr.wiener(prj_norm[j], psf=psf, reg=reg, balance=balance, is_real=is_real, clip=clip)
+        return prj_norm
+    elif denoise_flag == 2:  # Gaussian denoise
+        from skimage.filters import gaussian as gf
+        prj_norm = gf(prj_norm, [0, 1, 1])
+        return prj_norm
+
+def proj_normalize(fn, sli, txm_normed_flag, binning, allow_list=[], bkg_level=0, fw_level=9):
+    f = h5py.File(fn, 'r')
+    img_tomo = np.array(f['img_tomo'][:, sli[0]:sli[1], :])
+    try:
+        img_bkg = np.array(f['img_bkg_avg'][:, sli[0]:sli[1]])
+    except:
+        img_bkg = []
+    try:
+        img_dark = np.array(f['img_dark_avg'][:, sli[0]:sli[1]])
+    except:
+        img_dark = []
+    if len(img_dark) == 0 or len(img_bkg) == 0 or txm_normed_flag == 1:
+        prj = img_tomo
+    else:
+        prj = (img_tomo - img_dark) / (img_bkg - img_dark)
+    
+    s = prj.shape   
+    prj = bin_ndarray(prj, (s[0], int(s[1]/binning), int(s[2]/binning)), 'mean')
+    prj_norm = -np.log(prj)
+    prj_norm[np.isnan(prj_norm)] = 0
+    prj_norm[np.isinf(prj_norm)] = 0
+    prj_norm[prj_norm < 0] = 0    
+    prj_norm = prj_norm[allow_list]       
+    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=fw_level, wname='db5', sigma=1, pad=True)
+    prj_norm -= bkg_level
+    f.close()
+    del img_tomo
+    del img_bkg
+    del img_dark
+    del prj
+    return prj_norm
 
 
 

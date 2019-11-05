@@ -250,7 +250,39 @@ def create_lists(x0, y0, z0, dx, dy, dz, Nx, Ny, Nz):
     return x_list, y_list, z_list
 
 
+def fan_scan(eng_list, x_list_2d, y_list_2d, z_list_2d, r_list_2d, x_list_3d, y_list_3d, z_list_3d, r_list_3d, out_x, out_y, out_z, out_r, relative_rot_angle, rs=3, exposure_time=0.05, chunk_size=4, sleep_time=0, repeat=1, relative_move_flag=True,  note=''):
+    export_pdf(1)    
+    insert_text('start multiposition 2D xanes and 3D xanes')
+    for i in range(repeat):
+        print(f'\nrepeat # {i+1}')
+        #print(f'start xanes 2D scan:')
+        #yield from multipos_2D_xanes_scan2(eng_list, x_list_2d, y_list_2d, z_list_2d, r_list_2d, out_x, out_y, out_z, out_r, repeat_num=1, exposure_time=exposure_time,  sleep_time=1, chunk_size=chunk_size, simu=False, relative_move_flag=relative_move_flag, note=note, md=None)
 
+        print('\n\nstart multi 3D xanes:')
+        yield from multi_pos_xanes_3D(eng_list, x_list_3d, y_list_3d, z_list_3d, r_list_3d, exposure_time=exposure_time, relative_rot_angle=relative_rot_angle, period=exposure_time, out_x=out_x, out_y=out_y, out_z=out_z, out_r=out_r, rs=rs, simu=False, relative_move_flag=relative_move_flag, traditional_sequence_flag=1, note=note, sleep_time=0, repeat=1)
+    insert_text('finished multiposition 2D xanes and 3D xanes')
+    export_pdf(1)
+
+
+Ni_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_xanes_standard.txt')
+Ni_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_s_xanes_standard.txt')
+
+Mn_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_xanes_standard.txt')
+Mn_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_s_xanes_standard.txt')
+Co_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_xanes_standard.txt')
+Co_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_s_xanes_standard.txt')
+Fe_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_xanes_standard.txt')
+Fe_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_s_xanes_standard.txt')
+V_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_xanes_standard.txt')
+V_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_s_xanes_standard.txt')
+Cr_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_xanes_standard.txt')
+Cr_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_s_xanes_standard.txt')
+Cu_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_xanes_standard.txt')
+Cu_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_s_xanes_standard.txt')
+
+
+
+    
 
     
 
