@@ -2,7 +2,8 @@
 new_user()
 show_global_para()
 run_pdf()
-read_calib_file()
+#read_calib_file()
+read_calib_file_new()
     
 ###################################
 

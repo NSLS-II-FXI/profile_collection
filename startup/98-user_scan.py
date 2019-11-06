@@ -782,9 +782,13 @@ def diff_tomo(sam_in_pos_list=[[0, 0, 0, 0],], sam_out_pos_list=[[0, 0, 0, 0],],
     
     
 
-def damon_scan():
+def damon_scan(eng_list1, eng_list2, x_list, y_list, z_list, r_list, exposure_time1=10.0, exposure_time2=3.0, out_x=None, out_y=None, out_z=None, out_r=None, iters=10, sleep_time=1, note=''):
 
+    x_list = np.array(x_list)
+    y_list = np.array(y_list)
+    z_list = np.array(z_list)
     for n in range(iters):
+        print(f'iteration # {n+1} / {iters}')
         '''
         yield from move_zp_ccd(6.5)
         for i in range(4):
@@ -800,20 +804,24 @@ def damon_scan():
         yield from xanes_scan2() # for Cu
         '''
 
-        yield from move_zp_ccd(6.5)
+        yield from move_zp_ccd(eng_list1[-1])
         for i in range(4):
-            yield from mv(filter2, 1)
-            yield from mv(filter4, 1)
-        yield from multipos_xanes_scan2([Mn_eng_list[0], Mn_eng_list[40]], exporesure....)
+            yield from mv(filter1, 0)
+            yield from mv(filter2, 0)
+            yield from mv(filter3, 0)
+            yield from mv(filter4, 0)
+        yield from multipos_2D_xanes_scan2(eng_list1, x_list, y_list, z_list, r_list, out_x, out_y, out_z, out_r, repeat_num=1, exposure_time=exposure_time1, sleep_time=0, chunk_size=4, relative_move_flag=1, note=note)
         
-        yield from move_zp_ccd(9)
+        yield from move_zp_ccd(eng_list2[-1])
         for i in range(4):
+            yield from mv(filter1, 0)
             yield from mv(filter2, 1)
+            yield from mv(filter3, 1)
             yield from mv(filter4, 1)
-        yield from xanes_scan2([Cu_eng_list[0], Mn_eng_list[40]], exporesure....)
+        yield from multipos_2D_xanes_scan2(eng_list2, x_list, y_list, z_list, r_list, out_x, out_y, out_z, out_r, repeat_num=1, exposure_time=exposure_time2, sleep_time=0, chunk_size=4, relative_move_flag=1, note=note)
 
-
-        yield from bps.sleep(10)
+        print(f'sleep for {sleep_time} sec')
+        yield from bps.sleep(sleep_time)
 
 
 
