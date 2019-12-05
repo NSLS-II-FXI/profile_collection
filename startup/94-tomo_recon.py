@@ -5,14 +5,17 @@ def find_nearest(data, value):
     return np.abs(data - value).argmin()
 
 
-def find_rot(fn, thresh=0.05):
+def find_rot(fn, thresh=0.05, method=1):
     from pystackreg import StackReg
     sr = StackReg(StackReg.TRANSLATION) 
     f = h5py.File(fn, 'r')
-    img_bkg = np.squeeze(np.array(f['img_bkg_avg']))
     ang = np.array(list(f['angle']))
-    tmp = np.abs(ang - ang[0] -180).argmin() 
-    img0 = np.array(list(f['img_tomo'][0]))
+    img_bkg = np.squeeze(np.array(f['img_bkg_avg']))
+    if np.abs(angle[0]) < np.abs(angle[0]-90): # e.g, rotate from 0 - 180 deg
+        tmp = np.abs(ang - ang[0] -180).argmin() 
+    else: # e.g.,rotate from -90 - 90 deg
+        tmp = np.abs(ang - np.abs(ang[0])).argmin() 
+    img0 = np.array(list(f['img_tomo'][0]))       
     img180_raw = np.array(list(f['img_tomo'][tmp]))
     f.close()
     img0 = img0 / img_bkg
@@ -40,10 +43,13 @@ def find_rot(fn, thresh=0.05):
     rot_cen0 = s[1]/2 + cshft/2 - 1
 
     print(f'rot_cen = {rot_cen} or {rot_cen0}')
-    return rot_cen
+    if method:
+        return rot_cen
+    else:
+        return rot_cen0
 
 
-def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0, denoise_flag=0):  
+def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], return_flag=0, print_flag=1, bkg_level=0, txm_normed_flag=0, denoise_flag=0, fw_level=9):  
     import tomopy 
     f = h5py.File(fn, 'r')
     tmp = np.array(f['img_tomo'][0])
@@ -83,11 +89,14 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
 
     prj_norm -= bkg_level
 
-    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=9, wname='db5', sigma=1, pad=True)
-    if denoise_flag: # denoise using wiener filter
+    prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=fw_level, wname='db5', sigma=1, pad=True)
+    if denoise_flag == 1: # denoise using wiener filter
         ss = prj_norm.shape
         for i in range(ss[0]):
            prj_norm[i] = skr.wiener(prj_norm[i], psf=psf, reg=reg, balance=balance, is_real=is_real, clip=clip)
+    elif denoise_flag == 2:
+        from skimage.filters import gaussian as gf
+        prj_norm = gf(prj_norm, [0, 1, 1])
     
     s = prj_norm.shape  
     if len(s) == 2:
@@ -287,7 +296,7 @@ def denoise(prj_norm, wiener_param, denoise_flag):
     elif denoise_flag == 2:  # Gaussian denoise
         from skimage.filters import gaussian as gf
         prj_norm = gf(prj_norm, [0, 1, 1])
-        return prj_norm
+    return prj_norm
 
 def proj_normalize(fn, sli, txm_normed_flag, binning, allow_list=[], bkg_level=0, fw_level=9):
     f = h5py.File(fn, 'r')

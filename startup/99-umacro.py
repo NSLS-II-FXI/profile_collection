@@ -282,8 +282,45 @@ Cu_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_xanes_st
 Cu_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_s_xanes_standard.txt')
 
 
-
-    
-
+#def scan_3D_2D_overnight(n):
+#
+#    Ni_eng_list_insitu = np.arange(8.344, 8.363, 0.001)
+#    pos1 = [30, -933, -578]
+#    pos2 = [-203, -1077, 563]
+#    x_list = [pos1[0]]
+#    y_list = [pos1[1], pos2[1]]
+#    z_list = [pos1[2], pos2[2]]
+#    r_list = [-71, -71]
+#
+#    
+#   
+#        
+#    #RE(multipos_2D_xanes_scan2(Ni_eng_list_insitu, x_list, y_list, z_list, [-40, -40], out_x=None, out_y=None, out_z=-2500, out_r=-90, repeat_num=1, exposure_time=0.1,  sleep_time=1, chunk_size=5, simu=False, relative_move_flag=0, note='NC_insitu'))
+#
+#    RE(mv(zps.sx, pos1[0], zps.sy, pos1[1], zps.sz, pos1[2], zps.pi_r, 0))
+#    RE(xanes_scan2(Ni_eng_list_insitu, exposure_time=0.1, chunk_size=5, out_x=None, out_y=None, out_z=-3000, out_r=-90, simu=False, relative_move_flag=0, note='NC_insitu')        
+#
+#    pos1 = [30, -929, -568]
+#    pos_cen = [-191, -813, -563]
+#    for i in range(5):
+#        print(f'repeating {i+1}/{5}')
+#    
+#        RE(mv(zps.sx, pos1[0], zps.sy, pos1[1], zps.sz, pos1[2], zps.pi_r, -72))
+#        RE(xanes_3D(Ni_eng_list_insitu, exposure_time=0.1, relative_rot_angle=138, period=0.1, out_x=None, out_y=None, out_z=-3000, out_r=-90, rs=2, simu=False, relative_move_flag=0, traditional_sequence_flag=1, note='NC_insitu'))   
+#        
+#    
+#        RE(mv(zps.sx, pos_cen[0], zps.sy, pos_cen[1], zps.sz, pos_cen[2], zps.pi_r, 0))
+#        RE(raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=None, out_y=None, out_z=-3000, out_r=-90, img_sizeX=640,img_sizeY=540,pxl=80, simu=False, relative_move_flag=0,rot_first_flag=1,note='NC_insitu'))
+#        
+#        RE(raster_2D_xanes2(Ni_eng_list_insitu, x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=None, out_y=None, out_z=-3000, out_r=-90, img_sizeX=640, img_sizeY=540, pxl=80, simu=False, relative_move_flag=0, rot_first_flag=1,note='NC_insitu'))
+#    
+#        RE(mv(zps.sx, pos1[0], zps.sy, pos1[1], zps.sz, pos1[2], zps.pi_r, -72))
+#        RE(fly_scan(exposure_time=0.1, relative_rot_angle =138, period=0.1, chunk_size=20, out_x=None, out_y=None, out_z=-3000, out_r=-90, rs=1.5, simu=False, relative_move_flag=0, traditional_sequence_flag=0, note='NC_insitu'))
+#        
+#        RE(bps.sleep(600))
+#        print('sleep for 600sec')
+###############################
+        
+        
     
 

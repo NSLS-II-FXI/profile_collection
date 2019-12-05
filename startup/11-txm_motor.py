@@ -84,6 +84,10 @@ th2_motor = MyEpicsMotor('XF:18IDA-OP{Mono:DCM-Ax:Th2}Mtr', name='th2_motor')
 th2_feedback = EpicsSignal('XF:18IDA-OP{Mono:DCM-Ax:Th2}PID', name='th2_feedback')
 th2_feedback_enable = EpicsSignal('XF:18IDA-OP{Mono:DCM-Ax:Th2}PID.FBON', name='th2_feedback_enable')
 
+chi2_motor = MyEpicsMotor('XF:18IDA-OP{Mono:DCM-Ax:Chi2}Mtr', name='chi2_motor')
+chi2_feedback = EpicsSignal('XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID', name='chi2_feedback')
+chi2_feedback_enable = EpicsSignal('XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID.FBON', name='chi2_feedback_enable')
+
 shutter_open = EpicsSignal('XF:18IDA-PPS{PSh}Cmd:Opn-Cmd', name='shutter_open')
 shutter_close = EpicsSignal('XF:18IDA-PPS{PSh}Cmd:Cls-Cmd', name='shutter_close')
 shutter_status = EpicsSignal('XF:18IDA-PPS{PSh}Pos-Sts', name='shutter_status')

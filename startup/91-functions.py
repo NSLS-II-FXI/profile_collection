@@ -27,7 +27,8 @@ def distance(x1, y1, x2, y2):
 def record_calib_pos_new(n):
     global GLOBAL_MAG
 
-    CALIBER[f'chi2_pos{n}'] = pzt_dcm_chi2.pos.value
+    #CALIBER[f'chi2_pos{n}'] = pzt_dcm_chi2.pos.value
+    CALIBER[f'chi2_pos{n}'] = dcm.chi2.position
     CALIBER[f'XEng_pos{n}'] = XEng.position
     CALIBER[f'zp_x_pos{n}'] = zp.x.position
     CALIBER[f'zp_y_pos{n}'] = zp.y.position
@@ -40,7 +41,7 @@ def record_calib_pos_new(n):
     CALIBER[f'DetU_x_pos{n}'] = DetU.x.position
     CALIBER[f'aper_x_pos{n}'] = aper.x.position
     CALIBER[f'aper_y_pos{n}'] = aper.y.position
-    CALIBER[f'txm_x_pos{n}'] = zps.pi_x.position()
+    CALIBER[f'txm_x_pos{n}'] = zps.pi_x.position
 
     mag = (DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG
     CALIBER[f'mag{n}'] = np.round(mag * 100) / 100.
@@ -102,7 +103,7 @@ def read_calib_file_new():
     #    CALIBER = {}
 
 
-def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0):
+def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0):
     '''
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
@@ -145,7 +146,7 @@ def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_d
         return 0
     else:
         print(f'using reference at {eng1:2.5f} keV and {eng2:2.5f} kev to interpolate\n')
-        pzt_dcm_chi2_eng1 = CALIBER[f'chi2_pos{id1}']
+        dcm_chi2_eng1 = CALIBER[f'chi2_pos{id1}']
         zp_x_pos_eng1 = CALIBER[f'zp_x_pos{id1}']
         zp_y_pos_eng1 = CALIBER[f'zp_y_pos{id1}']
         th2_motor_eng1 = CALIBER[f'th2_motor_pos{id1}']
@@ -158,7 +159,7 @@ def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_d
         aper_x_eng1 = CALIBER[f'aper_x_pos{id1}']
         aper_y_eng1 = CALIBER[f'aper_y_pos{id1}']
 
-        pzt_dcm_chi2_eng2 = CALIBER[f'chi2_pos{id2}']
+        dcm_chi2_eng2 = CALIBER[f'chi2_pos{id2}']
         zp_x_pos_eng2 = CALIBER[f'zp_x_pos{id2}']
         zp_y_pos_eng2 = CALIBER[f'zp_y_pos{id2}']
         th2_motor_eng2 = CALIBER[f'th2_motor_pos{id2}']
@@ -175,7 +176,7 @@ def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_d
             print(f'eng1({eng1:2.5f} eV) and eng2({eng2:2.5f} eV) in "CALIBER" are two close, will not move any motors...')
         else:
             
-            pzt_dcm_chi2_target = (eng_new - eng2) * (pzt_dcm_chi2_eng1 - pzt_dcm_chi2_eng2) / (eng1-eng2) + pzt_dcm_chi2_eng2
+            chi2_motor_target = (eng_new - eng2) * (dcm_chi2_eng1 - dcm_chi2_eng2) / (eng1-eng2) + dcm_chi2_eng2
             zp_x_target = (eng_new - eng2)*(zp_x_pos_eng1 - zp_x_pos_eng2)/(eng1 - eng2) + zp_x_pos_eng2
             zp_y_target = (eng_new - eng2)*(zp_y_pos_eng1 - zp_y_pos_eng2)/(eng1 - eng2) + zp_y_pos_eng2
             th2_motor_target = (eng_new - eng2) * (th2_motor_eng1 -th2_motor_eng2) / (eng1-eng2) + th2_motor_eng2
@@ -188,7 +189,7 @@ def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_d
             aper_x_target = (eng_new - eng2)*(aper_x_eng1 - aper_x_eng2)/(eng1 - eng2) + aper_x_eng2
             aper_y_target = (eng_new - eng2)*(aper_y_eng1 - aper_y_eng2)/(eng1 - eng2) + aper_y_eng2
 
-            pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
+            dcm_chi2_ini = dcm.chi2.position
             zp_x_ini = zp.x.position    
             zp_y_ini = zp.y.position
             th2_motor_ini = th2_motor.position
@@ -210,7 +211,7 @@ def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_d
                     print ('move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
                     print ('move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
                     #print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
-                    print ('move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
+                    print ('move dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(dcm_chi2_ini, chi2_motor_target))
                     print ('move th2_motor: ({0:2.6f} deg --> {1:2.6f} deg)'.format(th2_motor_ini, th2_motor_target))
                     print ('move aper_x_motor: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_x_ini, aper_x_target))
                     print ('move aper_y_motor: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_y_ini, aper_y_target))
@@ -223,11 +224,15 @@ def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_d
                         print ('move DetU_x: ({0:2.4f} um --> {1:2.4f} um)'.format(DetU_x_ini, DetU_x_target))
                         print ('move DetU_y: ({0:2.4f} um --> {1:2.4f} um)'.format(DetU_y_ini, DetU_y_target))
     
-                yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
-#                yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)                
+                yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)             
                 yield from mv(th2_feedback_enable, 0)
                 yield from mv(th2_feedback, th2_motor_target)
                 yield from mv(th2_feedback_enable, 1)
+
+                yield from mv(chi2_feedback_enable, 0)
+                yield from mv(chi2_feedback, chi2_motor_target)
+                yield from mv(chi2_feedback_enable, 1)
+
                 yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
                 yield from mv(aper.x,  aper_x_target, aper.y, aper_y_target)
                 if move_clens_flag: 
@@ -255,7 +260,7 @@ def move_zp_ccd_new(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_d
                 print ('will move aper_x: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_x_ini, aper_x_target))
                 print ('will move aper_y: ({0:2.4f} um --> {1:2.4f} um)'.format(aper_y_ini, aper_y_target))
                 #print ('will move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
-                print ('will move pzt_dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_chi2_ini, pzt_dcm_chi2_target))
+                print ('will move dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)'.format(dcm_chi2_ini, chi2_motor_target))
                 print ('will move th2_motor: ({0:2.6f} deg --> {1:2.6f} deg)'.format(th2_motor_ini, th2_motor_target))
                 if move_clens_flag:
                     print ('will move clens_x: ({0:2.4f} um --> {1:2.4f} um)'.format(clens_x_ini, clens_x_target))
@@ -679,7 +684,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
         eng2 = CALIBER['XEng_pos2']
         
         #pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
-        pzt_dcm_chi2_eng1 = CALIBER['chi2_pos1']
+        dcm_chi2_eng1 = CALIBER['chi2_pos1']
         zp_x_pos_eng1 = CALIBER['zp_x_pos1']
         zp_y_pos_eng1 = CALIBER['zp_y_pos1']
         th2_motor_eng1 = CALIBER['th2_motor_pos1']
@@ -710,7 +715,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
             print(f'eng1({eng1:2.5f} eV) and eng2({eng2:2.5f} eV) in "CALIBER" are two close, will not move any motors...')
         else:
             #pzt_dcm_th2_target = (eng_new - eng2) * (pzt_dcm_th2_eng1 - pzt_dcm_th2_eng2) / (eng1-eng2) + pzt_dcm_th2_eng2
-            pzt_dcm_chi2_target = (eng_new - eng2) * (pzt_dcm_chi2_eng1 - pzt_dcm_chi2_eng2) / (eng1-eng2) + pzt_dcm_chi2_eng2
+            pzt_dcm_chi2_target = (eng_new - eng2) * (dcm_chi2_eng1 - dcm_chi2_eng2) / (eng1-eng2) + pzt_dcm_chi2_eng2
             zp_x_target = (eng_new - eng2)*(zp_x_pos_eng1 - zp_x_pos_eng2)/(eng1 - eng2) + zp_x_pos_eng2
             zp_y_target = (eng_new - eng2)*(zp_y_pos_eng1 - zp_y_pos_eng2)/(eng1 - eng2) + zp_y_pos_eng2
             th2_motor_target = (eng_new - eng2) * (th2_motor_eng1 -th2_motor_eng2) / (eng1-eng2) + th2_motor_eng2

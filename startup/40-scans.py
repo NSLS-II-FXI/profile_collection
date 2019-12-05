@@ -1054,8 +1054,8 @@ def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_siz
                          'zone_plate': ZONE_PLATE,
                         },
            'plan_name': 'fly_scan',
-           'num_bkg_images': chunk_size,
-           'num_dark_images': chunk_size,
+           'num_bkg_images':20,
+           'num_dark_images': 20,
            'chunk_size': chunk_size,
            'plan_pattern': 'linspace',
            'plan_pattern_module': 'numpy',
@@ -1594,8 +1594,8 @@ def raster_2D_scan2(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, ou
 
     img_sizeX = np.int(img_sizeX)
     img_sizeY = np.int(img_sizeY)
-    x_range = np.int_(x_range)
-    y_range = np.int_(y_range)
+    x_range = np.int(x_range)
+    y_range = np.int(y_range)
     
     print('hello1')
     _md = {'detectors': [det.name for det in detectors],
@@ -2040,6 +2040,38 @@ def multipos_2D_xanes_scan3(eng_list, x_list, y_list, z_list, r_list, out_x=0, o
     insert_text(txt)
 
 
+def raster_2D_xanes2(eng_list, x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=None, out_y=None, out_z=None, out_r=None, img_sizeX=2560,img_sizeY=2160,pxl=17.2,  simu=False, relative_move_flag=1,rot_first_flag=1, note='', md=None):
+
+    motor_x_ini = zps.sx.position
+    motor_y_ini = zps.sy.position
+    motor_z_ini = zps.sz.position
+    motor_r_ini = zps.pi_r.position
+
+
+    if relative_move_flag: 
+        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+    else:
+        motor_x_out = out_x if out_x else motor_x_ini
+        motor_y_out = out_y if out_y else motor_y_ini
+        motor_z_out = out_z if out_z else motor_z_ini
+        motor_r_out = out_r if out_r else motor_r_ini 
+
+    x_list, y_list, z_list, r_list = [], [], [], []
+    for ii in np.arange(x_range[0],x_range[1]+1):
+        for jj in np.arange(y_range[0], y_range[1]+1):
+            x = motor_x_ini + ii*img_sizeX*pxl*1.0/1000
+            y = motor_y_ini + jj*img_sizeY*pxl*1.0/1000
+            x_list.append(x)
+            y_list.append(y)
+            z_list.append(motor_z_ini)
+            r_list.append(motor_r_ini)
+    print(f'x_list = {x_list}\ny_list = {y_list}\nz_list = {z_list}\nr_list = {r_list}\n')
+    insert_text('raster_2D_xanes2 contains following scans:')
+    yield from multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, motor_x_out, motor_y_out, motor_z_out, motor_r_out, chunk_size=4, exposure_time=exposure_time, repeat_num=1, sleep_time=0, relative_move_flag=0, note=note)
+    insert_text('finished raster_2D_xanes2')
 
 
 '''
