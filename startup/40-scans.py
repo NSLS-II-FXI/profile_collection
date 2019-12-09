@@ -164,7 +164,7 @@ def timeit(method):
 
 
 
-def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=0, out_y=0, out_z=0, out_r=0, relative_move_flag=1, note='', simu=False, md=None):
+def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, chunk_size=1, out_x=0, out_y=0, out_z=0, out_r=0, relative_move_flag=1, traditional_sequence_flag=1, note='', simu=False, md=None):
     '''
     Script for running Tomography scan
     Use as: RE(tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=0, out_y=0, note='', md=None))
@@ -184,9 +184,8 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
     '''
     global ZONE_PLATE
 
-    detectors=[Andor]
-    yield from abs_set(detectors[0].cam.acquire_time, exposure_time)
-    yield from mv(Andor.cam.num_images, 1)
+    detectors=[Andor, ic3]
+    yield from _set_andor_param(exposure_time=exposure_time, period=exposure_time, chunk_size=chunk_size)
 
     motor_eng = XEng
     motor_x_ini = zps.sx.position
@@ -207,14 +206,13 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
 
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
     _md = {'detectors': [det.name for det in detectors],
-           'motors': [motor_rot.name],
            'x_ray_energy': XEng.position,
            'num_angles': num,
            'num_bkg_images': bkg_num,
            'num_dark_images': dark_num,
            'plan_args': {'start': start, 'stop': stop, 'num': num,
                          'exposure_time': exposure_time,
-                         'bkg_num': bkg_num, 'dark_num': dark_num,
+                         'bkg_num': bkg_num, 'dark_num': dark_num, 'chunk_size': chunk_size,
                          'out_x': out_x, 'out_y': out_y, 'out_z': out_z, 'out_r': out_r,
                          'relative_move_flag': relative_move_flag,
                          'note': note if note else 'None'},
@@ -228,29 +226,30 @@ def tomo_scan(start, stop, num, exposure_time=1, bkg_num=10, dark_num=10, out_x=
            'note': note if note else 'None',
           # 'motor_pos':  wh_pos(print_on_screen=0),
             }
+
     _md.update(md or {})
-    try:  dimensions = [(motor_rot.hints['fields'], 'primary')]
-    except (AttributeError, KeyError):    pass
-    else: _md['hints'].setdefault('dimensions', dimensions)
+    try:   dimensions = [(motor.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):  pass
+    else:   _md['hints'].setdefault('dimensions', dimensions)
     steps = np.linspace(start, stop, num)
-    @stage_decorator(list(detectors) + [motor])
+
+    @stage_decorator(list(detectors) + motor)
     @run_decorator(md=_md)
     def tomo_inner_scan():
         #close shutter, dark images
         print('\nshutter closed, taking dark images...')
         yield from _close_shutter(simu)
-        for num in range(dark_num):   # close the shutter, and take 10(default) dark image when stage is at out position
-            yield from trigger_and_read(list(detectors) + [motor])
+        yield from _take_dark_image(detectors, motor, num_dark=dark_num, simu=simu)
         # Open shutter, tomo images
         yield from _open_shutter(simu)
-        print ('shutter opened, pi_x position: {0}\n\nstarting tomo_scan...'.format(motor_x.position))
+        print ('shutter opened, starting tomo_scan...')
         for step in steps:  # take tomography images
-            yield from one_1d_step(detectors, zps.pi_r, step)
+            #yield from one_1d_step(detectors, zps.pi_r, step)
+            yield from mv(zps.pi_r, step)
+            yield from _take_image(detectors, motor, 1)
 
-        print ('\n\nTaking background images...\npi_x position: {0}'.format(motor_x.position))
-        yield from _move_sample_out(motor_x_out, motor_y_out, motor_z_out, motor_r_out, repeat=2)
-        for num in range(bkg_num):    # take 10 background image when stage is at out position
-            yield from trigger_and_read(list(detectors) + [motor])
+        print ('\n\nTaking background images...')
+        yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=1, simu=False, traditional_sequence_flag=traditional_sequence_flag)
         # close shutter, move sample back
         yield from _close_shutter(simu)
         yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, repeat=2)
@@ -401,7 +400,7 @@ def xanes_scan(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_
 
 
 
-def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_z=0, out_r=0, simu=False, relative_move_flag=1, note='', md=None):
+def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out_z=0, out_r=0, simu=False, relative_move_flag=1, note='', filters=[], md=None):
     '''
     Different from xanes_scan:  In xanes_scan2, it moves out sample and take background image at each energy
 
@@ -518,8 +517,16 @@ def xanes_scan2(eng_list, exposure_time=0.1, chunk_size=5, out_x=0, out_y=0, out
 
         for eng in eng_list:
             yield from _xanes_per_step(eng, detectors, motor, move_flag=1, info_flag=0)
+            if len(filters):
+                for filt in filters:
+                    yield from mv(filt, 1) 
+                    yield from bps.sleep(0.5)
             yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=1, simu=simu)
             yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, repeat=2)
+            if len(filters):
+                for filt in filters:
+                    yield from mv(filt, 0) 
+                    yield from bps.sleep(0.5)
         yield from move_zp_ccd(eng_ini, move_flag=1, info_flag=0)
         print('closing shutter')
         yield from _close_shutter(simu=simu)
@@ -693,7 +700,7 @@ def mv_stage(motor, pos):
         yield Msg('wait', None, group=grp)
 
 
-def eng_scan(eng_start, eng_end, steps, num=10, detectors=[ic3, ic4], delay_time=1, note='', md=None):
+def eng_scan(eng_list, eng_start=8.3, eng_end=8.8, steps=100, num=1, detectors=[ic3, ic4], delay_time=1, note='', elem='Ni', md=None):
     '''
     Input:
     ----------
@@ -720,21 +727,30 @@ def eng_scan(eng_start, eng_end, steps, num=10, detectors=[ic3, ic4], delay_time
     txt = f'eng_scan(eng_start={eng_start}, eng_end={eng_end}, steps={steps}, num={num}, detectors={det_name}, delay_time={delay_time})\n  Consisting of:\n'
     insert_text(txt)
     print(txt)
+
+    if len(eng_list):
+        steps = len(eng_list)
+        eng_start, eng_end = eng_list[0], eng_list[-1]
+
     check_eng_range([eng_start, eng_end])
 #    set_ic_dwell_time(dwell_time=dwell_time)
 
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
     ax2 = fig.add_subplot(212)
+
     for i in range(num):
   #      yield from scan([ic3, ic4], XEng, eng_start/1000, eng_end/1000, steps)
-        yield from eng_scan_delay(eng_start, eng_end, steps, detectors, delay_time=delay_time, note='')
+        yield from eng_scan_delay(eng_list, eng_start, eng_end, steps, detectors, delay_time=delay_time, note='')
         h = db[-1]
         y0 = np.array(list(h.data(ic3.name)))
         y1 = np.array(list(h.data(ic4.name)))
 
         r = np.log(y0/y1)
-        x = np.linspace(eng_start, eng_end, steps)
+        if not len(eng_list):
+            x = np.linspace(eng_start, eng_end, steps)
+        else:
+            x = eng_list
 
         ax1.plot(x, r, '.-')
         r_dif = np.array([0] + list(np.diff(r)))
@@ -746,11 +762,15 @@ def eng_scan(eng_start, eng_end, steps, num=10, detectors=[ic3, ic4], delay_time
     plt.show()
     txt_finish='## "eng_scan()" finished'
     insert_text(txt_finish)
+    spec = np.zeros([steps, 2])
+    spec[:, 0] = x
+    spec[:, 1] = r
+    np.savetxt(f'{elem}_spec.txt', spec)
 
     
 
 
-def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note='', md=None):
+def eng_scan_delay(eng_list, start, stop, num, detectors=[ic3, ic4], delay_time=1, note='', md=None):
     '''
 
     Input:
@@ -772,11 +792,19 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
     # detectors=[ic3, ic4]
     motor_x = XEng
     motor_x_ini = motor_x.position # initial position of motor_x
+    if len(eng_list):
+        steps = eng_list
+        num = len(eng_list)
+        start = eng_list[0]
+        stop = eng_list[-1]
+    else:
+        steps = np.linspace(start, stop, num)
     _md = {'detectors': [det.name for det in detectors],
            'motors': [motor_x.name],
            'XEng': XEng.position,
            'plan_name': 'eng_scan_delay',
-           'plan_args': {'start': start,
+           'plan_args': {'eng_list': eng_list,
+                         'start': start,
                          'stop': stop,
                          'num': num,
                          'detectors': 'detectors',
@@ -796,7 +824,7 @@ def eng_scan_delay(start, stop, num, detectors=[ic3, ic4], delay_time=1, note=''
     try:  dimensions = [(motor_x.hints['fields'], 'primary')]
     except (AttributeError, KeyError):    pass
     else: _md['hints'].setdefault('dimensions', dimensions)
-    steps = np.linspace(start, stop, num)
+
     @stage_decorator(list(detectors) + [motor_x])
     @run_decorator(md=_md)
     def eng_inner_scan():
@@ -1364,7 +1392,7 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
 
 
 
-def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2,  simu=False, relative_move_flag=1,rot_first_flag=1, note='', scan_x_flag=1, md=None):
+def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out_y=0, out_z=0, out_r=0, img_sizeX=2560,img_sizeY=2160,pxl=17.2,  simu=False, relative_move_flag=1,rot_first_flag=1, note='', scan_x_flag=1, filters=[], md=None):
     '''
     scanning large area by moving samples at different 2D block position, defined by x_range and y_range, only work for Andor camera at full resolution (2160 x 2560)
     for example, set x_range=[-1,1] and y_range=[-2, 2] will totally take 3 x 5 = 15 images and stitch them together
@@ -1506,11 +1534,18 @@ def raster_2D_scan(x_range=[-1,1],y_range=[-1,1],exposure_time=0.1, out_x=0, out
 
 
         print('moving sample out to take 5 background image')
+        if len(filters):
+            for filt in filters:
+                yield from mv(filt, 1) 
+                yield from bps.sleep(0.5)        
         yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, detectors, motor, num_bkg=5, simu=simu,traditional_sequence_flag=rot_first_flag)
         
         # move sample in
         yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, repeat=1,trans_first_flag=1-rot_first_flag)
-
+        if len(filters):
+            for filt in filters:
+                yield from mv(filt, 0) 
+                yield from bps.sleep(0.5)  
         print('closing shutter')
         yield from _close_shutter(simu)
     

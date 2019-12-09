@@ -55,18 +55,11 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
     tmp = np.array(f['img_tomo'][0])
     s = [1, tmp.shape[0], tmp.shape[1]]
 
+
     if denoise_flag:
-        import skimage.restoration as skr
         addition_slice = 100
-        psf = 2
-        psf = np.ones([psf, psf])/(psf**2)
-        reg = None
-        balance = 0.3
-        is_real=True
-        clip = True
     else:
         addition_slice = 0
-
 
     if sli == 0: sli = int(s[1]/2)
     sli_exp = [np.max([0, sli-addition_slice//2]), np.min([sli+addition_slice//2+1, s[1]])]
@@ -82,6 +75,9 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
         img_dark = np.array(f['img_dark_avg'][:, sli_exp[0]:sli_exp[1], :])
         prj = (img_tomo - img_dark) / (img_bkg - img_dark)
     f.close()
+    
+    prj = denoise(prj, denoise_flag)
+    
     prj_norm = -np.log(prj)
     prj_norm[np.isnan(prj_norm)] = 0
     prj_norm[np.isinf(prj_norm)] = 0
@@ -90,6 +86,7 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
     prj_norm -= bkg_level
 
     prj_norm = tomopy.prep.stripe.remove_stripe_fw(prj_norm,level=fw_level, wname='db5', sigma=1, pad=True)
+    '''    
     if denoise_flag == 1: # denoise using wiener filter
         ss = prj_norm.shape
         for i in range(ss[0]):
@@ -97,7 +94,7 @@ def rotcen_test(fn, start=None, stop=None, steps=None, sli=0, block_list=[], ret
     elif denoise_flag == 2:
         from skimage.filters import gaussian as gf
         prj_norm = gf(prj_norm, [0, 1, 1])
-    
+    '''
     s = prj_norm.shape  
     if len(s) == 2:
         prj_norm = prj_norm.reshape(s[0], 1, s[1])
@@ -227,16 +224,8 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
     # optional
     if denoise_flag:
         add_slice = min(sli_step // 2, 20)
-        wiener_param = {}
-        psf = 2
-        wiener_param['psf'] = np.ones([psf, psf])/(psf**2)
-        wiener_param['reg'] = None
-        wiener_param['balance'] = 0.3
-        wiener_param['is_real']=True
-        wiener_param['clip'] = True
     else:
         add_slice = 0
-        wiener_param = []
 
     try:
         rec = np.zeros([sli_step*n_steps // binning, s[1] // binning, s[1] // binning], dtype=np.float32)
@@ -255,8 +244,9 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
             sli_sub = [i*sli_step+sli_total[0], (i+1)*sli_step+sli_total[0]]
             current_sli = [sli_sub[0]-add_slice, sli_sub[1]+add_slice] 
         print(f'recon {i+1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ')
-        prj_norm = proj_normalize(fn, current_sli, txm_normed_flag, binning, allow_list, bkg_level, fw_level=fw_level)       
-        prj_norm = denoise(prj_norm, wiener_param, denoise_flag)
+
+        prj_norm = proj_normalize(fn, current_sli, txm_normed_flag, binning, allow_list, bkg_level, fw_level=fw_level, denoise_flag=denoise_flag)       
+        
         if i!=0 and i!=n_steps-1:
             prj_norm = prj_norm[:, add_slice//binning:sli_step//binning+add_slice//binning]
         rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec')
@@ -279,26 +269,24 @@ def recon(fn, rot_cen, sli=[], binning=None, zero_flag=0, block_list=[], bkg_lev
     del prj_norm
 
 
-def denoise(prj_norm, wiener_param, denoise_flag):
-    if not denoise_flag or not len(wiener_param):
-        return prj_norm
-    elif denoise_flag == 1:  # Wiener denoise
+def denoise(prj, denoise_flag):
+    if denoise_flag == 1:  # Wiener denoise
         import skimage.restoration as skr
-        ss = prj_norm.shape
-        psf = wiener_param['psf']
-        reg = wiener_param['reg']
-        balance = wiener_param['balance']
-        is_real = wiener_param['is_real']
-        clip = wiener_param['clip']
+        ss = prj.shape
+        psf = np.ones([2, 2])/(2 ** 2)
+        reg = None
+        balance = 0.3
+        is_real = True
+        clip = True
         for j in range(ss[0]):
-            prj_norm[j] = skr.wiener(prj_norm[j], psf=psf, reg=reg, balance=balance, is_real=is_real, clip=clip)
-        return prj_norm
+            prj[j] = skr.wiener(prj[j], psf=psf, reg=reg, balance=balance, is_real=is_real, clip=clip)        
     elif denoise_flag == 2:  # Gaussian denoise
         from skimage.filters import gaussian as gf
-        prj_norm = gf(prj_norm, [0, 1, 1])
-    return prj_norm
+        prj = gf(prj, [0, 1, 1])
+    return prj
 
-def proj_normalize(fn, sli, txm_normed_flag, binning, allow_list=[], bkg_level=0, fw_level=9):
+
+def proj_normalize(fn, sli, txm_normed_flag, binning, allow_list=[], bkg_level=0, fw_level=9, denoise_flag=0):
     f = h5py.File(fn, 'r')
     img_tomo = np.array(f['img_tomo'][:, sli[0]:sli[1], :])
     try:
@@ -313,7 +301,7 @@ def proj_normalize(fn, sli, txm_normed_flag, binning, allow_list=[], bkg_level=0
         prj = img_tomo
     else:
         prj = (img_tomo - img_dark) / (img_bkg - img_dark)
-    
+    prj = denoise(prj, denoise_flag)
     s = prj.shape   
     prj = bin_ndarray(prj, (s[0], int(s[1]/binning), int(s[2]/binning)), 'mean')
     prj_norm = -np.log(prj)
@@ -346,20 +334,3 @@ def show_image_slice(fn, sli=0):
             print('cannot display image')
     finally:
         f.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

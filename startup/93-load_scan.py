@@ -110,24 +110,26 @@ def export_tomo_scan(h):
         x_eng = h.start['x_ray_energy']
     bkg_img_num = h.start['num_bkg_images']
     dark_img_num = h.start['num_dark_images']
+    chunk_size = h.start['plan_args']['chunk_size']
     angle_i = h.start['plan_args']['start']
     angle_e = h.start['plan_args']['stop']
     angle_n = h.start['plan_args']['num'] 
     exposure_t = h.start['plan_args']['exposure_time'] 
     img = np.array(list(h.data('Andor_image')))
-    img = np.squeeze(img)
-    img_dark = img[0:dark_img_num]
+    #img = np.squeeze(img)
+    img_dark = img[0:dark_img_num].reshape(-1, img.shape[-2], img.shape[-1] )
     img_tomo = img[dark_img_num : -bkg_img_num]
-    img_bkg = img[-bkg_img_num:]
+    img_bkg = img[-bkg_img_num:].reshape(-1, img.shape[-2], img.shape[-1])
     
 
-    s = img_dark.shape
-    img_dark_avg = np.mean(img_dark,axis=0).reshape(1, s[1], s[2])
-    img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
+    s = img_dark.shape 
+    # img_dark_avg = np.mean(img_dark,axis=0).reshape(1, s[1], s[2])
+    # img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
     img_angle = np.linspace(angle_i, angle_e, angle_n)
         
     fname = scan_type + '_id_' + str(scan_id) + '.h5'
     with h5py.File(fname, 'w') as hf:
+        hf.create_dataset('scan_id', data = scan_id)
         hf.create_dataset('X_eng', data = x_eng)
         hf.create_dataset('img_bkg', data = img_bkg)
         hf.create_dataset('img_dark', data = img_dark)

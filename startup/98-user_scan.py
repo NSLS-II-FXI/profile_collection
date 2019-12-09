@@ -993,8 +993,71 @@ def user_fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chun
 
 
 
+def user_fly_only(exposure_time=0.1, end_rot_angle = 180, period=0.15, chunk_size=20, rs=1, note='', simu=False, bkg_scan_id=0, md=None):
 
+    global ZONE_PLATE
+    motor_x_ini = zps.sx.position
+    motor_y_ini = zps.sy.position
+    motor_z_ini = zps.sz.position
+    motor_r_ini = zps.pi_r.position
 
+    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+
+    detectors = [Andor, ic3]
+    #offset_angle = 0 #-0.5 * rs * np.sign(relative_rot_angle)
+    current_rot_angle = zps.pi_r.position
+
+    target_rot_angle = end_rot_angle
+    _md = {'detectors': ['Andor'],
+           'motors': [mot.name for mot in motor],
+           'XEng': XEng.position,
+           'ion_chamber': ic3.name,
+           'plan_args': {'exposure_time': exposure_time,
+                         'end_rot_angle': end_rot_angle,
+                         'period': period,
+                         'chunk_size': chunk_size,
+                         'rs': rs,
+                         'note': note if note else 'None',
+                         'zone_plate': ZONE_PLATE,
+                         'bkg_scan_id': bkg_scan_id,
+                        },
+           'plan_name': 'user_fly_scan',
+           'chunk_size': chunk_size,
+           'plan_pattern': 'linspace',
+           'plan_pattern_module': 'numpy',
+           'hints': {},
+           'operator': 'FXI',
+           'note': note if note else 'None',
+           'zone_plate': ZONE_PLATE,
+           #'motor_pos': wh_pos(print_on_screen=0),
+            }
+    _md.update(md or {})
+    try:  dimensions = [(zps.pi_r.hints['fields'], 'primary')]
+    except (AttributeError, KeyError):    pass
+    else: _md['hints'].setdefault('dimensions', dimensions)
+
+    yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=chunk_size)
+    yield from _set_rotation_speed(rs=rs)
+    print('set rotation speed: {} deg/sec'.format(rs))
+
+    @stage_decorator(list(detectors) + motor)
+    @bpp.monitor_during_decorator([zps.pi_r])
+    @run_decorator(md=_md)
+    def fly_inner_scan():
+        #open shutter, tomo_images
+        yield from _open_shutter(simu=simu)
+        print ('\nshutter opened, taking tomo images...')
+        status = yield from abs_set(zps.pi_r, target_rot_angle, wait=False)
+        while not status.done:
+            yield from trigger_and_read(list(detectors) + motor)
+    uid = yield from fly_inner_scan()
+    yield from mv(Andor.cam.image_mode, 1)
+    print('scan finished')
+    # yield from _set_rotation_speed(rs=30)
+    txt = get_scan_parameter(print_flag=0)
+    insert_text(txt)
+    print(txt)
+    return uid
 
 
 
