@@ -131,7 +131,7 @@ def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
 
     yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
     yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
-    Andor.cam.acquire_period.put(period)
+    yield from abs_set(Andor.cam.acquire_period, period, wait=True)
 
 
 def _set_rotation_speed(rs=1):
