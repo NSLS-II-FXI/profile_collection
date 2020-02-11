@@ -128,6 +128,7 @@ def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
 
     yield from abs_set(Andor.cam.acquire, 0, wait=True)
     yield from abs_set(Andor.cam.image_mode, 0, wait=True)
+
     yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
     yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
     Andor.cam.acquire_period.put(period)
@@ -914,7 +915,7 @@ def eng_scan(
         detectors: list, detector list, e.g.[ic3, ic4, Andor]
 
         delay_time: float, delay time after moving motors, in sec
-    
+
     """
 
     det = [det.name for det in detectors]
@@ -992,7 +993,7 @@ def eng_scan_delay(
 
     delay_time: float, delay time after moving motors, in sec
 
-    note: string    
+    note: string
 
     """
     global ZONE_PLATE
@@ -1234,7 +1235,7 @@ def fly_scan(
     -------
     exposure_time: float, in unit of sec
 
-    relative_rot_angle: float, 
+    relative_rot_angle: float,
         total rotation angles start from current rotary stage (zps.pi_r) position
 
     period: float, in unit of sec
@@ -1268,7 +1269,7 @@ def fly_scan(
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
         False: will really close/open shutter
-    
+
     """
     global ZONE_PLATE
     motor_x_ini = zps.sx.position
@@ -1497,7 +1498,7 @@ def grid2D_rel(
 
 def delay_count(detectors, num=1, delay=None, *, note="", plot_flag=0, md=None):
     """
-    same function as the default "count", 
+    same function as the default "count",
     re_write it in order to add auto-logging
     """
     global ZONE_PLATE
@@ -1591,7 +1592,7 @@ def delay_scan(
         if 0: not plot
 
     note: string
-    
+
     """
     global ZONE_PLATE
     if Andor in detectors:
@@ -1683,7 +1684,7 @@ def xanes_3d_scan(eng_list, exposure_time, relative_rot_angle, period, chunk_siz
     insert_text(txt)
     print(txt)
 
-   
+
     for eng in eng_list:
         RE(move_zp_ccd(eng))
         RE(fly_scan(exposure_time, relative_rot_angle, period, chunk_size, out_x, out_y, rs, parkpos, note))
@@ -1721,7 +1722,7 @@ def raster_2D_scan(
     Inputs:
     -------
 
-    x_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size 
+    x_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size
 
     y_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size
 
@@ -1742,7 +1743,7 @@ def raster_2D_scan(
     out_r: float, default is 0
         relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
         NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
-       
+
     img_sizeX: int, default is 2560, it is the pixel number for Andor camera horizontal
 
     img_sizeY: int, default is 2160, it is the pixel number for Andor camera vertical
@@ -1758,7 +1759,7 @@ def raster_2D_scan(
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
         False: will really close/open shutter
-              
+
     """
     global ZONE_PLATE
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
@@ -1926,7 +1927,7 @@ def raster_2D_scan2(
     Inputs:
     -------
 
-    x_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size 
+    x_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size
 
     y_range: two-elements list, e.g., [-1, 1], in unit of horizontal screen size
 
@@ -1947,7 +1948,7 @@ def raster_2D_scan2(
     out_r: float, default is 0
         relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
         NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
-       
+
     img_sizeX: int, default is 2560, it is the pixel number for Andor camera horizontal
 
     img_sizeY: int, default is 2160, it is the pixel number for Andor camera vertical
@@ -1963,7 +1964,7 @@ def raster_2D_scan2(
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
         False: will really close/open shutter
-              
+
     """
     global ZONE_PLATE
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
@@ -2188,7 +2189,7 @@ def multipos_2D_xanes_scan2(
 
     For example:
     RE(multipos_2D_xanes_scan2(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, exposure_time=0.1, sleep_time=60, chunk_size=5, relative_move_flag=True, note='sample')
-    
+
     Inputs:
     --------
     eng_list: list or numpy array,
@@ -2221,7 +2222,7 @@ def multipos_2D_xanes_scan2(
     out_r: float, default is 0
         relative movement of sample by rotating "out_r" degrees, using zps.pi_r to move out sample
         NOTE:  BE CAUSION THAT IT WILL ROTATE SAMPLE BY "out_r" FIRST, AND THEN MOVE X, Y, Z
-    
+
     repeat_num: integer, default is 1
         repeating multiposition xanes scans
 
@@ -2233,13 +2234,13 @@ def multipos_2D_xanes_scan2(
 
     chunk_size: int
            number of background images == num of dark images ==  num of image for each energy
-   
+
     relative_move_flag:
           if 1: relative movement of out_x, out_y, out_z, and out_r
           if 0: set absolute position of x, y, z, r to move out sample
 
     note: string
-    
+
     """
     print(eng_list)
     print(x_list)
@@ -2427,7 +2428,7 @@ def multipos_2D_xanes_scan3(
 
     For example:
     RE(multipos_2D_xanes_scan3(Ni_eng_list, x_list=[0,1,2], y_list=[2,3,4], z_list=[0,0,0], r_list=[0,0,0], out_x=1000, out_y=0, out_z=0, out_r=90, repeat_num=2, sleep_time=60, note='sample')
-    
+
     Inputs:
     --------
     eng_list: list or numpy array,
@@ -2471,7 +2472,7 @@ def multipos_2D_xanes_scan3(
            number of background images == num of dark images ==  num of image for each energy
 
     note: string
-    
+
     """
     global ZONE_PLATE
     txt = "starting multipos_2D_xanes_scan3"
@@ -2736,7 +2737,7 @@ def repeat_multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out
 
     txt = f'starting "repeat_multipos_2D_xanes_scan2", consists of following scans:'
     print(txt)
-    insert_text(txt)    
+    insert_text(txt)
     for i in range(repeat_num):
         print(f'repeat #{i}:\n ')
         yield from multipos_2D_xanes_scan2(eng_list, x_list, y_list, z_list, r_list, out_x, out_y, out_z, out_r, exposure_time,  chunk_size, simu, relative_move_flag, note, md)
