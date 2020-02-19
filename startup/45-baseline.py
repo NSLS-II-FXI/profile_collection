@@ -20,7 +20,7 @@ sd.baseline = [
     V5,
     filter1,
     filter2,
-    filter3, 
+    filter3,
     filter4,
     lakeshore336,
 ]

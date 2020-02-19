@@ -3,11 +3,12 @@ from datetime import datetime
 
 # Register bluesky IPython magics.
 from bluesky.magics import BlueskyMagics
+
 get_ipython().register_magics(BlueskyMagics)
 
 from bluesky.preprocessors import stage_decorator, run_decorator
 
-nslsii.configure_base(get_ipython().user_ns, 'fxi', bec=True)
+nslsii.configure_base(get_ipython().user_ns, "fxi", bec=True)
 
 # disable plotting from best effort callback
 bec.disable_plots()
@@ -20,17 +21,21 @@ EPICS_EPOCH = datetime(1990, 1, 1, 0, 0)
 
 
 def convert_AD_timestamps(ts):
-    return pd.to_datetime(ts, unit='s', origin=EPICS_EPOCH, utc=True).dt.tz_convert('US/Eastern')
+    return pd.to_datetime(ts, unit="s", origin=EPICS_EPOCH, utc=True).dt.tz_convert(
+        "US/Eastern"
+    )
+
 
 # subscribe the zmq plotter
 
 from bluesky.callbacks.zmq import Publisher
-publisher = Publisher('xf18id-srv1:5577', RE=RE)
+
+publisher = Publisher("xf18id-srv1:5577", RE=RE)
 RE.subscribe(publisher)
 
-#nslsii.configure_base(get_ipython().user_ns, 'fxi', bec=False)
+# nslsii.configure_base(get_ipython().user_ns, 'fxi', bec=False)
 
-'''
+"""
 def ts_msg_hook(msg):
     t = '{:%H:%M:%S.%f}'.format(datetime.now())
     msg_fmt = '{: <17s} -> {!s: <15s} args: {}, kwargs: {}'.format(
@@ -41,4 +46,4 @@ def ts_msg_hook(msg):
     print('{} {}'.format(t, msg_fmt))
 
 RE.msg_hook = ts_msg_hook
-'''
+"""
