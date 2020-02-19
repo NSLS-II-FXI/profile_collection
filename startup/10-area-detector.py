@@ -300,6 +300,7 @@ vlm.hdf5.read_attrs = []
 
 
 for det in [detA1, Andor]:
+    det.cam.num_images.kind = 'config'
     det.stats1.total.kind = "hinted"
     # It does not work since it's not defined in the class, commenting out:
     # det.stats5.total.kind = 'hinted'
