@@ -130,13 +130,14 @@ def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
     yield from abs_set(Andor.cam.image_mode, 0, wait=True)
 
     yield from bps.configure(
-        Andor,
+        Andor.cam,
         {
-            Andor.cam.num_images.dotted_name: chunk_size,
-            Andor.cam.acquire_time.dotted_name: exposure_time,
-            Andor.cam.acquire_period.dotted_name: period,
+            Andor.cam.num_images.attr_name: chunk_size,
+            # Andor.cam.acquire_time.attr_name: exposure_time,
+            # Andor.cam.acquire_period.attr_name: period,
         },
     )
+    yield from bps.configure(Andor, {})
 
 
 def _set_rotation_speed(rs=1):
