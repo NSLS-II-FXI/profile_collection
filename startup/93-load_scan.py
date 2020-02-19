@@ -177,8 +177,9 @@ def export_fly_scan(h):
     imgs = imgs[1:-1]
     s1 = imgs.shape
     imgs = imgs.reshape([s1[0] * s1[1], s1[2], s1[3]])
-
-    with db.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
+    from area_detector_handlers.handlers import HDF5VariableFramesHandlerTS
+    with db.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler,
+                                "AD_HDF5_v1": HDF5VariableFramesHandlerTS}):
         chunked_timestamps = list(h.data("Andor_image"))
 
     chunked_timestamps = chunked_timestamps[1:-1]
