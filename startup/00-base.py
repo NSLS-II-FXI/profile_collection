@@ -24,8 +24,9 @@ def convert_AD_timestamps(ts):
 
 # subscribe the zmq plotter
 
-#from bluesky.callbacks.zmq import Publisher
-#Publisher('xf18id-ca1:5577', RE=RE)
+from bluesky.callbacks.zmq import Publisher
+publisher = Publisher('xf18id-srv1:5577', RE=RE)
+RE.subscribe(publisher)
 
 #nslsii.configure_base(get_ipython().user_ns, 'fxi', bec=False)
 

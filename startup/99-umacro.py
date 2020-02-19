@@ -4,7 +4,7 @@ show_global_para()
 run_pdf()
 #read_calib_file()
 read_calib_file_new()
-    
+
 ###################################
 
 def load_xanes_ref(*arg):
@@ -265,21 +265,33 @@ def fan_scan(eng_list, x_list_2d, y_list_2d, z_list_2d, r_list_2d, x_list_3d, y_
     export_pdf(1)
 
 
-Ni_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_xanes_standard.txt')
-Ni_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_s_xanes_standard.txt')
+Ni_eng_list_101pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_xanes_standard_101pnt.txt')
+Ni_eng_list_63pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_xanes_standard_63pnt.txt')
+Ni_eng_list_wl = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_s_xanes_standard_21pnt.txt')
 
-Mn_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_xanes_standard.txt')
-Mn_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_s_xanes_standard.txt')
-Co_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_xanes_standard.txt')
-Co_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_s_xanes_standard.txt')
-Fe_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_xanes_standard.txt')
-Fe_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_s_xanes_standard.txt')
-V_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_xanes_standard.txt')
-V_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_s_xanes_standard.txt')
-Cr_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_xanes_standard.txt')
-Cr_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_s_xanes_standard.txt')
-Cu_eng_list = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_xanes_standard.txt')
-Cu_eng_list_short = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_s_xanes_standard.txt')
+Mn_eng_list_101pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_xanes_standard_101pnt.txt')
+Mn_eng_list_63pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_xanes_standard_63pnt.txt')
+Mn_eng_list_wl = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_s_xanes_standard_21pnt.txt')
+
+Co_eng_list_101pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_xanes_standard_101pnt.txt')
+Co_eng_list_63pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_xanes_standard_63pnt.txt')
+Co_eng_list_wl = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_s_xanes_standard_21pnt.txt')
+
+Fe_eng_list_101pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_xanes_standard_101pnt.txt')
+Fe_eng_list_63pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_xanes_standard_63pnt.txt')
+Fe_eng_list_wl = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_s_xanes_standard_21pnt.txt')
+
+V_eng_list_101pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_xanes_standard_101pnt.txt')
+V_eng_list_63pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_xanes_standard_63pnt.txt')
+V_eng_list_wl = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_s_xanes_standard_21pnt.txt')
+
+Cr_eng_list_101pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_xanes_standard_101pnt.txt')
+Cr_eng_list_63pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_xanes_standard_63pnt.txt')
+Cr_eng_list_wl = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_s_xanes_standard_21pnt.txt')
+
+Cu_eng_list_101pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_xanes_standard_101pnt.txt')
+Cu_eng_list_63pnt = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_xanes_standard_63pnt.txt')
+Cu_eng_list_wl = np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_s_xanes_standard_21pnt.txt')
 
 
 #def scan_3D_2D_overnight(n):

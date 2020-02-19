@@ -20,6 +20,9 @@ def change_hdf5_source(cam, roi_name):
 
 def distance(x1, y1, x2, y2):
     return np.sqrt((x1-x2)**2 + (y1-y2)**2)
+    
+def cal_global_mag(x1, y1, x2, y2, nominal_dist=10000) :
+    return 650./(nominal_dist/distance(x1, y1, x2, y2))
 
 
 ###################### new record caliber position function ################3
@@ -142,7 +145,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
     mag2 = CALIBER[f'mag{id2}']
     
     if not (np.abs(mag1/mag2 - 1) < 1e-3):
-        print(f'mismatch in magfinication:\nmagnificatoin at {eng12:5f} keV = {mag1}\nmagnificatoin at {eng2:2.5f} keV = {mag2}\nwill not move')
+        print(f'mismatch in magfinication:\nmagnificatoin at {eng1:5f} keV = {mag1}\nmagnificatoin at {eng2:2.5f} keV = {mag2}\nwill not move')
         return 0
     else:
         print(f'using reference at {eng1:2.5f} keV and {eng2:2.5f} kev to interpolate\n')

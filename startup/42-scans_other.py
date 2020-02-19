@@ -481,7 +481,7 @@ def load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_
         for pbsl_pos in pbsl_y_pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
-                yield from eng_scan_delay(eng_start, eng_end, steps, delay_time=delay_time)
+                yield from eng_scan_delay(eng_start, stop=eng_end, num=steps, delay_time=delay_time)
                 h = db[-1]
                 y0 = np.array(list(h.data(ic3.name)))
                 y1 = np.array(list(h.data(ic4.name)))
@@ -836,3 +836,88 @@ def overnight_count(detectors, num=1, delay=None, *, md=None):
 
 
 
+def knife_edge_scan_for_condensor(det=[detA1],
+                                  mot1=zps.sz, mot1_start=-1000, mot1_end=1000, mot1_points=11,
+                                  mot2=zps.sy, mot2_start=-50, mot2_end=50, mot2_points=11, mot2_snake=False):
+                                      
+    import h5py
+    import matplotlib.pylab as plt
+    import numpy as np
+    from numpy import polyfit, poly1d
+    from scipy.optimize import curve_fit
+    from scipy.special import erf
+    from scipy.signal import gaussian
+    
+    yield from  rel_grid_scan(det, mot1, mot1_start, mot1_end, mot1_points,
+                             mot2, mot2_start, mot2_end, mot2_points, mot2_snake)  
+    
+    hdr = db[-1]
+    res_uids = list(db.get_resource_uids(hdr))
+    for i, uid in enumerate(res_uids):
+        res_doc = db.reg.resource_given_uid(uid)
+    fpath_root = res_doc['root']
+    fpath_relative = res_doc['resource_path']
+    fn = fpath_root + '/' + fpath_relative
+    
+    def erfunc(x, mFL, a, b):
+        return mFL*erf((x-a)/(b*np.sqrt(2)))
+         
+    def gauss(x, *p):
+        A, mu, sigma = p
+        return A*np.exp(-(x-mu)**2/(2.*sigma**2))    
+      
+    f = h5py.File(fn, 'r')
+    img = f['/entry/data/data'][:]
+    f.close()
+    
+    zpt = mot1_points
+    ypt = mot2_points
+    cur = np.sum(img, axis=(1,2))
+    
+    fig0, ax0 = plt.subplots()
+    line0 = []
+    for ii in range(zpt):
+        l, = ax0.plot(cur[ii*ypt:(ii+1)*ypt],  color=(0.1*ii, np.mod(0.2*ii, 1), np.mod(0.3*ii, 1)))
+        line0.append(l)
+        line0[ii].set_label("{0}".format(ii))
+        ax0.legend()
+    
+    fig1, ax1 = plt.subplots()
+    line1 = []
+    for ii in range(zpt):
+        l, = ax1.plot(np.gradient(np.log10(cur[ii*ypt:(ii+1)*ypt])),  color=(0.1*ii, np.mod(0.2*ii, 1), np.mod(0.3*ii, 1)))
+        line1.append(l)
+        line1[ii].set_label("{0}".format(ii))
+        ax1.legend()
+        
+    fig2, ax2 = plt.subplots()
+    line2 = []
+    wz = []
+    for ii in range(zpt):       
+        p0 = [-0.15, 6, 1.2]
+        y = np.linspace(0, ypt-1, num=ypt)
+        yf = np.linspace(0, ypt-1, num=(ypt-1)*10+1)
+        params, extras = curve_fit(gauss,y, np.gradient(np.log10(cur[ii*ypt:(ii+1)*ypt])), p0)
+        wz.append(params[2])    
+        l, = ax2.plot(yf, gauss(yf, *params), color=(0.1*ii, np.mod(0.2*ii, 1), np.mod(0.3*ii, 1)))
+    
+        line2.append(l)
+        line2[ii].set_label("{0}".format(ii))
+        ax2.legend()    
+    
+    plt.figure(100)
+    plt.plot(wz)
+    
+    zpt_list = np.linspace(mot1_start, mot1_end, num=zpt)
+    for ii in range(zpt):
+        print(ii, zpt_list[ii])
+    
+    plt.show()                                   
+                                      
+                                      
+                                      
+                                      
+                                      
+                                      
+                                      
+                                      
