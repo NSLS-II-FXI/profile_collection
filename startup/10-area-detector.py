@@ -77,10 +77,12 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStorePluginBase):
 
     def generate_datum(self, key, timestamp, datum_kwargs):
         step = self.get_frames_per_point()
-        self._current_index += step
 
         datum_kwargs = datum_kwargs or {}
         datum_kwargs.update({"offset": self._current_index, "num_frames": step})
+
+        self._current_index += step
+
         return super().generate_datum(key, timestamp, datum_kwargs)
 
 
