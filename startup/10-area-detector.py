@@ -1,5 +1,9 @@
 from ophyd import Component as Cpt
-from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
+from ophyd.areadetector.filestore_mixins import (
+    FileStoreHDF5IterativeWrite,
+    FileStoreIterativeWrite,
+    FileStorePluginBase,
+)
 from ophyd import EpicsSignal, AreaDetector
 from ophyd import (
     ImagePlugin,
@@ -40,9 +44,22 @@ class AndorCam(CamV33Mixin, AreaDetectorCam):
                 cpt.ensure_nonblocking()
 
 
-class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
+class HDF5PluginWithFileStore(HDF5Plugin, FileStorePluginBase):
     # AD v2.2.0 (at least) does not have this. It is present in v1.9.1.
     file_number_sync = None
+    filestore_spec = "AD_HDF5_v1"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # can not be class level because parent sets this in __init__ :(
+        self.stage_sigs.update(
+            [
+                ("file_template", "%s%s_%6.6d.h5"),
+                ("file_write_mode", "Stream"),
+                ("capture", 1),
+            ]
+        )
+        self._current_index = 0
 
     def get_frames_per_point(self):
         return self.parent.cam.num_images.get()
@@ -51,6 +68,22 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
         # stash this so that it is available on resume
         self._ret = super().make_filename()
         return self._ret
+
+    def stage(self):
+        super().stage()
+        self._current_index = 0
+        res_kwargs = {}
+        self._generate_resource(res_kwargs)
+
+    def generate_datum(self, key, timestamp, datum_kwargs):
+        step = self.get_frames_per_point()
+
+        datum_kwargs = datum_kwargs or {}
+        datum_kwargs.update({"offset": self._current_index, "num_frames": step})
+
+        self._current_index += step
+
+        return super().generate_datum(key, timestamp, datum_kwargs)
 
 
 class AndorKlass(SingleTriggerV33, DetectorBase):
@@ -267,6 +300,7 @@ vlm.hdf5.read_attrs = []
 
 
 for det in [detA1, Andor]:
+    det.cam.num_images.kind = 'config'
     det.stats1.total.kind = "hinted"
     # It does not work since it's not defined in the class, commenting out:
     # det.stats5.total.kind = 'hinted'
