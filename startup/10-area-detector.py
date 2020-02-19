@@ -1,6 +1,9 @@
 from ophyd import Component as Cpt
 from ophyd.areadetector.filestore_mixins import (
-    FileStoreHDF5IterativeWrite, FileStoreIterativeWrite, FileStorePluginBase)
+    FileStoreHDF5IterativeWrite,
+    FileStoreIterativeWrite,
+    FileStorePluginBase,
+)
 from ophyd import EpicsSignal, AreaDetector
 from ophyd import (
     ImagePlugin,
@@ -44,15 +47,18 @@ class AndorCam(CamV33Mixin, AreaDetectorCam):
 class HDF5PluginWithFileStore(HDF5Plugin, FileStorePluginBase):
     # AD v2.2.0 (at least) does not have this. It is present in v1.9.1.
     file_number_sync = None
-    filestore_spec = 'AD_HDF5_v1'
+    filestore_spec = "AD_HDF5_v1"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # can not be class level because parent sets this in __init__ :(
-        self.stage_sigs.update([('file_template', '%s%s_%6.6d.h5'),
-                                ('file_write_mode', 'Stream'),
-                                ('capture', 1)
-                                ])
+        self.stage_sigs.update(
+            [
+                ("file_template", "%s%s_%6.6d.h5"),
+                ("file_write_mode", "Stream"),
+                ("capture", 1),
+            ]
+        )
         self._current_index = 0
 
     def get_frames_per_point(self):
@@ -74,8 +80,7 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStorePluginBase):
         self._current_index += step
 
         datum_kwargs = datum_kwargs or {}
-        datum_kwargs.update({'offset': self._current_index,
-                             'num_frames': step})
+        datum_kwargs.update({"offset": self._current_index, "num_frames": step})
         return super().generate_datum(key, timestamp, datum_kwargs)
 
 
