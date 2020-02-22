@@ -60,7 +60,7 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
         self._ts_datum_factory = None
         self._ts_resource_uid = ""
         self._ts_counter = None
-    
+
     def stage(self):
         self._ts_counter = itertools.count()
         return super().stage()
@@ -80,7 +80,7 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
 
         # Update the shape that describe() will report.
         self.time_stamp.shape = [self.get_frames_per_point()]
-        
+
         resource, self._ts_datum_factory = resource_factory(
             spec="AD_HDF5_TS",
             root=str(self.reg_root),
