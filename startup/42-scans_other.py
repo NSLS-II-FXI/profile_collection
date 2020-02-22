@@ -120,6 +120,7 @@ def z_scan(
     exposure_time=0.1,
     note="",
     md=None,
+    simu=False,
 ):
     """
     scan the zone-plate to find best focus
@@ -195,10 +196,11 @@ def z_scan(
     @stage_decorator(list(detectors) + [motor])
     @run_decorator(md=_md)
     def inner_scan():
-        yield from abs_set(shutter_open, 1, wait=True)
-        yield from bps.sleep(1)
-        yield from abs_set(shutter_open, 1)
-        yield from bps.sleep(1)
+#        yield from abs_set(shutter_open, 1, wait=True)
+#        yield from bps.sleep(1)
+#        yield from abs_set(shutter_open, 1)
+#        yield from bps.sleep(1)
+        yield from _open_shutter(simu=simu)
         for x in my_var:
             yield from mv(motor, x)
             yield from trigger_and_read(list(detectors) + [motor])
@@ -209,10 +211,11 @@ def z_scan(
         yield from bps.sleep(0.5)
         yield from trigger_and_read(list(detectors) + [motor])
         # dark images
-        yield from abs_set(shutter_close, 1, wait=True)
-        yield from bps.sleep(1)
-        yield from abs_set(shutter_close, 1)
-        yield from bps.sleep(1)
+#        yield from abs_set(shutter_close, 1, wait=True)
+#        yield from bps.sleep(1)
+#        yield from abs_set(shutter_close, 1)
+#        yield from bps.sleep(1)
+        yield from _close_shutter(simu=simu)
         yield from trigger_and_read(list(detectors) + [motor])
         # move back zone_plate and sample y
         yield from mv(zps.sx, x_ini)

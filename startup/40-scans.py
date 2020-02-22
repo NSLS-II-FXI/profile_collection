@@ -89,8 +89,10 @@ def _close_shutter(simu=False):
         # yield from mv(shutter, 'Close')
         i = 0
         while not shutter_status.value:  # if 1:  closed; if 0: open
+            yield from abs_set(shutter_open, 1, wait=True)
+            yield from bps.sleep(2)
             yield from abs_set(shutter_close, 1, wait=True)
-            yield from bps.sleep(3)
+            yield from bps.sleep(8)
             i += 1
             print(f"try closing again ...")
             if i > 20:
