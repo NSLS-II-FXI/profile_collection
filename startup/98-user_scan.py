@@ -121,10 +121,10 @@ def user_scan(
     # Co
     print('start taking tomo and xanes of Co')
     yield from mv(zps.pi_r, angle_ini)
-    yield from move_zp_ccd(7.75, move_flag=1) 
+    yield from move_zp_ccd(7.75, move_flag=1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
 
-    yield from move_zp_ccd(7.66, move_flag=1)  
+    yield from move_zp_ccd(7.66, move_flag=1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
     yield from mv(zps.pi_r, xanes_angle)
     if xanes_flag:
@@ -138,11 +138,11 @@ def user_scan(
     yield from move_zp_ccd(6.59, move_flag=1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
 
-    yield from move_zp_ccd(6.49, move_flag=1)  
+    yield from move_zp_ccd(6.49, move_flag=1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
     yield from mv(zps.pi_r, xanes_angle)
     if xanes_flag:
-        yield from xanes_scan2(eng_list_Mn, 0.1, chunk_size=5, out_x=out_x, out_y=out_y,note=note) 
+        yield from xanes_scan2(eng_list_Mn, 0.1, chunk_size=5, out_x=out_x, out_y=out_y,note=note)
     yield from mv(zps.pi_r, angle_ini)
 
     """
@@ -150,7 +150,7 @@ def user_scan(
 
 def user_xanes(out_x, out_y, note=""):
     """
-    yield from move_zp_ccd(7.4, move_flag=1, xanes_flag='2D')  
+    yield from move_zp_ccd(7.4, move_flag=1, xanes_flag='2D')
     yield from bps.sleep(1)
     yield from xanes_scan2(eng_list_Co, 0.05, chunk_size=5, out_x=out_x, out_y=out_y, note=note)
     yield from bps.sleep(5)
@@ -165,24 +165,24 @@ def user_xanes(out_x, out_y, note=""):
 
 """
 def user_flyscan(out_x, out_y, note=''):
-    yield from move_zp_ccd(8.35, move_flag=1, xanes_flag='2D') 
+    yield from move_zp_ccd(8.35, move_flag=1, xanes_flag='2D')
     yield from bps.sleep(1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
-    yield from move_zp_ccd(8.3, move_flag=1, xanes_flag='2D') 
-    yield from bps.sleep(1)
-    yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
-
-    yield from move_zp_ccd(7.75, move_flag=1, xanes_flag='2D') 
-    yield from bps.sleep(1)
-    yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
-    yield from move_zp_ccd(7.66, move_flag=1, xanes_flag='2D') 
+    yield from move_zp_ccd(8.3, move_flag=1, xanes_flag='2D')
     yield from bps.sleep(1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
 
-    yield from move_zp_ccd(6.59, move_flag=1, xanes_flag='2D') 
+    yield from move_zp_ccd(7.75, move_flag=1, xanes_flag='2D')
     yield from bps.sleep(1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
-    yield from move_zp_ccd(6.49, move_flag=1, xanes_flag='2D') 
+    yield from move_zp_ccd(7.66, move_flag=1, xanes_flag='2D')
+    yield from bps.sleep(1)
+    yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
+
+    yield from move_zp_ccd(6.59, move_flag=1, xanes_flag='2D')
+    yield from bps.sleep(1)
+    yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
+    yield from move_zp_ccd(6.49, move_flag=1, xanes_flag='2D')
     yield from bps.sleep(1)
     yield from fly_scan(0.05, relative_rot_angle=180, period=0.05, out_x=out_x, out_y=out_y,out_z=0, rs=2, parkpos=0, note=note)
 """
@@ -1383,7 +1383,7 @@ def multi_pos_2D_and_3D_xanes(
                 + "/eng_list_"
                 + elem2D['eng'].split("_")
                 + "_xanes_standard_63pnt.txt")
-            
+
         yield from multipos_2D_xanes_scan2(
                     eng_list,
                     x_list_2D,
@@ -1402,7 +1402,7 @@ def multi_pos_2D_and_3D_xanes(
                     md=None,
                     sleep_time=0,
                     repeat_num=1)
-            
+
     for elem3D in xanes3D:
         x_list_3D = []
         y_list_3D = []
@@ -1449,7 +1449,7 @@ def multi_pos_2D_and_3D_xanes(
                 + "/eng_list_"
                 + elem3D['eng'].split("_")
                 + "_xanes_standard_63pnt.txt")
-            
+
         yield from multi_pos_xanes_3D(
             eng_list,
             x_list_3D,
@@ -1469,9 +1469,9 @@ def multi_pos_2D_and_3D_xanes(
             traditional_sequence_flag=1,
             sleep_time=0,
             repeat=1)
-                    
-                    
-            
+
+
+
 #            find = False
 #            defined = False
 #            for flt_elem in filters.keys():
@@ -1685,7 +1685,7 @@ def multi_pos_2D_and_3D_xanes(
 #            )
 #            yield from bps.sleep(sleep_time)
 
-    
+
 #    for kk in range(repeat_num):
 #        for elem in elements:
 #            ### if there is a filter combination is defined for the element
@@ -2327,7 +2327,7 @@ def damon_scan(
             yield from mv(filter4, 1)
         yield from xanes_scan2() # for Mn
 
-        
+
         yield from move_zp_ccd(9)
         for i in range(4):
             yield from mv(filter2, 1)
@@ -2408,7 +2408,7 @@ def user_fly_scan(
     -------
     exposure_time: float, in unit of sec
 
-    relative_rot_angle: float, 
+    relative_rot_angle: float,
         total rotation angles start from current rotary stage (zps.pi_r) position
 
     period: float, in unit of sec
@@ -2442,7 +2442,7 @@ def user_fly_scan(
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
         False: will really close/open shutter
-    
+
     """
     global ZONE_PLATE
     motor_x_ini = zps.sx.position
@@ -2680,7 +2680,7 @@ def user_dark_only(exposure_time=0.1, chunk_size=20, note="", simu=False, md=Non
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
         False: will really close/open shutter
-    
+
     """
     global ZONE_PLATE
     period = exposure_time  # default to exposure time for backgrounds
@@ -2781,7 +2781,7 @@ def user_bkg_only(
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
         False: will really close/open shutter
-    
+
     """
     global ZONE_PLATE
     period = exposure_time  # default to exposure time for backgrounds
@@ -3210,7 +3210,7 @@ def ming():
         yield from mv(zps.pi_r, -70)
         yield from xanes_3D(Ni_list_3D, exposure_time=0.1, relative_rot_angle=140, period=0.1, out_x=None, out_y=None, out_z=2500, out_r=-20, rs=3, simu=False, relative_move_flag=1, note='N83_pos2')
         yield from mv(zps.pi_r, 0)
- 
+
         yield from multipos_2D_xanes_scan2(Ni_list_2D,x_list,y_list,z_list,r_list,out_x=None,out_y=None,out_z=950,out_r=-90,exposure_time=0.1,repeat_num=3,sleep_time=600,relative_move_flag=0,chunk_size=5,simu=False,note='N83_insitu_pristine_filter_2+3+4')
         yield from movpos(4, x_list, y_list, z_list, r_list)
         yield from mv(zps.pi_r, -70)
@@ -3220,7 +3220,7 @@ def ming():
     insert_text('take xanes of full_eng_list')
     for i in range(1):
         yield from multipos_2D_xanes_scan2(Ni_eng_list_63pnt,x_list,y_list,z_list,r_list,out_x=None,out_y=None,out_z=950,out_r=-90,exposure_time=0.1,repeat_num=3,sleep_time=600,relative_move_flag=0,chunk_size=5,simu=False,note='N83_insitu_pristine_filter_2+3+4')
-        
+
         for j in range(4):
             insert_text(f'taking 3D xanes at pos{j}\n')
             yield from movpos(j, x_list, y_list, z_list, r_list)
@@ -3234,18 +3234,18 @@ def ming():
         yield from mv(zps.pi_r, -70)
         yield from xanes_3D(Ni_list_3D, exposure_time=0.1, relative_rot_angle=140, period=0.1, out_x=None, out_y=None, out_z=2500, out_r=-20, rs=3, simu=False, relative_move_flag=1, note='N83_pos2')
         yield from mv(zps.pi_r, 0)
- 
+
         yield from multipos_2D_xanes_scan2(Ni_list_2D,x_list,y_list,z_list,r_list,out_x=None,out_y=None,out_z=950,out_r=-90,exposure_time=0.1,repeat_num=3,sleep_time=600,relative_move_flag=0,chunk_size=5,simu=False,note='N83_insitu_pristine_filter_2+3+4')
         yield from movpos(4, x_list, y_list, z_list, r_list)
         yield from mv(zps.pi_r, -70)
         yield from xanes_3D(Ni_list_3D, exposure_time=0.1, relative_rot_angle=145, period=0.1, out_x=None, out_y=None, out_z=2500, out_r=-20, rs=3, simu=False, relative_move_flag=1, note='N83_pos4')
-        yield from mv(zps.pi_r, 0)    
+        yield from mv(zps.pi_r, 0)
 
-    
-        
+
+
 def scan_change_expo_time(x_range, y_range, t1, t2, out_x=None, out_y=None, out_z=None, out_r=None, img_sizeX=2560, img_sizeY=2160, pxl=20, relative_move_flag=1, note='', simu=False, sleep_time=0, md=None):
     '''
-    take image 
+    take image
     '''
     motor_x_ini = zps.sx.position
     motor_y_ini = zps.sy.position
@@ -3301,7 +3301,7 @@ def scan_change_expo_time(x_range, y_range, t1, t2, out_x=None, out_y=None, out_
 
     @stage_decorator(list(detectors) + motor)
     @run_decorator(md=_md)
-    def inner():        
+    def inner():
         # take dark image
         print(f"take 5 dark image with exposure = {t1}")
         yield from _set_andor_param(exposure_time=t1, period=t1, chunk_size=1)
@@ -3318,45 +3318,31 @@ def scan_change_expo_time(x_range, y_range, t1, t2, out_x=None, out_y=None, out_
                 yield from mv(zps.sy, motor_y_ini + jj * img_sizeY * pxl * 1.0 / 1000)
                 yield from bps.sleep(0.1)
                 print(f'set exposure time = {t1}')
-                yield from _set_andor_param(exposure_time=t1, period=t1, chunk_size=1)   
-                yield from bps.sleep(sleep_time)             
+                yield from _set_andor_param(exposure_time=t1, period=t1, chunk_size=1)
+                yield from bps.sleep(sleep_time)
                 yield from _take_image(detectors, motor, 1)
                 print(f'set exposure time = {t2}')
                 yield from _set_andor_param(exposure_time=t2, period=t2, chunk_size=1)
                 yield from bps.sleep(sleep_time)
                 yield from _take_image(detectors, motor, 1)
                 print(f'take bkg image with exposure time = {t1}')
-                yield from _set_andor_param(exposure_time=t1, period=t1, chunk_size=1)  
-                yield from bps.sleep(sleep_time)  
-                yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, 
+                yield from _set_andor_param(exposure_time=t1, period=t1, chunk_size=1)
+                yield from bps.sleep(sleep_time)
+                yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out,
                                            detectors, motor, num_bkg=5, simu=simu)
                 print(f'take bkg image with exposure time = {t2}')
-                yield from _set_andor_param(exposure_time=t2, period=t2, chunk_size=1)  
-                yield from bps.sleep(sleep_time)  
-                yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out, 
+                yield from _set_andor_param(exposure_time=t2, period=t2, chunk_size=1)
+                yield from bps.sleep(sleep_time)
+                yield from _take_bkg_image(motor_x_out, motor_y_out, motor_z_out, motor_r_out,
                                            detectors, motor, num_bkg=5, simu=simu)
-    
-        yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini, 
+
+        yield from _move_sample_in(motor_x_ini, motor_y_ini, motor_z_ini, motor_r_ini,
                                             repeat=1, trans_first_flag=0)
 
         print("closing shutter")
         yield from _close_shutter(simu)
-        
+
     yield from inner()
     txt = get_scan_parameter()
     insert_text(txt)
     print(txt)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
