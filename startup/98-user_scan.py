@@ -268,7 +268,7 @@ def user_fly_scan(
     motor_r_out = motor_r_ini + out_r
     """
     motor_r_ini = zps.pi_r.position
-    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r, zps.pi_x]
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r, zps.pi_x]
 
     detectors = [Andor, ic3]
     offset_angle = -2.0 * rs
@@ -277,7 +277,7 @@ def user_fly_scan(
     #  target_rot_angle = current_rot_angle + relative_rot_angle
     _md = {
         "detectors": ["Andor"],
-        "motors": [mot.name for mot in motor],
+        "motors": [mot.name for mot in motors],
         "XEng": XEng.position,
         "ion_chamber": ic3.name,
         "plan_args": {
@@ -312,13 +312,13 @@ def user_fly_scan(
 
     print("set rotation speed: {} deg/sec".format(rs))
 
-    @stage_decorator(list(detectors) + motor)
+    @stage_decorator(list(detectors) + motors)
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def inner_scan():
         # close shutter, dark images: numer=chunk_size (e.g.20)
         print("\nshutter closed, taking dark images...")
-        yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+        yield from _take_dark_image(detectors, motors, num_dark=1, simu=simu)
 
         yield from mv(zps.pi_x, 0)
         yield from mv(zps.pi_r, -50)
@@ -330,7 +330,7 @@ def user_fly_scan(
         status = yield from abs_set(zps.pi_r, 50, wait=False)
         yield from bps.sleep(2)
         while not status.done:
-            yield from trigger_and_read(list(detectors) + motor)
+            yield from trigger_and_read(list(detectors) + motors)
         # bkg images
         print("\nTaking background images...")
         yield from _set_rotation_speed(rs=30)
@@ -338,7 +338,7 @@ def user_fly_scan(
 
         yield from mv(zps.pi_x, 12)
         yield from mv(zps.pi_r, 70)
-        yield from trigger_and_read(list(detectors) + motor)
+        yield from trigger_and_read(list(detectors) + motors)
 
         yield from _close_shutter(simu=simu)
         yield from mv(zps.pi_r, 0)
@@ -728,7 +728,7 @@ def fly_scan2(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
     offset_angle = -2 * rs
@@ -737,7 +737,7 @@ def fly_scan2(
     target_rot_angle = current_rot_angle + relative_rot_angle
     _md = {
         "detectors": ["Andor"],
-        "motors": [mot.name for mot in motor],
+        "motors": [mot.name for mot in motors],
         "XEng": XEng.position,
         "ion_chamber": ic3.name,
         "plan_args": {
@@ -792,7 +792,7 @@ def fly_scan2(
 
     # We manually stage the Andor detector below. See there for why....
     # Stage everything else here in the usual way.
-    @stage_decorator([ic3, motor])
+    @stage_decorator([ic3] + motors])
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def fly_inner_scan():
@@ -825,7 +825,7 @@ def fly_scan2(
         status = yield from abs_set(zps.pi_r, target_rot_angle, wait=False)
         yield from bps.sleep(2)
         while not status.done:
-            yield from trigger_and_read(list(detectors) + motor)
+            yield from trigger_and_read(list(detectors) + motors)
 
         # bkg images
         print("\nTaking background images...")
@@ -844,7 +844,7 @@ def fly_scan2(
             motor_z_out,
             motor_r_out,
             detectors,
-            motor,
+            motors,
             num_bkg=1,
             simu=False,
             traditional_sequence_flag=rot_first_flag,
@@ -853,7 +853,7 @@ def fly_scan2(
         # dark images
         yield from _close_shutter(simu=simu)
         print("\nshutter closed, taking dark images...")
-        yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+        yield from _take_dark_image(detectors, motors, num_dark=1, simu=simu)
 
         yield from bps.unstage(Andor)
         
@@ -911,7 +911,7 @@ def dummy_scan( exposure_time=0.1,
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
     offset_angle = -2 * rs
@@ -930,7 +930,7 @@ def dummy_scan( exposure_time=0.1,
     yield from _set_rotation_speed(rs=rs)
     print("set rotation speed: {} deg/sec".format(rs))
 
-    @stage_decorator(motor)
+    @stage_decorator(motors)
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def fly_inner_scan():
@@ -969,12 +969,12 @@ def radiographic_record(exp_t=0.1, period=0.1, t_span=10, stop=True,
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
                         
     detectors = [Andor, ic3]
     _md = {
         "detectors": ["Andor"],
-#        "motors": [mot.name for mot in motor],
+#        "motors": [mot.name for mot in motors],
         "XEng": XEng.position,
         "ion_chamber": ic3.name,
         "plan_args": {
@@ -2232,7 +2232,7 @@ def user_fly_scan(
         motor_z_out = out_z if out_z else motor_z_ini
         motor_r_out = out_r if out_r else motor_r_ini
 
-    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
     offset_angle = -0.5 * rs
@@ -2241,7 +2241,7 @@ def user_fly_scan(
     target_rot_angle = current_rot_angle + relative_rot_angle
     _md = {
         "detectors": ["Andor"],
-        "motors": [mot.name for mot in motor],
+        "motors": [mot.name for mot in motors],
         "XEng": XEng.position,
         "ion_chamber": ic3.name,
         "plan_args": {
@@ -2284,7 +2284,7 @@ def user_fly_scan(
     yield from _set_rotation_speed(rs=rs)
     print("set rotation speed: {} deg/sec".format(rs))
 
-    @stage_decorator(list(detectors) + motor)
+    @stage_decorator(list(detectors) + motors)
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def fly_inner_scan():
@@ -2293,7 +2293,7 @@ def user_fly_scan(
         yield from _set_andor_param(
             exposure_time=exposure_time, period=period, chunk_size=20
         )
-        yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+        yield from _take_dark_image(detectors, motors, num_dark=1, simu=simu)
         yield from bps.sleep(1)
         yield from _set_andor_param(
             exposure_time=exposure_time, period=period, chunk_size=chunk_size
@@ -2306,7 +2306,7 @@ def user_fly_scan(
         status = yield from abs_set(zps.pi_r, target_rot_angle, wait=False)
         yield from bps.sleep(1)
         while not status.done:
-            yield from trigger_and_read(list(detectors) + motor)
+            yield from trigger_and_read(list(detectors) + motors)
         # bkg images
         print("\nTaking background images...")
         yield from _set_rotation_speed(rs=30)
@@ -2324,7 +2324,7 @@ def user_fly_scan(
             motor_z_out,
             motor_r_out,
             detectors,
-            motor,
+            motors,
             num_bkg=1,
             simu=False,
             traditional_sequence_flag=traditional_sequence_flag,
@@ -2368,7 +2368,7 @@ def user_fly_only(
     motor_z_ini = zps.sz.position
     motor_r_ini = zps.pi_r.position
 
-    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
     # offset_angle = 0 #-0.5 * rs * np.sign(relative_rot_angle)
@@ -2377,7 +2377,7 @@ def user_fly_only(
     target_rot_angle = end_rot_angle
     _md = {
         "detectors": ["Andor"],
-        "motors": [mot.name for mot in motor],
+        "motors": [mot.name for mot in motors],
         "XEng": XEng.position,
         "ion_chamber": ic3.name,
         "plan_args": {
@@ -2415,14 +2415,14 @@ def user_fly_only(
     yield from _set_rotation_speed(rs=rs)
     print("set rotation speed: {} deg/sec".format(rs))
 
-    @stage_decorator(list(detectors) + motor)
+    @stage_decorator(list(detectors) + motors)
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def fly_inner_scan():
         yield from _open_shutter(simu=simu)
         status = yield from abs_set(zps.pi_r, target_rot_angle, wait=False)
         while not status.done:
-            yield from trigger_and_read(list(detectors) + motor)
+            yield from trigger_and_read(list(detectors) + motors)
 
     uid = yield from fly_inner_scan()
     yield from mv(Andor.cam.image_mode, 1)
@@ -2456,7 +2456,7 @@ def user_dark_only(exposure_time=0.1, chunk_size=20, note="", simu=False, md=Non
     global ZONE_PLATE
     period = exposure_time  # default to exposure time for backgrounds
     detectors = [Andor, ic3]
-    motor = []
+    motors = []
 
     _md = {
         "detectors": ["Andor"],
@@ -2490,13 +2490,13 @@ def user_dark_only(exposure_time=0.1, chunk_size=20, note="", simu=False, md=Non
         exposure_time=exposure_time, period=period, chunk_size=chunk_size
     )
 
-    @stage_decorator(list(detectors) + motor)
+    @stage_decorator(list(detectors) + motors)
     @run_decorator(md=_md)
     def inner_scan():
         yield from _set_andor_param(
             exposure_time=exposure_time, period=period, chunk_size=chunk_size
         )
-        yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+        yield from _take_dark_image(detectors, motors, num_dark=1, simu=simu)
 
     uid = yield from inner_scan()
     yield from mv(Andor.cam.image_mode, 1)
@@ -2572,14 +2572,14 @@ def user_bkg_only(
         motor_z_out = out_z if out_z else motor_z_ini
         motor_r_out = out_r if out_r else motor_r_ini
 
-    motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
     current_rot_angle = zps.pi_r.position
 
     _md = {
         "detectors": ["Andor"],
-        "motors": [mot.name for mot in motor],
+        "motors": [mot.name for mot in motors],
         "XEng": XEng.position,
         "ion_chamber": ic3.name,
         "plan_args": {
@@ -2614,7 +2614,7 @@ def user_bkg_only(
 
     # yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=chunk_size)
 
-    @stage_decorator(list(detectors) + motor)
+    @stage_decorator(list(detectors) + motors)
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def fly_inner_scan():
@@ -2628,7 +2628,7 @@ def user_bkg_only(
             motor_z_out,
             motor_r_out,
             detectors,
-            motor,
+            motors,
             num_bkg=1,
             simu=False,
             traditional_sequence_flag=traditional_sequence_flag,
