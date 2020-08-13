@@ -790,7 +790,9 @@ def fly_scan2(
     yield from _set_rotation_speed(rs=rs)
     print("set rotation speed: {} deg/sec".format(rs))
 
-    @stage_decorator(list(detectors) + motor)
+    # We manually stage the Andor detector below. See there for why....
+    # Stage everything else here in the usual way.
+    @stage_decorator([ic3, motor])
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def fly_inner_scan():
@@ -799,6 +801,21 @@ def fly_scan2(
             yield from mv(flt, 1)
             yield from mv(flt, 1)
         yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
+
+        # Manually stage the Andor. This creates a Resource document that
+        # continas the path to the HDF5 file where the detector writes. It also
+        # encodes the so-called 'frame_per_point' which here is what this plan
+        # calls chunk_size. The chunk_size CANNOT BE CHANGED later in the scan
+        # unless we unstage and re-stage the detector and generate a new
+        # Resource document.
+
+        # This approach imposes some unfortunate overhead (closing the HDF5
+        # file, opening a new one, going through all the steps to set the Area
+        # Detector's filepath PV, etc.). A better approach has been sketched
+        # in https://github.com/bluesky/area-detector-handlers/pull/11. It
+        # allows a single HDF5 file to contain multiple chunk_sizes.
+
+        yield from bps.stage(Andor)
         yield from bps.sleep(1)
         
         # open shutter, tomo_images
@@ -809,11 +826,17 @@ def fly_scan2(
         yield from bps.sleep(2)
         while not status.done:
             yield from trigger_and_read(list(detectors) + motor)
-            
+
         # bkg images
         print("\nTaking background images...")
         yield from _set_rotation_speed(rs=rot_back_velo)        
         yield from  abs_set(Andor.cam.num_images, 20, wait=True)
+
+        # Now that the new chunk_size has been set (20) create a new Resource
+        # document by unstage and re-staging the detector.
+        yield from bps.unstage(Andor)
+        yield from bps.stage(Andor)
+
         yield from bps.sleep(1)
         yield from _take_bkg_image(
             motor_x_out,
@@ -831,6 +854,8 @@ def fly_scan2(
         yield from _close_shutter(simu=simu)
         print("\nshutter closed, taking dark images...")
         yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+
+        yield from bps.unstage(Andor)
         
         # restore fliters
         yield from _move_sample_in(
