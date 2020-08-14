@@ -803,7 +803,7 @@ def fly_scan2(
         yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
 
         # Manually stage the Andor. This creates a Resource document that
-        # continas the path to the HDF5 file where the detector writes. It also
+        # contains the path to the HDF5 file where the detector writes. It also
         # encodes the so-called 'frame_per_point' which here is what this plan
         # calls chunk_size. The chunk_size CANNOT BE CHANGED later in the scan
         # unless we unstage and re-stage the detector and generate a new
@@ -3015,7 +3015,6 @@ def ming():
     
         
         
-
 
 
 
