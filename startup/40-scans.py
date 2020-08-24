@@ -68,7 +68,8 @@ def _move_sample_in(in_x, in_y, in_z, in_r, repeat=1, trans_first_flag=1):
 #        print('closing shutter ... ')
 #        # yield from mv(shutter, 'Close')
 #        i = 0
-#        while not shutter_status.value: # if 1:  closed; if 0: open
+#        reading = (yield from bps.rd(shutter_status))
+#        while not reading: # if 1:  closed; if 0: open
 #            yield from abs_set(shutter_close, 1, wait=True)
 #            yield from bps.sleep(5)
 #            i += 1
@@ -88,7 +89,8 @@ def _close_shutter(simu=False):
         print("closing shutter ... ")
         # yield from mv(shutter, 'Close')
         i = 0
-        while not shutter_status.value:  # if 1:  closed; if 0: open
+        reading = (yield from bps.rd(shutter_status))
+        while not reading:  # if 1:  closed; if 0: open
             #yield from abs_set(shutter_open, 1, wait=True)
             #yield from bps.sleep(2)
             yield from abs_set(shutter_close, 1, wait=True)
@@ -110,7 +112,8 @@ def _open_shutter(simu=False):
         print("opening shutter ... ")
         # yield from mv(shutter, 'Open')
         i = 0
-        while shutter_status.value:  # if 1:  closed; if 0: open
+        reading = (yield from bps.rd(shutter_status))
+        while reading:  # if 1:  closed; if 0: open
             yield from abs_set(shutter_open, 1, wait=True)
             yield from bps.sleep(1)
             i += 1
@@ -412,7 +415,7 @@ def xanes_scan(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    rs_ini = zps.pi_r.velocity.value
+    rs_ini = (yield from bps.rd(zps.pi_r.velocity))
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     _md = {
@@ -591,7 +594,7 @@ def xanes_scan2(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    rs_ini = zps.pi_r.velocity.value
+    rs_ini = (yield from bps.rd(zps.pi_r.velocity))
 
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 
@@ -779,7 +782,7 @@ def xanes_scan3(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    rs_ini = zps.pi_r.velocity.value
+    rs_ini = (yield from bps.rd(zps.pi_r.velocity))
 
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 

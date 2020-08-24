@@ -846,8 +846,8 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
             DetU_y_target = (eng_new - eng2)*(DetU_y_eng1 - DetU_y_eng2)/(eng1 - eng2) + DetU_y_eng2
             aper_x_target = (eng_new - eng2)*(aper_x_eng1 - aper_x_eng2)/(eng1 - eng2) + aper_x_eng2
             aper_y_target = (eng_new - eng2)*(aper_y_eng1 - aper_y_eng2)/(eng1 - eng2) + aper_y_eng2
-            #pzt_dcm_th2_ini = pzt_dcm_th2.pos.value
-            pzt_dcm_chi2_ini = pzt_dcm_chi2.pos.value
+            #pzt_dcm_th2_ini = (yield from bps.rd(pzt_dcm_th2.pos))
+            pzt_dcm_chi2_ini = (yield from bps.rd(pzt_dcm_chi2.pos.value))
             zp_x_ini = zp.x.position    
             zp_y_ini = zp.y.position
             th2_motor_ini = th2_motor.position

@@ -18,7 +18,7 @@ def pzt_scan(pzt_motor, start, stop, steps, detectors=[Vout2], sleep_time=1, md=
     
     """
     if Andor in detectors:
-        exposure_time = Andor.cam.acquire_time.value
+        exposure_time = (yield from bps.rd(Andor.cam.acquire_time))
         yield from mv(Andor.cam.acquire, 0)
         yield from mv(Andor.cam.image_mode, 0)
         yield from mv(Andor.cam.num_images, 1)

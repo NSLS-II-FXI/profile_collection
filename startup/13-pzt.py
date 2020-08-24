@@ -13,7 +13,7 @@ class PZT(Device):
 
     @property
     def stat(self):
-        return "Enabled" if self.status.value else "Disabled"
+        return "Enabled" if self.status.get() else "Disabled"
 
 
 class PZTwForce(PZT):
@@ -47,12 +47,12 @@ class pzt:
         self.stat = self.stat(pzt_prefix)
 
     def pzt_bender(self, pzt_prefix, flag):
-        return EpicsSignal(str(pzt_prefix) + "W-I").value if flag else "None"
+        return EpicsSignal(str(pzt_prefix) + "W-I").get() if flag else "None"
 
     def stat(self, pzt_prefix):
         return (
             "Enabled"
-            if EpicsSignal(str(pzt_prefix) + "GET_SERVO_STATE").value
+            if EpicsSignal(str(pzt_prefix) + "GET_SERVO_STATE").get()
             else "Disabled"
         )
 

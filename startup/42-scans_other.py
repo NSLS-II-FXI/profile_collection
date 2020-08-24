@@ -572,7 +572,7 @@ def load_cell_scan(
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
         yield from bps.sleep(5)
-        load_cell_force = pzt_cm_loadcell.value
+        load_cell_force = (yield from bps.rd(pzt_cm_loadcell))
         fig = plt.figure()
         ax1 = fig.add_subplot(211)
         ax2 = fig.add_subplot(212)
@@ -703,7 +703,7 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
     for bender_pos in bender_pos_list:
         yield from mv(pzt_motor, bender_pos)
         yield from bps.sleep(2)
-        load_cell_force = pzt_tm_loadcell.value
+        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
@@ -764,7 +764,7 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     for tm_yaw_pos in tm_yaw_pos_list:
         yield from mv(motor, tm_yaw_pos)
         yield from bps.sleep(2)
-        load_cell_force = pzt_tm_loadcell.value
+        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
@@ -814,7 +814,7 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     for pbsl_x_gap in pbsl_x_gap_list:
         yield from mv(motor, pbsl_x_gap)
         yield from bps.sleep(2)
-        load_cell_force = pzt_tm_loadcell.value
+        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
@@ -863,7 +863,7 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     for pbsl_y_gap in pbsl_y_gap_list:
         yield from mv(motor, pbsl_y_gap)
         yield from bps.sleep(2)
-        load_cell_force = pzt_tm_loadcell.value
+        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
