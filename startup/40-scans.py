@@ -89,10 +89,10 @@ def _close_shutter(simu=False):
         # yield from mv(shutter, 'Close')
         i = 0
         while not shutter_status.value:  # if 1:  closed; if 0: open
-            yield from abs_set(shutter_open, 1, wait=True)
-            yield from bps.sleep(2)
+            #yield from abs_set(shutter_open, 1, wait=True)
+            #yield from bps.sleep(2)
             yield from abs_set(shutter_close, 1, wait=True)
-            yield from bps.sleep(8)
+            yield from bps.sleep(3)
             i += 1
             print(f"try closing again ...")
             if i > 20:
@@ -111,7 +111,7 @@ def _open_shutter(simu=False):
         # yield from mv(shutter, 'Open')
         i = 0
         while shutter_status.value:  # if 1:  closed; if 0: open
-            yield from abs_set(shutter_open, 1)
+            yield from abs_set(shutter_open, 1, wait=True)
             yield from bps.sleep(1)
             i += 1
             if i > 5:
@@ -132,6 +132,7 @@ def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
     yield from abs_set(Andor.cam.image_mode, 0, wait=True)
     yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
     yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
+#    yield from abs_set(Andor.cam.acquire_period, period, wait=True)
     Andor.cam.acquire_period.put(period)
 
 
@@ -139,18 +140,18 @@ def _set_rotation_speed(rs=1):
     yield from abs_set(zps.pi_r.velocity, rs)
 
 
-def _take_image(detectors, motor, num):
+def _take_image(detectors, motor, num, stream_name='primary'):
     if not (type(detectors) == list):
         detectors = list(detectors)
     if not (type(motor) == list):
         motor = list(motor)
     for i in range(num):
-        yield from trigger_and_read(detectors + motor)
+        yield from trigger_and_read(detectors + motor, name=stream_name)
 
 
 def _take_dark_image(detectors, motor, num_dark=1, simu=False):
     yield from _close_shutter(simu)
-    yield from _take_image(detectors, motor, num_dark)
+    yield from _take_image(detectors, motor, num_dark)#, stream_name='dark')
 
 
 def _take_bkg_image(
@@ -167,7 +168,7 @@ def _take_bkg_image(
     yield from _move_sample_out(
         out_x, out_y, out_z, out_r, repeat=2, rot_first_flag=traditional_sequence_flag
     )
-    yield from _take_image(detectors, motor, num_bkg)
+    yield from _take_image(detectors, motor, num_bkg)#, stream_name='flat')
 
 
 def _xanes_per_step(eng, detectors, motor, move_flag=1, move_clens_flag=1, info_flag=0):
@@ -401,15 +402,15 @@ def xanes_scan(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     rs_ini = zps.pi_r.velocity.value
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
@@ -580,15 +581,15 @@ def xanes_scan2(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     rs_ini = zps.pi_r.velocity.value
 
@@ -652,7 +653,7 @@ def xanes_scan2(
 
         for eng in eng_list:
             yield from _xanes_per_step(
-                eng, detectors, motor, move_flag=1, move_clens_flag=1, info_flag=0
+                eng, detectors, motor, move_flag=1, move_clens_flag=0, info_flag=0
             )
             if len(flt):
                 for filt in flt:
@@ -768,15 +769,15 @@ def xanes_scan3(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     rs_ini = zps.pi_r.velocity.value
 
@@ -889,7 +890,7 @@ def mv_stage(motor, pos):
     yield Msg("set", motor, pos, group=grp)
     yield Msg("wait", None, group=grp)
 
-
+'''
 def eng_scan(
     eng_list,
     eng_start=8.3,
@@ -943,7 +944,6 @@ def eng_scan(
     for i in range(num):
         #      yield from scan([ic3, ic4], XEng, eng_start/1000, eng_end/1000, steps)
         yield from eng_scan_delay(
-            eng_list,
             eng_start,
             eng_end,
             steps,
@@ -952,8 +952,8 @@ def eng_scan(
             note="",
         )
         h = db[-1]
-        y0 = np.array(list(h.data(ic3.name)))
-        y1 = np.array(list(h.data(ic4.name)))
+        y0 = np.array(list(h.data(detectors[0].name)))
+        y1 = np.array(list(h.data(detectors[1].name)))
 
         r = np.log(y0 / y1)
         if not len(eng_list):
@@ -965,8 +965,8 @@ def eng_scan(
         r_dif = np.array([0] + list(np.diff(r)))
         ax2.plot(x, r_dif, ".-")
 
-    ax1.title.set_text("ratio of: {0}/{1}".format(ic3.name, ic4.name))
-    ax2.title.set_text("differential of: {0}/{1}".format(ic3.name, ic4.name))
+    ax1.title.set_text("ratio of: {0}/{1}".format(detectors[0].name, detectors[1].name))
+    ax2.title.set_text("differential of: {0}/{1}".format(detectors[0].name, detectors[1].name))
     fig.subplots_adjust(hspace=0.5)
     plt.show()
     txt_finish = '## "eng_scan()" finished'
@@ -975,9 +975,9 @@ def eng_scan(
     spec[:, 0] = x
     spec[:, 1] = r
     np.savetxt(f"{elem}_spec.txt", spec)
+'''
 
-
-def eng_scan_delay(
+def eng_scan(
     start, stop=None, num=1, detectors=[ic3, ic4], delay_time=1, note="", md=None
 ):
     """
@@ -1215,6 +1215,7 @@ def eng_scan_delay(
 
 def fly_scan(
     exposure_time=0.1,
+    start_angle = None,
     relative_rot_angle=180,
     period=0.15,
     chunk_size=20,
@@ -1230,11 +1231,15 @@ def fly_scan(
     filters=[],
     rot_back_velo=30,
     md=None,
+    binning=[1, 1]
 ):
     """
     Inputs:
     -------
     exposure_time: float, in unit of sec
+
+    start_angle: float
+        starting angle 
 
     relative_rot_angle: float, 
         total rotation angles start from current rotary stage (zps.pi_r) position
@@ -1273,21 +1278,25 @@ def fly_scan(
     
     """
     global ZONE_PLATE
+
     motor_x_ini = zps.sx.position
     motor_y_ini = zps.sy.position
     motor_z_ini = zps.sz.position
     motor_r_ini = zps.pi_r.position
 
+    if not (start_angle is None):
+        yield from mv(zps.pi_r, start_angle)
+
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
@@ -1303,6 +1312,7 @@ def fly_scan(
         "ion_chamber": ic3.name,
         "plan_args": {
             "exposure_time": exposure_time,
+            "start_angle": start_angle,
             "relative_rot_angle": relative_rot_angle,
             "period": period,
             "chunk_size": chunk_size,
@@ -1337,6 +1347,9 @@ def fly_scan(
     else:
         _md["hints"].setdefault("dimensions", dimensions)
 
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.bin_y, binning[0],
+                  Andor.cam.bin_x, binning[1])
     yield from _set_andor_param(
         exposure_time=exposure_time, period=period, chunk_size=chunk_size
     )
@@ -1775,15 +1788,15 @@ def raster_2D_scan(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     img_sizeX = np.int(img_sizeX)
     img_sizeY = np.int(img_sizeY)
@@ -1980,15 +1993,15 @@ def raster_2D_scan2(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     img_sizeX = np.int(img_sizeX)
     img_sizeY = np.int(img_sizeY)
@@ -2184,6 +2197,7 @@ def multipos_2D_xanes_scan2(
     relative_move_flag=True,
     note="",
     md=None,
+    binning=[1, 1]
 ):
     """
     Different from multipos_2D_xanes_scan. In the current scan, it take image at all locations and then move out sample to take background image.
@@ -2257,6 +2271,9 @@ def multipos_2D_xanes_scan2(
     insert_text(txt)
     detectors = [Andor, ic3, ic4]
     period = max(0.05, exposure_time)
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.bin_y, binning[0],
+                  Andor.cam.bin_x, binning[1])
     yield from _set_andor_param(exposure_time, period=period, chunk_size=chunk_size)
 
     eng_ini = XEng.position
@@ -2267,15 +2284,15 @@ def multipos_2D_xanes_scan2(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     motor = [XEng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 
@@ -2387,8 +2404,9 @@ def multipos_2D_xanes_scan2(
             # close shutter and sleep
             yield from _close_shutter(simu)
             # sleep
-            print(f"\nsleep for {sleep_time} seconds ...")
-            yield from bps.sleep(sleep_time)
+            if rep < repeat_num: 
+                print(f"\nsleep for {sleep_time} seconds ...")
+                yield from bps.sleep(sleep_time)
 
         yield from mv(
             zps.sx, x_list[0], zps.sy, y_list[0], zps.sz, z_list[0], zps.pi_r, r_list[0]
@@ -2489,15 +2507,15 @@ def multipos_2D_xanes_scan3(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_inil + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     motor = [XEng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 
@@ -2644,15 +2662,15 @@ def raster_2D_xanes2(
     motor_r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if out_x else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if out_y else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if out_z else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if out_r else motor_r_ini
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
     else:
-        motor_x_out = out_x if out_x else motor_x_ini
-        motor_y_out = out_y if out_y else motor_y_ini
-        motor_z_out = out_z if out_z else motor_z_ini
-        motor_r_out = out_r if out_r else motor_r_ini
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
     x_list, y_list, z_list, r_list = [], [], [], []
     for ii in np.arange(x_range[0], x_range[1] + 1):
@@ -2834,16 +2852,17 @@ def multipos_count(
                 y_ini = zps.sy.position
                 z_ini = zps.sz.position
                 r_ini = zps.pi_r.position
+
                 if relative_move_flag:
-                    x_target = x_ini + out_x if out_x else x_ini
-                    y_target = y_ini + out_y if out_y else y_ini
-                    z_target = z_ini + out_z if out_z else z_ini
-                    r_target = r_ini + out_r if out_r else r_ini
+                    x_target = x_ini + out_x if not (out_x is None) else x_ini
+                    y_target = y_ini + out_y if not (out_y is None) else y_ini
+                    z_target = z_ini + out_z if not (out_z is None) else z_ini
+                    r_target = r_ini + out_r if not (out_r is None) else r_ini
                 else:
-                    x_target = out_x if out_x else x_ini
-                    y_target = out_y if out_y else y_ini
-                    z_target = out_z if out_z else z_ini
-                    r_target = out_r if out_r else r_ini
+                    x_target = out_x if not (out_x is None) else x_ini
+                    y_target = out_y if not (out_y is None) else y_ini
+                    z_target = out_z if not (out_z is None) else z_ini
+                    r_target = out_r if not (out_r is None) else r_ini
                 yield from trigger_and_read(
                     list([Andor, ic3]) + [zps.sx, zps.sy, zps.sz, zps.pi_r]
                 )
@@ -2866,8 +2885,10 @@ def multipos_count(
 def xanes_3D(
     eng_list,
     exposure_time=0.05,
+    start_angle = None,
     relative_rot_angle=185,
     period=0.05,
+    chunk_size=20,
     out_x=0,
     out_y=0,
     out_z=0,
@@ -2875,11 +2896,15 @@ def xanes_3D(
     rs=2,
     simu=False,
     relative_move_flag=1,
-    traditional_sequence_flag=1,
+    rot_first_flag=1,
     note="",
+    binning = [2, 2]
 ):
     txt = "start 3D xanes scan, containing following fly_scan:\n"
     insert_text(txt)
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.bin_y, binning[0],
+                  Andor.cam.bin_x, binning[1])
     for eng in eng_list:
         yield from move_zp_ccd(eng, move_flag=1)
         my_note = note + f"_energy={eng}"
@@ -2888,16 +2913,19 @@ def xanes_3D(
         # yield from fly_scan(exposure_time, relative_rot_angle=relative_rot_angle, period=period, out_x=out_x, out_y=out_y, out_z=out_z, out_r= out_r, rs=rs, note=my_note, simu=simu, relative_move_flag=relative_move_flag, traditional_sequence_flag=traditional_sequence_flag)
         yield from fly_scan(
             exposure_time,
+            start_angle=start_angle,
             relative_rot_angle=relative_rot_angle,
             period=period,
+            chunk_size = chunk_size,
             out_x=out_x,
             out_y=out_y,
             out_z=out_z,
             out_r=out_r,
             rs=rs,
+            relative_move_flag=relative_move_flag,
             note=my_note,
             simu=simu,
-            relative_move_flag=relative_move_flag,
+            rot_first_flag=rot_first_flag,
         )
         yield from bps.sleep(1)
     yield from mv(Andor.cam.image_mode, 1)
@@ -2916,6 +2944,7 @@ def xanes_3D(
 
 def fly_scan_repeat(
     exposure_time=0.03,
+    start_angle = None,
     relative_rot_angle=185,
     period=0.05,
     chunk_size=20,
@@ -2943,6 +2972,7 @@ def fly_scan_repeat(
         for i in range(repeat):
             yield from fly_scan(
                 exposure_time=exposure_time,
+                start_angle = start_angle,
                 relative_rot_angle=relative_rot_angle,
                 period=period,
                 chunk_size=chunk_size,
@@ -2980,6 +3010,7 @@ def fly_scan_repeat(
                     )
                     yield from fly_scan(
                         exposure_time=exposure_time,
+                        start_angle=start_angle,
                         relative_rot_angle=relative_rot_angle,
                         period=period,
                         chunk_size=chunk_size,
@@ -3012,6 +3043,7 @@ def multi_pos_xanes_3D(
     y_list,
     z_list,
     r_list,
+    start_angle = None,
     exposure_time=0.05,
     relative_rot_angle=185,
     period=0.05,
@@ -3025,6 +3057,7 @@ def multi_pos_xanes_3D(
     traditional_sequence_flag=1,
     note="",
     sleep_time=0,
+    binning = [2, 2],
     repeat=1,
 ):
     n = len(x_list)
@@ -3045,18 +3078,21 @@ def multi_pos_xanes_3D(
             print(f"{txt}\n##########################\n\n\n\n")
             yield from xanes_3D(
                 eng_list,
-                exposure_time,
-                relative_rot_angle,
-                period,
-                out_x,
-                out_y,
-                out_z,
-                out_r,
-                rs,
-                simu,
-                relative_move_flag,
-                traditional_sequence_flag,
-                note,
+                exposure_time=exposure_time,
+                start_angle =start_angle,
+                relative_rot_angle=relative_rot_angle,
+                period=period,
+                out_x=out_x,
+                out_y=out_y,
+                out_z=out_z,
+                out_r=out_r,
+                rs=rs,
+                simu=simu,
+                relative_move_flag=relative_move_flag,
+                rot_first_flag=traditional_sequence_flag,
+                note=note,
+                binning = [2, 2],
             )
         print(f"sleep for {sleep_time} sec\n\n\n\n")
         yield from bps.sleep(sleep_time)
+

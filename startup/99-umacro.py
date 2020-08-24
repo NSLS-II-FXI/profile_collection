@@ -1,9 +1,8 @@
-new_user()
-show_global_para()
-run_pdf()
-# read_calib_file()
-read_calib_file_new()
-
+# new_user()
+# show_global_para()
+# run_pdf()
+# read_calib_file_new()
+# check_latest_scan_id(init_guess=60000, search_size=100)
 ###################################
 
 
@@ -432,6 +431,16 @@ Cu_eng_list_wl = np.genfromtxt(
     "/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_s_xanes_standard_21pnt.txt"
 )
 
+Zn_eng_list_101pnt = np.genfromtxt(
+    "/NSLS2/xf18id1/SW/xanes_ref/Zn/eng_list_Zn_xanes_standard_101pnt.txt"
+)
+Zn_eng_list_63pnt = np.genfromtxt(
+    "/NSLS2/xf18id1/SW/xanes_ref/Zn/eng_list_Zn_xanes_standard_63pnt.txt"
+)
+Zn_eng_list_wl = np.genfromtxt(
+    "/NSLS2/xf18id1/SW/xanes_ref/Zn/eng_list_Zn_s_xanes_standard_21pnt.txt"
+)
+
 
 # def scan_3D_2D_overnight(n):
 #
@@ -471,3 +480,12 @@ Cu_eng_list_wl = np.genfromtxt(
 #        RE(bps.sleep(600))
 #        print('sleep for 600sec')
 ###############################
+
+def mono_scan_repeatibility_test(pzt_cm_bender_pos_list, pbsl_y_pos_list,
+                                 eng_start, eng_end, steps,
+                                 delay_time=0.5, repeat=1):
+    for ii in range(repeat):
+        yield from load_cell_scan(pzt_cm_bender_pos_list,
+                                  pbsl_y_pos_list, 1,
+                                  eng_start, eng_end, steps,
+                                  delay_time=delay_time)
