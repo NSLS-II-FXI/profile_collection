@@ -83,7 +83,7 @@ def convert_AD_timestamps(ts):
 
 from bluesky.callbacks.zmq import Publisher
 
-publisher = Publisher("xf18id-srv1:5577", RE=RE)
+publisher = Publisher("xf18id-srv1:5577")
 RE.subscribe(publisher)
 
 # nslsii.configure_base(get_ipython().user_ns, 'fxi', bec=False)
