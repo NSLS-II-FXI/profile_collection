@@ -24,7 +24,8 @@ def reset_pdf():
     PDF_ARGS[
         "fn_log"
     ] = f'/NSLS2/xf18id1/DATA/FXI_log/TXM_log_test_{PDF_ARGS["year"]}{PDF_ARGS["month"]}{PDF_ARGS["day"]}.pdf'
-    PDF_ARGS["temp_folder"] = "/home/xf18id/.ipython/profile_collection/startup/temp"
+    #PDF_ARGS["temp_folder"] = "/home/xf18id/.ipython/profile_collection/startup/temp"
+    PDF_ARGS["temp_folder"] = "/NSLS2/xf18id1/DATA/FXI_log/temp"
     PDF_ARGS["temp_img_folder"] = PDF_ARGS["temp_folder"] + "/img"
     PDF_ARGS["fn_tmp"] = PDF_ARGS["temp_folder"] + "/tmp.pdf"
     PDF_ARGS["fn_tmp_txt"] = PDF_ARGS["temp_folder"] + "/current_log.txt"
@@ -161,7 +162,7 @@ def insert_pic(fn="", ratio=0.3):
         )
         PDF_ARGS["Cursor_x"] = 0.6 * inch
         PDF_ARGS["Cursor_y"] -= inch / 2
-        insert_text(fn)
+        insert_text('insert pic:'+fn)
         # PDF_ARGS['tmp_flag'] += 1
 
     except:
@@ -189,6 +190,7 @@ def insert_screen_shot(ratio=0.6):
     cmd = f"import {fn}"
     os.system(cmd)
     insert_pic(fn, ratio)
+    insert_text(fn)
 
 
 #    if flag==2: # current monitor screen
@@ -230,7 +232,10 @@ def merge_log():
             for line in fp:
                 if line[0] == "\n":
                     print(f"tmp_txt={tmp_txt}")
-                    insert_text(tmp_txt, 0)
+                    if 'insert pic' in tmp_txt.split(':')[0]:
+                        insert_pic(tmp_txt.split(':')[1])
+                    else:
+                        insert_text(tmp_txt, 0)
                     tmp_txt = ""
                 else:
                     tmp_txt += line
@@ -245,8 +250,8 @@ def merge_log():
                 reset_pdf()
             except:
                 print("merge fails... need manual check...")
-    except:
-        pass
+    except Exception as err:
+        print(err)
 
 
 def merge_pdf(fn1, fn2, fout):

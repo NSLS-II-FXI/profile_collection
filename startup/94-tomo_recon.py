@@ -12,9 +12,9 @@ def find_rot(fn, thresh=0.05, method=1):
 
     sr = StackReg(StackReg.TRANSLATION)
     f = h5py.File(fn, "r")
-    angle = np.array(list(f["angle"]))
+    ang = np.array(list(f["angle"]))
     img_bkg = np.squeeze(np.array(f["img_bkg_avg"]))
-    if np.abs(angle[0]) < np.abs(angle[0] - 90):  # e.g, rotate from 0 - 180 deg
+    if np.abs(ang[0]) < np.abs(ang[0] - 90):  # e.g, rotate from 0 - 180 deg
         tmp = np.abs(ang - ang[0] - 180).argmin()
     else:  # e.g.,rotate from -90 - 90 deg
         tmp = np.abs(ang - np.abs(ang[0])).argmin()

@@ -196,10 +196,10 @@ def z_scan(
     @stage_decorator(list(detectors) + [motor])
     @run_decorator(md=_md)
     def inner_scan():
-#        yield from abs_set(shutter_open, 1, wait=True)
-#        yield from bps.sleep(1)
-#        yield from abs_set(shutter_open, 1)
-#        yield from bps.sleep(1)
+        #        yield from abs_set(shutter_open, 1, wait=True)
+        #        yield from bps.sleep(1)
+        #        yield from abs_set(shutter_open, 1)
+        #        yield from bps.sleep(1)
         yield from _open_shutter(simu=simu)
         for x in my_var:
             yield from mv(motor, x)
@@ -211,10 +211,10 @@ def z_scan(
         yield from bps.sleep(0.5)
         yield from trigger_and_read(list(detectors) + [motor])
         # dark images
-#        yield from abs_set(shutter_close, 1, wait=True)
-#        yield from bps.sleep(1)
-#        yield from abs_set(shutter_close, 1)
-#        yield from bps.sleep(1)
+        #        yield from abs_set(shutter_close, 1, wait=True)
+        #        yield from bps.sleep(1)
+        #        yield from abs_set(shutter_close, 1)
+        #        yield from bps.sleep(1)
         yield from _close_shutter(simu=simu)
         yield from trigger_and_read(list(detectors) + [motor])
         # move back zone_plate and sample y
@@ -226,7 +226,8 @@ def z_scan(
         yield from mv(Andor.cam.image_mode, 1)
 
     uid = yield from inner_scan()
-
+    yield from mv(Andor.cam.image_mode, 1)
+    yield from _close_shutter(simu=False)
     txt = get_scan_parameter()
     insert_text(txt)
     print(txt)
@@ -347,7 +348,8 @@ def z_scan2(
         # yield from abs_set(shutter_open, 1, wait=True)
 
     yield from z_inner_scan()
-
+    yield from mv(Andor.cam.image_mode, 1)
+    yield from _close_shutter(simu=False)
     txt = get_scan_parameter()
     insert_text(txt)
     print(txt)
@@ -569,7 +571,7 @@ def load_cell_scan(
 
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
-        yield from bps.sleep(1)
+        yield from bps.sleep(5)
         load_cell_force = pzt_cm_loadcell.value
         fig = plt.figure()
         ax1 = fig.add_subplot(211)
@@ -1003,7 +1005,7 @@ def knife_edge_scan_for_condensor(
     import matplotlib.pylab as plt
     import numpy as np
     from numpy import polyfit, poly1d
-    from scipy.optimize import curve_fit
+    from scipy.optimize import curve_fit, least_squares
     from scipy.special import erf
     from scipy.signal import gaussian
 
@@ -1034,6 +1036,8 @@ def knife_edge_scan_for_condensor(
     def gauss(x, *p):
         A, mu, sigma = p
         return A * np.exp(-((x - mu) ** 2) / (2.0 * sigma ** 2))
+        
+#    def fit_gauss()
 
     f = h5py.File(fn, "r")
     img = f["/entry/data/data"][:]
@@ -1048,7 +1052,7 @@ def knife_edge_scan_for_condensor(
     for ii in range(zpt):
         (l,) = ax0.plot(
             cur[ii * ypt : (ii + 1) * ypt],
-            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
+#            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
         )
         line0.append(l)
         line0[ii].set_label("{0}".format(ii))
@@ -1059,7 +1063,7 @@ def knife_edge_scan_for_condensor(
     for ii in range(zpt):
         (l,) = ax1.plot(
             np.gradient(np.log10(cur[ii * ypt : (ii + 1) * ypt])),
-            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
+#            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
         )
         line1.append(l)
         line1[ii].set_label("{0}".format(ii))
@@ -1075,11 +1079,14 @@ def knife_edge_scan_for_condensor(
         params, extras = curve_fit(
             gauss, y, np.gradient(np.log10(cur[ii * ypt : (ii + 1) * ypt])), p0
         )
+#        params, extras = least_squares(
+#            gauss, y, jac='3-points', np.gradient(np.log10(cur[ii * ypt : (ii + 1) * ypt])), p0
+#        )
         wz.append(params[2])
         (l,) = ax2.plot(
             yf,
             gauss(yf, *params),
-            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
+#            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
         )
 
         line2.append(l)

@@ -7,6 +7,52 @@ from PIL import Image
 from scipy.signal import medfilt2d
 
 
+def check_latest_scan_id(init_guess=60000, search_size=100):
+    sid_from_md = RE.md['scan_id']
+    if len(list(db(scan_id=sid_from_md))) > 0:
+        sid_i = max(db[-1].start['scan_id'], sid_from_md, init_guess)
+    else: # current RE.md['scan_id'] is an empty scan, e.g., someone set RE.md['scan_id'] mistakely
+        sid_i = max(db[-1].start['scan_id'], init_guess)
+    sid = sid_i
+    n = len(list(db(scan_id=sid)))
+    if len(list(db(scan_id=sid))) == 1:
+        for i in range(1, 11):
+            if len(list(db(scan_id=sid+i))) == 1:
+                break
+        if i == 10:
+            return print(f'\nThe latest scan_id is {sid}, set RE.md["scan_id"]={sid}')
+    while n > 0:
+        sid_i = sid
+        sid += search_size
+        n = len(list(db(scan_id=sid)))
+        print(sid)
+    sid_n = sid
+    sid = int((sid_i + sid_n)/2)
+    print(f'sid_i = {sid_i}, sid_n = {sid_n}')
+    while 1:
+        print(f'sid_i = {sid_i}, sid_n = {sid_n} --> sid = {sid}')
+        n = len(list(db(scan_id=sid)))
+        if n > 0:
+            sid_i = sid
+        else:  # n=0: scan_id is empty
+            sid_n = sid
+        sid = int((sid_i + sid_n)/2)
+    #    print(f'sid_i = {sid_i}, sid_n = {sid_n} --> sid = {sid}')
+        if sid_n - sid_i <= 1:
+            break
+    tmp = []
+    for i in range(10): # check following 10 scans if any scan_id has not be used ever
+        tmp.append(len(list(db(scan_id=sid+i))))
+    tmp_len_equal_1 = np.where(np.array(tmp) == 1)[0]
+    if len(tmp_len_equal_1):
+        sid = sid + tmp_len_equal_1[-1]
+    sid = int(sid)
+    while not (len(list(db(scan_id=sid))) == 1 and len(list(db(scan_id=sid+1))) == 0):
+        sid += 1
+    RE.md['scan_id'] = sid
+    return print(f'\nThe latest scan_id is {sid}, set RE.md["scan_id"]={sid}')
+
+
 def change_hdf5_source(cam, roi_name):
     yield from bps.mov(cam.hdf5.nd_array_port, roi_name)
     yield from bps.abs_set(cam.cam.acquire, 1)
@@ -27,7 +73,7 @@ def cal_global_mag(x1, y1, x2, y2, nominal_dist=10000):
 
 
 def record_calib_pos_new(n):
-    global GLOBAL_MAG
+    global GLOBAL_MAG, CALIBER
 
     # CALIBER[f'chi2_pos{n}'] = pzt_dcm_chi2.pos.value
     CALIBER[f"chi2_pos{n}"] = dcm.chi2.position
@@ -56,9 +102,8 @@ def record_calib_pos_new(n):
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(tmp)
     df = pd.DataFrame.from_dict(CALIBER, orient="index")
-    df.to_csv(
-        "/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t"
-    )
+    df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv")
+    #df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
     print(
         f'calib_pos{n} recored: current Magnification = GLOBAL_MAG = {CALIBER[f"mag{n}"]}'
     )
@@ -66,57 +111,75 @@ def record_calib_pos_new(n):
 
 def remove_caliber_pos(n):
     global CALIBER_FLAG, CURRENT_MAG, CALIBER
+    df = pd.DataFrame.from_dict(CALIBER, orient="index")
+    df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_backup.csv")
+    CALIBER_backup = CALIBER.copy()
     try:
-        del CALIBER[f"chi2_pos{n}"]
-        del CALIBER[f"XEng_pos{n}"]
-        del CALIBER[f"zp_x_pos{n}"]
-        del CALIBER[f"zp_y_pos{n}"]
-        del CALIBER[f"th2_motor_pos{n}"]
-        del CALIBER[f"clens_x_pos{n}"]
-        del CALIBER[f"clens_y1_pos{n}"]
-        del CALIBER[f"clens_y2_pos{n}"]
-        del CALIBER[f"clens_p_pos{n}"]
-        del CALIBER[f"DetU_y_pos{n}"]
-        del CALIBER[f"DetU_x_pos{n}"]
-        del CALIBER[f"aper_x_pos{n}"]
-        del CALIBER[f"aper_y_pos{n}"]
-        del CURRENT_MAG[str(n)]
+        for k in CALIBER_backup.keys():
+            if k[-1] == str(n):
+                del CALIBER[k]
         df = pd.DataFrame.from_dict(CALIBER, orient="index")
-        df.to_csv(
-            "/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t"
-        )
+        #df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
+        df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv")
     except:
+        CALIBER = CALIBER.copy()
         print(f"fails to remove CALIBER postion {n}, or it does not exist")
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(CALIBER)
-
-
-def print_caliber():
+        print('CALIBER not changed')
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(CALIBER)
 
 
-def read_calib_file_new():
-    fn = "/home/xf18id/.ipython/profile_collection/startup/calib_new.csv"
+def print_caliber(print_eng_only=1, pos=-1):
+    if print_eng_only:
+        for k in CALIBER.keys():
+            if 'XEng' in k:
+                print(f'{k}: {CALIBER[k]:2.5f} keV')
+        print('If want to display full list of motor position, use "print_caliber(0, pos=1)"')
+        print('e.g., print_caliber(0, pos=-1) will display all recorded position in detail')
+        print('e.g., print_caliber(0, pos=1) will display will position 1 only')
+        
+    else:
+        if pos == -1:
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(CALIBER)
+        else:
+            tmp = {}
+            for k in CALIBER.keys():
+                if k[-1] == str(pos):
+                    tmp[k] = CALIBER[k]
+                    print(f'{k:>20s}: {CALIBER[k]:4.8f}') 
+            #pp = pprint.PrettyPrinter(indent=4)
+            #pp.pprint(tmp)
 
-    df = pd.read_csv(fn, index_col=0, sep="\t")
+def read_calib_file_new(return_flag=0):
+    #fn = "/home/xf18id/.ipython/profile_collection/startup/calib_new.csv"
+    fn = "/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv"
+    df = pd.read_csv(fn, index_col=0)
     d = df.to_dict("split")
     d = dict(zip(d["index"], d["data"]))
 
     for k in d.keys():
         CALIBER[k] = np.float(d[k][0])
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(CALIBER)
+
+    # pp = pprint.PrettyPrinter(indent=4)
+    # pp.pprint(CALIBER)
+    print('Energy caliberated at: ')
+    print_caliber()
     # except:
     #    print(f'fails to read calibriation file')
     #    CALIBER = {}
-
+    if return_flag:
+        return CALIBER
 
 def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0):
     """
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
-        move_zp_ccd_with_const_mag(eng_new=8.0, move_flag=1):
+        move_zp_ccd_with_const_mag(eng_new=8.0, move_flag=1)
+    Note:
+        in the above commend, it will use two energy calibration points to calculate the motor 
+        position of XEng=8.0 keV. 
+        specfically, one of the calibration points is > 8keV, the other one is < 8keV
 
     Inputs:
     -------
@@ -149,9 +212,25 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
     t = find_nearest(eng_new, ENG_val)
     eng1 = ENG_val.pop(t)
     id1 = ENG_idx.pop(t)
-    t = find_nearest(eng_new, ENG_val)
-    eng2 = ENG_val.pop(t)
-    id2 = ENG_idx.pop(t)
+    
+
+    ENG_val_copy = np.array(ENG_val.copy())
+    ENG_idx_copy = np.array(ENG_idx.copy())
+    if eng_new >= eng1:
+        idx = ENG_val_copy > eng_new
+    else:
+        idx = ENG_val_copy < eng_new
+
+    ENG_val_copy = ENG_val_copy[idx]
+    ENG_idx_copy = ENG_idx_copy[idx]
+    if len(ENG_val_copy):
+        t = find_nearest(eng_new, ENG_val_copy)
+        eng2 = ENG_val_copy[t]
+        id2 = ENG_idx_copy[t]
+    else:
+        t = find_nearest(eng_new, ENG_val)
+        eng2 = ENG_val[t]
+        id2 = ENG_idx[t]       
 
     mag1 = CALIBER[f"mag{id1}"]
     mag2 = CALIBER[f"mag{id2}"]
@@ -445,162 +524,6 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
 
 ################################
 
-
-"""
-def record_calib_pos1():
-    global CALIBER_FLAG, CURRENT_MAG_1, CURRENT_MAG_2
-    #CALIBER['th2_pos1'] = pzt_dcm_th2.pos.value
-    CALIBER['chi2_pos1'] = pzt_dcm_chi2.pos.value
-    CALIBER['XEng_pos1'] = XEng.position
-    CALIBER['zp_x_pos1'] = zp.x.position
-    CALIBER['zp_y_pos1'] = zp.y.position
-    CALIBER['th2_motor_pos1'] = th2_motor.position
-    CALIBER['clens_x_pos1'] = clens.x.position
-    CALIBER['clens_y1_pos1'] = clens.y1.position
-    CALIBER['clens_y2_pos1'] = clens.y2.position
-    CALIBER['clens_p_pos1'] = clens.p.position
-    CALIBER['DetU_x_pos1'] = DetU.x.position
-    CALIBER['DetU_y_pos1'] = DetU.y.position
-    CALIBER['aper_x_pos1'] = aper.x.position
-    CALIBER['aper_y_pos1'] = aper.y.position
-    
-    #print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
-    print(f'pzt_dcm_chi2_{CALIBER["XEng_pos1"]:2.4f} keV\t: {CALIBER["chi2_pos1"]:2.4f}')
-    print(f'zp_x_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["zp_x_pos1"]:2.4f}')
-    print(f'zp_y_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["zp_y_pos1"]:2.4f}')
-    print(f'th2_motor_{CALIBER["XEng_pos1"]:2.4f} keV\t: {CALIBER["th2_motor_pos1"]:2.6f}')
-    print(f'clens_x_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_x_pos1"]:2.4f}')
-    print(f'clens_y1_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_y1_pos1"]:2.4f}')
-    print(f'clens_y2_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_y2_pos1"]:2.4f}')
-    print(f'clens_p_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_p_pos1"]:2.4f}')
-    print(f'DetU_y_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["DetU_y_pos1"]:2.4f}')
-    print(f'aper_x_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["aper_x_pos1"]:2.4f}')
-    print(f'aper_y_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["aper_y_pos1"]:2.4f}')
-    df = pd.DataFrame.from_dict(CALIBER, orient='index')
-    df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
-    CURRENT_MAG_1 = (DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG
-    if np.abs(CURRENT_MAG_1 - CURRENT_MAG_2) > 0.1:
-        print('MAGNIFICATION between two calibration points does not match!!')
-        print(f'MAGNIFICATION_1 = {CURRENT_MAG_1}\nMAGNIFICATION_2 = {CURRENT_MAG_2}')
-        CALIBER_FLAG = 0
-    else:
-        
-        CALIBER_FLAG = 1
-    GLOBAL_MAG = np.round(CURRENT_MAG_1 * 100) / 100.
-    print(f'calib_pos1 recored: current Magnification = {CURRENT_MAG_1}')
-
-
-def record_calib_pos2():
-    global CALIBER_FLAG, CURRENT_MAG_1, CURRENT_MAG_2
-    #CALIBER['th2_pos2'] = pzt_dcm_th2.pos.value
-    CALIBER['chi2_pos2'] = pzt_dcm_chi2.pos.value
-    CALIBER['XEng_pos2'] = XEng.position
-    CALIBER['zp_x_pos2'] = zp.x.position
-    CALIBER['zp_y_pos2'] = zp.y.position
-    CALIBER['th2_motor_pos2'] = th2_motor.position
-    CALIBER['clens_x_pos2'] = clens.x.position
-    CALIBER['clens_y1_pos2'] = clens.y1.position
-    CALIBER['clens_y2_pos2'] = clens.y2.position
-    CALIBER['clens_p_pos2'] = clens.p.position
-    CALIBER['DetU_y_pos2'] = DetU.y.position
-    CALIBER['DetU_x_pos2'] = DetU.x.position
-    CALIBER['aper_x_pos2'] = aper.x.position
-    CALIBER['aper_y_pos2'] = aper.y.position
-    #print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
-    print(f'pzt_dcm_chi2_{CALIBER["XEng_pos2"]:2.4f} keV\t: {CALIBER["chi2_pos2"]:2.4f}')
-    print(f'zp_x_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["zp_x_pos2"]:2.4f}')
-    print(f'zp_y_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["zp_y_pos2"]:2.4f}')
-    print(f'th2_motor_{CALIBER["XEng_pos2"]:2.4f} keV\t: {CALIBER["th2_motor_pos2"]:2.6f}')
-    print(f'clens_p_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_p_pos2"]:2.4f}')
-    print(f'clens_x_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_x_pos2"]:2.4f}')
-    print(f'clens_y1_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_y1_pos2"]:2.4f}')
-    print(f'clens_y2_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_y2_pos2"]:2.4f}')
-    print(f'DetU_y_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["DetU_y_pos2"]:2.4f}')
-    print(f'aper_x_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["aper_x_pos2"]:2.4f}')
-    print(f'aper_y_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["aper_y_pos2"]:2.4f}')
-    df = pd.DataFrame.from_dict(CALIBER, orient='index')
-    df.to_csv('/home/xf18id/.ipython/profile_collection/startup/calib.csv', sep='\t')
-    CURRENT_MAG_2 = (DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG
-    if np.abs(CURRENT_MAG_1 - CURRENT_MAG_2) > 0.1:
-        print('MAGNIFICATION between two calibration points does not match!!')
-        print(f'MAGNIFICATION_1 = {CURRENT_MAG_1}\nMAGNIFICATION_2 = {CURRENT_MAG_2}')
-        CALIBER_FLAG = 0
-    else:
-        
-        CALIBER_FLAG = 1
-
-    GLOBAL_MAG = np.round(CURRENT_MAG_2 * 100) / 100.
-    print(f'calib_pos2 recored: current Magnification = {CURRENT_MAG_2}')
-
-
-def read_calib_file():
-    fn = '/home/xf18id/.ipython/profile_collection/startup/calib.csv'
-    try:
-        df = pd.read_csv(fn, index_col=0, sep='\t')
-        d = df.to_dict("split")
-        d = dict(zip(d["index"], d["data"]))
-        #CALIBER['th2_pos1'] = np.float(d['th2_pos1'][0])
-        CALIBER['chi2_pos1'] = np.float(d['chi2_pos1'][0])
-        CALIBER['XEng_pos1'] = np.float(d['XEng_pos1'][0])
-        CALIBER['zp_x_pos1'] = np.float(d['zp_x_pos1'][0])
-        CALIBER['zp_y_pos1'] = np.float(d['zp_y_pos1'][0])
-        CALIBER['th2_motor_pos1'] = np.float(d['th2_motor_pos1'][0])
-        CALIBER['clens_x_pos1'] = np.float(d['clens_x_pos1'][0])
-        CALIBER['clens_y1_pos1'] = np.float(d['clens_y1_pos1'][0])
-        CALIBER['clens_y2_pos1'] = np.float(d['clens_y2_pos1'][0])
-        CALIBER['clens_p_pos1'] = np.float(d['clens_p_pos1'][0])
-        CALIBER['DetU_x_pos1'] = np.float(d['DetU_x_pos1'][0])
-        CALIBER['DetU_y_pos1'] = np.float(d['DetU_y_pos1'][0])
-        CALIBER['aper_x_pos1'] = np.float(d['aper_x_pos1'][0])
-        CALIBER['aper_y_pos1'] = np.float(d['aper_y_pos1'][0])
-
-        #CALIBER['th2_pos2'] = np.float(d['th2_pos2'][0])
-        CALIBER['chi2_pos2'] = np.float(d['chi2_pos2'][0])
-        CALIBER['XEng_pos2'] = np.float(d['XEng_pos2'][0])
-        CALIBER['zp_x_pos2'] = np.float(d['zp_x_pos2'][0])
-        CALIBER['zp_y_pos2'] = np.float(d['zp_y_pos2'][0])
-        CALIBER['th2_motor_pos2'] = np.float(d['th2_motor_pos2'][0])
-        CALIBER['clens_x_pos2'] = np.float(d['clens_x_pos2'][0])
-        CALIBER['clens_y1_pos2'] = np.float(d['clens_y1_pos2'][0])
-        CALIBER['clens_y2_pos2'] = np.float(d['clens_y2_pos2'][0])
-        CALIBER['clens_p_pos2'] = np.float(d['clens_p_pos2'][0])
-        CALIBER['DetU_x_pos2'] = np.float(d['DetU_x_pos2'][0])
-        CALIBER['DetU_y_pos2'] = np.float(d['DetU_y_pos2'][0])
-        CALIBER['aper_x_pos2'] = np.float(d['aper_x_pos2'][0])
-        CALIBER['aper_y_pos2'] = np.float(d['aper_y_pos2'][0])
-    
-        #print(f'pzt_dcm_th2_{CALIBER["XEng_pos1"]:2.4f}\t: {CALIBER["th2_pos1"]:2.4f}')
-        print(f'pzt_dcm_chi2_{CALIBER["XEng_pos1"]:2.4f} keV\t: {CALIBER["chi2_pos1"]:2.4f}')
-        print(f'zp_x_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["zp_x_pos1"]:2.4f}')
-        print(f'zp_y_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["zp_y_pos1"]:2.4f}')
-        print(f'th2_motor_{CALIBER["XEng_pos1"]:2.4f} keV\t: {CALIBER["th2_motor_pos1"]:2.6f}')
-        print(f'clens_x_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_x_pos1"]:2.4f}')
-        print(f'clens_y1_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_y1_pos1"]:2.4f}')
-        print(f'clens_y2_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_y2_pos1"]:2.4f}')
-        print(f'clens_p_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["clens_p_pos1"]:2.4f}')
-        print(f'DetU_x_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["DetU_x_pos1"]:2.4f}')
-        print(f'DetU_y_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["DetU_y_pos1"]:2.4f}')
-        print(f'aper_x_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["aper_x_pos1"]:2.4f}')
-        print(f'aper_y_{CALIBER["XEng_pos1"]:2.4f} keV\t\t: {CALIBER["aper_y_pos1"]:2.4f}')
-        print('\n')
-        #print(f'pzt_dcm_th2_{CALIBER["XEng_pos2"]:2.4f}\t: {CALIBER["th2_pos2"]:2.4f}')
-        print(f'pzt_dcm_chi2_{CALIBER["XEng_pos2"]:2.4f} keV\t: {CALIBER["chi2_pos2"]:2.4f}')
-        print(f'zp_x_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["zp_x_pos2"]:2.4f}')
-        print(f'zp_y_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["zp_y_pos2"]:2.4f}')
-        print(f'th2_motor_{CALIBER["XEng_pos2"]:2.4f} keV\t: {CALIBER["th2_motor_pos2"]:2.6f}')
-        print(f'clens_x_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_x_pos2"]:2.4f}')
-        print(f'clens_y1_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_y1_pos2"]:2.4f}')
-        print(f'clens_y2_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_y2_pos2"]:2.4f}')
-        print(f'clens_p_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["clens_p_pos2"]:2.4f}')
-        print(f'DetU_x_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["DetU_x_pos2"]:2.4f}')
-        print(f'DetU_y_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["DetU_y_pos2"]:2.4f}')
-        print(f'aper_x_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["aper_x_pos2"]:2.4f}')
-        print(f'aper_y_{CALIBER["XEng_pos2"]:2.4f} keV\t\t: {CALIBER["aper_y_pos2"]:2.4f}')
-    except:
-        print(f'\nreading calibration file: {fn} fails...\n Please optimize optics at two energy points, and using record_calib_pos1() and record_calib_pos2() after optimizing each energy points ')
-"""
-
-
 def show_global_para():
     print(f"GLOBAL_MAG = {GLOBAL_MAG} X")  # total magnification
     print(f"GLOBAL_VLM_MAG = {GLOBAL_VLM_MAG} X")  # vlm magnification
@@ -645,9 +568,13 @@ def new_user():
     PI_name = input("PI's name:")
     PI_name = PI_name.replace(" ", "_").upper()
 
+    if len(PI_name) == 0:
+        cwd = os.getcwd()
+        print(f"\nstay at current directory: {cwd}\n")
+        return    
     if PI_name[0] == "*":
         cwd = os.getcwd()
-        print(f"stay at current directory: {cwd}\n")
+        print(f"\nstay at current directory: {cwd}\n")
         return
     if PI_name[:4] == "COMM":
         PI_name = "FXI_commission"
