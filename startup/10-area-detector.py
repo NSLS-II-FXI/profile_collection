@@ -76,8 +76,7 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
         root="/NSLS2/xf18id1/DATA/Andor",
         # write_path_template='/tmp/',
         # root='/dev/shm',
-        reg=None,
-    )  # placeholder to be set on instance as obj.hdf5.reg
+    )
 
     ac_period = Cpt(EpicsSignal, "cam1:AcquirePeriod")
 
@@ -162,8 +161,7 @@ class Manta(SingleTrigger, AreaDetector):
         root="/NSLS2/xf18id1/DATA/Andor",
         # write_path_template='/tmp/',
         # root='/',
-        reg=None,
-    )  # placeholder to be set on instance as obj.hdf5.reg
+    )
 
     ac_period = Cpt(EpicsSignal, "cam1:AcquirePeriod")
 
@@ -196,29 +194,21 @@ class Manta(SingleTrigger, AreaDetector):
 
 
 WPFS = Manta("XF:18IDA-BI{WPFS:1}", name="WPFS")
-WPFS.hdf5.reg = db.reg
-WPFS.hdf5._reg = db.reg
 WPFS.read_attrs = ["hdf5", "stats1"]
 WPFS.stats1.read_attrs = ["total"]
 WPFS.hdf5.read_attrs = []
 
 PMFS = Manta("XF:18IDA-BI{PMFS:1}", name="PMFS")
-PMFS.hdf5.reg = db.reg
-PMFS.hdf5._reg = db.reg
 PMFS.read_attrs = ["hdf5", "stats1"]
 PMFS.stats1.read_attrs = ["total"]
 PMFS.hdf5.read_attrs = []
 
 MFS = Manta("XF:18IDA-BI{MFS:1}", name="MFS")
-MFS.hdf5.reg = db.reg
-MFS.hdf5._reg = db.reg
 MFS.read_attrs = ["hdf5", "stats1"]
 MFS.stats1.read_attrs = ["total"]
 MFS.hdf5.read_attrs = []
 
 detA1 = Manta("XF:18IDB-BI{Det:A1}", name="detA1")
-detA1.hdf5.reg = db.reg
-detA1.hdf5._reg = db.reg
 # detA1.read_attrs = ['hdf5', 'stats1', 'stats5']
 # detA1.read_attrs = ['hdf5']
 detA1.read_attrs = ["hdf5", "stats1"]
@@ -229,8 +219,6 @@ detA1.hdf5.read_attrs = []
 """
 # return to old version of Andor
 Andor = Manta('XF:18IDB-BI{Det:Neo}', name='Andor')
-Andor.hdf5.reg = db.reg
-Andor.hdf5._reg = db.reg
 #Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
 #Andor.read_attrs = ['hdf5']
 Andor.read_attrs = ['hdf5', 'stats1']
@@ -242,8 +230,6 @@ Andor.hdf5.read_attrs = []
 
 Andor = AndorKlass("XF:18IDB-BI{Det:Neo}", name="Andor")
 Andor.cam.ensure_nonblocking()
-Andor.hdf5.reg = db.reg
-Andor.hdf5._reg = db.reg
 # Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
 # Andor.read_attrs = ['hdf5']
 Andor.read_attrs = ["hdf5", "stats1"]
@@ -256,8 +242,6 @@ for k in ("image", "stats1", "trans1", "roi1", "proc1"):
 
 
 vlm = Manta("XF:18IDB-BI{VLM:1}", name="vlm")
-vlm.hdf5.reg = db.reg
-vlm.hdf5._reg = db.reg
 # detA1.read_attrs = ['hdf5', 'stats1', 'stats5']
 # detA1.read_attrs = ['hdf5']
 vlm.read_attrs = ["hdf5", "stats1"]
