@@ -132,8 +132,8 @@ def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
     yield from abs_set(Andor.cam.image_mode, 0, wait=True)
     yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
     yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
-#    yield from abs_set(Andor.cam.acquire_period, period, wait=True)
-    Andor.cam.acquire_period.put(period)
+    yield from abs_set(Andor.cam.acquire_period, period, wait=True)
+#    Andor.cam.acquire_period.put(period)
 
 
 def _set_rotation_speed(rs=1):
@@ -1432,7 +1432,7 @@ def grid2D_rel(
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, 1)
     yield from mv(detectors[0].cam.acquire_time, exposure_time)
-    Andor.cam.acquire_period.put(exposure_time)
+    yield from mv(Andor.cam.acquire_period, exposure_time)
 
     motor1_ini = motor1.position
     motor2_ini = motor2.position

@@ -39,7 +39,7 @@ def test_scan(
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, 1)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    Andor.cam.acquire_period.put(exposure_time)
+    yield from mv(Andor.cam.acquire_period, exposure_time)
     detectors = [Andor]
     y_ini = zps.sy.position
     y_out = y_ini + out_y
@@ -161,7 +161,7 @@ def z_scan(
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    Andor.cam.acquire_period.put(np.max([exposure_time, 0.05]))
+    yield from mv(Andor.cam.acquire_period, np.max([exposure_time, 0.05]))
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -289,7 +289,7 @@ def z_scan2(
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    Andor.cam.acquire_period.put(exposure_time)
+    yield from mv(Andor.cam.acquire_period, exposure_time)
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -409,7 +409,7 @@ def z_scan3(
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    Andor.cam.acquire_period.put(exposure_time)
+    yield from mv(Andor.cam.acquire_period, exposure_time)
 
     _md = {
         "detectors": [det.name for det in detectors],

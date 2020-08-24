@@ -1539,7 +1539,7 @@ def zps_motor_scan_with_Andor(
         yield from mv(Andor.cam.image_mode, 0)
         yield from mv(Andor.cam.num_images, chunk_size)
         yield from mv(Andor.cam.acquire_time, exposure_time)
-        Andor.cam.acquire_period.put(period)
+        yield from mv(Andor.cam.acquire_period, exposure_time)
 
     if exposure_time is not None:
         yield from _set_andor_param()
