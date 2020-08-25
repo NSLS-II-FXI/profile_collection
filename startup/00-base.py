@@ -7,8 +7,11 @@ from bluesky.magics import BlueskyMagics
 get_ipython().register_magics(BlueskyMagics)
 
 from bluesky.preprocessors import stage_decorator, run_decorator
+from databroker.v0 import Broker
+db = Broker.named('fxi')
+del Broker
 
-nslsii.configure_base(get_ipython().user_ns, "fxi", bec=True)
+nslsii.configure_base(get_ipython().user_ns, db, bec=True)
 
 # Work around ophyd being too noisy in 1.5.2
 import logging
