@@ -83,7 +83,10 @@ def _move_sample_in(in_x, in_y, in_z, in_r, repeat=1, trans_first_flag=1):
 
 
 def _close_shutter(simu=False):
-    yield from mv(shutter, 'Close')
+    if simu:
+        print("testing: close shutter")
+    else:
+        yield from mv(shutter, 'Close')
 
 '''
 def _close_shutter(simu=False):
@@ -108,8 +111,14 @@ def _close_shutter(simu=False):
         # yield from abs_set(shutter_close, 1)
         # yield from bps.sleep(1)
 '''
+
 def _open_shutter(simu=False):
-    yield from mv(shutter, 'Open')
+    if simu:
+        print("testing: open shutter")
+    else:
+        yield from mv(shutter, 'Open')
+
+
 '''
 def _open_shutter(simu=False):
     if simu:
@@ -141,7 +150,7 @@ def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
     yield from abs_set(Andor.cam.image_mode, 0, wait=True)
     yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
     yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
-    yield from abs_set(Andor.cam.acquire_period, period, wait=True)
+    yield from abs_set(Andor.cam.acquire_period, period)
 #    Andor.cam.acquire_period.put(period)
 
 
