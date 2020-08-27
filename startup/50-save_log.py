@@ -141,14 +141,14 @@ def wh_pos(comment="", print_on_screen=1):
                 offset = np.round(offset, decimals=prec)
 
             try:
-                encoder = (yield from bps.rd(p.dial_readback))
-                counts = (yield from bps.rd(p.dial_counts))
-                encoder_res = (yield from bps.rd(p.encoder_res))
-                motor_res = (yield from bps.rd(p.motor_res))
-                motor_velocity = (yield from bps.rd(p.velocity))
-                motor_stat = (yield from bps.rd(p.motor_stat))
-                offset_dir = (yield from bps.rd(p.user_offset_dir))
-                motor_unit = (yield from bps.rd(p.motor_egu))
+                encoder = p.dial_readback.value
+                counts = p.dial_counts.value
+                encoder_res = p.encoder_res.value
+                motor_res = p.motor_res.value
+                motor_velocity = p.velocity.value
+                motor_stat = p.motor_stat.value
+                offset_dir = p.user_offset_dir.value
+                motor_unit = p.motor_egu.value
 
             except Exception as exc:
                 encoder = (
