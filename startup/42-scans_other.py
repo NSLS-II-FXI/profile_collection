@@ -161,7 +161,8 @@ def z_scan(
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    yield from mv(Andor.cam.acquire_period, np.max([exposure_time, 0.05]))
+    period_cor = max(exposure_time+0.01, 0.05)
+    yield from mv(Andor.cam.acquire_period, period_cor)
 
     _md = {
         "detectors": [det.name for det in detectors],
