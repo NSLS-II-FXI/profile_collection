@@ -141,18 +141,12 @@ def _open_shutter(simu=False):
 '''
 
 def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
-    #    yield from mv(Andor.cam.acquire, 0)
-    #    yield from mv(Andor.cam.image_mode, 0)
-    #    yield from mv(Andor.cam.num_images, chunk_size)
-    #    yield from mv(Andor.cam.acquire_time, exposure_time)
-
-    yield from abs_set(Andor.cam.acquire, 0, wait=True)
-    yield from abs_set(Andor.cam.image_mode, 0, wait=True)
-    yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
-    yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
+    yield from mv(Andor.cam.num_images, chunk_size)
+    yield from mv(Andor.cam.acquire_time, exposure_time)
     period_cor = max(exposure_time+0.01, 0.03)
-    yield from abs_set(Andor.cam.acquire_period, period_cor)
-#    Andor.cam.acquire_period.put(period)
+    yield from mv(Andor.cam.acquire_period, period_cor)
 
 
 def _set_rotation_speed(rs=1):
