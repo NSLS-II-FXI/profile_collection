@@ -196,7 +196,7 @@ filter2 = EpicsSignal("XF:18IDB-UT{Fltr:2}Cmd:In-Cmd", name="filter2")
 filter3 = EpicsSignal("XF:18IDB-UT{Fltr:3}Cmd:In-Cmd", name="filter3")
 filter4 = EpicsSignal("XF:18IDB-UT{Fltr:4}Cmd:In-Cmd", name="filter4")
 
-FILTERS = {
+filters = {
     "filter1": filter1,
     "filter2": filter2,
     "filter3": filter3,
