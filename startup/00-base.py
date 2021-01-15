@@ -13,10 +13,6 @@ del Broker
 
 nslsii.configure_base(get_ipython().user_ns, db, bec=True)
 
-# Work around ophyd being too noisy in 1.5.2
-import logging
-logging.getLogger('ophyd').setLevel('WARNING')
-
 
 # Make new RE.md storage available in old environments.
 from pathlib import Path
