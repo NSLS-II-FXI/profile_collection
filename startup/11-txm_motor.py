@@ -156,6 +156,13 @@ class TXM_SSA(Device):
     h_gap = Cpt(MyBaseMotor, "-Ax:Hgap}Mtr")
     h_ctr = Cpt(MyBaseMotor, "-Ax:Hctr}Mtr")
 
+class Scint(Device):
+    x = Cpt(MyEpicsMotor, "-Ax:X}Mtr")
+    y = Cpt(MyEpicsMotor, "-Ax:Y}Mtr")
+    z = Cpt(MyEpicsMotor, "-Ax:Z}Mtr")
+
+
+scint = Scint("XF:18IDB-OP{Det:Lens", name="scint")
 
 ssa = TXM_SSA("XF:18IDB-OP{SSA:1", name="ssa")
 
@@ -202,6 +209,8 @@ filters = {
     "filter3": filter3,
     "filter4": filter4,
 }
+
+beam_current = EpicsSignalRO('SR:OPS-BI{DCCT:1}I:Real-I', name='beam_current') 
 
 motor_txm = [
     clens.x,

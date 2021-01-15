@@ -35,11 +35,12 @@ def test_scan(
     num_bkg: int, number of backgroud image to take
     """
 
-    yield from mv(Andor.cam.acquire, 0)
-    yield from mv(Andor.cam.image_mode, 0)
-    yield from mv(Andor.cam.num_images, 1)
-    yield from mv(Andor.cam.acquire_time, exposure_time)
-    yield from mv(Andor.cam.acquire_period, exposure_time)
+    yield from _set_andor_param(exposure_time, exposure_time, 1)
+    #yield from mv(Andor.cam.acquire, 0)
+    #yield from mv(Andor.cam.image_mode, 0)
+    #yield from mv(Andor.cam.num_images, 1)
+    #yield from mv(Andor.cam.acquire_time, exposure_time)
+    #yield from mv(Andor.cam.acquire_period, exposure_time)
     detectors = [Andor]
     y_ini = zps.sy.position
     y_out = y_ini + out_y
@@ -581,8 +582,8 @@ def load_cell_scan(
         for pbsl_pos in pbsl_y_pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
-                yield from eng_scan_delay(
-                    eng_start, stop=eng_end, num=steps, delay_time=delay_time
+                yield from eng_scan(
+                    eng_start, stop=eng_end, num=steps, detectors=[ic3, ic4], delay_time=delay_time
                 )
                 h = db[-1]
                 y0 = np.array(list(h.data(ic3.name)))

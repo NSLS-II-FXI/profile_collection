@@ -14,3 +14,4 @@ startup/temp/
 startup/backup/
 startup/calib_copy_Feb10_2019.csv
 startup/hs_err_pid7527.log
+.vscode/

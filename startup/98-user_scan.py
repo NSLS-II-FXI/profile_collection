@@ -781,9 +781,9 @@ def fly_scan2(
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.bin_y, binning[0],
                   Andor.cam.bin_x, binning[1])
-    yield from abs_set(Andor.cam.acquire_time, exposure_time, wait=True)
-#    yield from abs_set(Andor.cam.acquire_period, period, wait=True)
-    Andor.cam.acquire_period.put(period)
+    yield from mv(Andor.cam.acquire_time, exposure_time)
+    yield from mv(Andor.cam.acquire_period, max(period, exposure_time+0.01))
+#    Andor.cam.acquire_period.put(period)
     
 #    yield from _set_andor_param(
 #        exposure_time=exposure_time, period=period, chunk_size=chunk_size
@@ -801,7 +801,7 @@ def fly_scan2(
         for flt in filters:
             yield from mv(flt, 1)
             yield from mv(flt, 1)
-        yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
+#        yield from mv(Andor.cam.num_images, chunk_size, timeout=10)  ## commented out by XH
 
         # Manually stage the Andor. This creates a Resource document that
         # contains the path to the HDF5 file where the detector writes. It also
@@ -818,6 +818,7 @@ def fly_scan2(
 
         yield from bps.stage(Andor)
         yield from bps.sleep(1)
+        yield from mv(Andor.cam.num_images, chunk_size, timeout=10)  ## added by XH
         
         # open shutter, tomo_images
         yield from _open_shutter(simu=simu)
@@ -831,7 +832,7 @@ def fly_scan2(
         # bkg images
         print("\nTaking background images...")
         yield from _set_rotation_speed(rs=rot_back_velo)        
-        yield from  abs_set(Andor.cam.num_images, 20, wait=True)
+        yield from  mv(Andor.cam.num_images, 20)
 
         # Now that the new chunk_size has been set (20) create a new Resource
         # document by unstage and re-staging the detector.
@@ -927,9 +928,6 @@ def dummy_scan( exposure_time=0.1,
     )
     yield from mv(Andor.cam.image_mode, 1)
     yield from mv(Andor.cam.acquire, 1)
-    
-    yield from _set_rotation_speed(rs=rs)
-    print("set rotation speed: {} deg/sec".format(rs))
 
     @stage_decorator(motors)
     @bpp.monitor_during_decorator([zps.pi_r])
@@ -938,15 +936,29 @@ def dummy_scan( exposure_time=0.1,
         # open shutter, tomo_images
         yield from _open_shutter(simu=simu)
         print("\nshutter opened, taking tomo images...")
+        yield from _set_rotation_speed(rs=rs)
         yield from mv(zps.pi_r, current_rot_angle + offset_angle)
         status = yield from abs_set(zps.pi_r, target_rot_angle, wait=False)
         while not status.done:
             yield from bps.sleep(1)
+        yield from _set_rotation_speed(rs=30)
+        print("set rotation speed: {} deg/sec".format(rs))
         status = yield from abs_set(zps.pi_r, current_rot_angle + offset_angle, wait=False)
         while not status.done:
             yield from bps.sleep(1)
+        yield from abs_set(zps.sx, motor_x_out, wait=True)
+        yield from abs_set(zps.sy, motor_y_out, wait=True)
+        yield from abs_set(zps.sz, motor_z_out, wait=True)
+        yield from abs_set(zps.pi_r, motor_r_out, wait=True)
+        
+        yield from abs_set(zps.sx, motor_x_ini, wait=True)
+        yield from abs_set(zps.sy, motor_y_ini, wait=True)
+        yield from abs_set(zps.sz, motor_z_ini, wait=True)
+        yield from abs_set(zps.pi_r, motor_r_ini, wait=True)
+                
     for ii in range(repeat):
         yield from fly_inner_scan()
+        print('{}th scan finished'.format(ii))
     yield from _set_rotation_speed(rs=rot_back_velo)
     print("dummy scan finished")
 

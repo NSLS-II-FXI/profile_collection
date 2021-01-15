@@ -144,9 +144,13 @@ def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1):
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
+    #yield from mv(Andor.cam.acquire_time, 0.001)
+    #period_cor = max(exposure_time+0.01, 0.03, period)
+    period_cor = period
+    #yield from mv(Andor.cam.acquire_period, period_cor)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    period_cor = max(exposure_time+0.01, 0.03)
-    yield from mv(Andor.cam.acquire_period, period_cor)
+    #yield from abs_set(Andor.cam.acquire_period, period_cor)
+    Andor.cam.acquire_period.put(period_cor)
 
 
 def _set_rotation_speed(rs=1):
@@ -334,7 +338,7 @@ def tomo_scan(
             motor_r_out,
             detectors,
             motor,
-            num_bkg=1,
+            num_bkg=bkg_num,
             simu=False,
             traditional_sequence_flag=traditional_sequence_flag,
         )
@@ -657,7 +661,7 @@ def xanes_scan2(
         # take dark image
         print("\ntake {} dark images...".format(chunk_size))
         yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
-
+        
         print(
             "\nopening shutter, and start xanes scan: {} images per each energy... ".format(
                 chunk_size
@@ -2021,8 +2025,8 @@ def raster_2D_scan2(
 
     img_sizeX = np.int(img_sizeX)
     img_sizeY = np.int(img_sizeY)
-    x_range = np.int(x_range)
-    y_range = np.int(y_range)
+    x_range = np.int_(x_range)
+    y_range = np.int_(y_range)
 
     print("hello1")
     _md = {

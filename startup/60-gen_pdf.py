@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.units import cm, inch
+from reportlab.lib.units import inch
 from PyPDF2 import PdfFileMerger, PdfFileReader
 import shutil
 import os
