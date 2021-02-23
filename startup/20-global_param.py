@@ -13,7 +13,10 @@ ZONE_DIAMETER = ZONE_PLATE["ZONE_DIAMETER"]  # new commercial zone plate
 GLOBAL_VLM_MAG = 10  # vlm magnification
 zp.wait_for_connection()
 DetU.wait_for_connection()
-GLOBAL_MAG = np.round((DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG, 2)
+try:
+    GLOBAL_MAG = np.round((DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG, 2)
+except ZeroDivisionError:
+    GLOBAL_MAG = -1
 CURRENT_MAG_1 = GLOBAL_MAG
 CURRENT_MAG_2 = GLOBAL_MAG
 CURRENT_MAG = {}
