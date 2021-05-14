@@ -5,7 +5,7 @@ import pprint
 from operator import attrgetter
 from PIL import Image
 from scipy.signal import medfilt2d
-
+  
 
 def check_latest_scan_id(init_guess=60000, search_size=100):
     sid_from_md = RE.md['scan_id']

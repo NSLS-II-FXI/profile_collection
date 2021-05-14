@@ -36,20 +36,16 @@ def test_scan(
     """
 
     yield from _set_andor_param(exposure_time, exposure_time, 1)
-    #yield from mv(Andor.cam.acquire, 0)
-    #yield from mv(Andor.cam.image_mode, 0)
-    #yield from mv(Andor.cam.num_images, 1)
-    #yield from mv(Andor.cam.acquire_time, exposure_time)
-    #yield from mv(Andor.cam.acquire_period, exposure_time)
+    
     detectors = [Andor]
     y_ini = zps.sy.position
-    y_out = y_ini + out_y
+    y_out = y_ini + out_y if not (out_y is None) else y_ini
     x_ini = zps.sx.position
-    x_out = x_ini + out_x
+    x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
-    z_out = z_ini + out_z
+    z_out = z_ini + out_z if not (out_z is None) else z_ini
     r_ini = zps.pi_r.position
-    r_out = r_ini + out_r
+    r_out = r_ini + out_r if not (out_r is None) else r_ini
     _md = {
         "detectors": ["Andor"],
         "XEng": XEng.position,
@@ -155,9 +151,9 @@ def z_scan(
     z_stop = z_ini + stop
     #    detectors = [Andor]
     y_ini = zps.sy.position  # sample y position (initial)
-    y_out = y_ini + out_y  # sample y position (out-position)
+    y_out = y_ini + out_y if not (out_y is None) else y_ini# sample y position (out-position)
     x_ini = zps.sx.position
-    x_out = x_ini + out_x
+    x_out = x_ini + out_x if not (out_x is None) else x_ini 
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
@@ -281,17 +277,13 @@ def z_scan2(
     zp_stop = zp_ini + stop
     #    detectors = [Andor]
     y_ini = zps.sy.position  # sample y position (initial)
-    y_out = y_ini + out_y  # sample y position (out-position)
+    y_out = y_ini + out_y  if not (out_y is None) else y_ini# sample y position (out-position)
     x_ini = zps.sx.position
-    x_out = x_ini + out_x
+    x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
-    z_out = z_ini
+    z_out = z_ini if not (out_z is None) else z_ini
 
-    yield from mv(Andor.cam.acquire, 0)
-    yield from mv(Andor.cam.image_mode, 0)
-    yield from mv(Andor.cam.num_images, chunk_size)
-    yield from mv(Andor.cam.acquire_time, exposure_time)
-    yield from mv(Andor.cam.acquire_period, exposure_time)
+    yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=20)
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -398,20 +390,16 @@ def z_scan3(
 
     #    detectors = [Andor]
     y_ini = zps.sy.position  # sample y position (initial)
-    y_out = y_ini + out_y  # sample y position (out-position)
+    y_out = y_ini + out_y  if not (out_y is None) else y_ini# sample y position (out-position)
     x_ini = zps.sx.position
-    x_out = x_ini + out_x
+    x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
-    z_out = z_ini
+    z_out = z_ini if not (out_z is None) else z_ini
 
     z_start = z_ini + start
     z_stop = z_ini + stop
-
-    yield from mv(Andor.cam.acquire, 0)
-    yield from mv(Andor.cam.image_mode, 0)
-    yield from mv(Andor.cam.num_images, chunk_size)
-    yield from mv(Andor.cam.acquire_time, exposure_time)
-    yield from mv(Andor.cam.acquire_period, exposure_time)
+    
+    yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=20)
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -457,10 +445,10 @@ def z_scan3(
             yield from bps.sleep(0.1)
             yield from _take_image(detectors, motor=motor, num=1)
             yield from _take_bkg_image(
-                out_x=x_out,
-                out_y=y_out,
-                out_z=z_out,
-                out_r=0,
+                x_out,
+                y_out,
+                z_out,
+                None,
                 detectors=detectors,
                 motor=motor,
             )
@@ -574,10 +562,11 @@ def load_cell_scan(
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
         yield from bps.sleep(5)
-        load_cell_force = (yield from bps.rd(pzt_cm_loadcell))
         fig = plt.figure()
         ax1 = fig.add_subplot(211)
         ax2 = fig.add_subplot(212)
+        load_cell_force = (yield from bps.rd(pzt_cm_loadcell))
+
 
         for pbsl_pos in pbsl_y_pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
@@ -661,6 +650,7 @@ def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
         label = str(tm_pos)
         lines.append(line)
         labels.append(label)
+        plt.show()
 
     legend(lines, labels)
     plt.show()

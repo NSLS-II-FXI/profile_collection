@@ -6,7 +6,36 @@
 #        export_single_scan(int(item), binning)
 #        db.reg.clear_process_cache()
 
+def timestamp_to_float(t):
+    tf = []
+    for ts in t:
+        tf.append(ts.timestamp())
+    return np.array(tf)
+    
 
+def get_fly_scan_angle(scan_id):
+    h = db[scan_id]
+    with db.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
+        timestamp_tomo = list(h.data("Andor_image", stream_name="primary"))[0]
+        timestamp_dark = list(h.data("Andor_image", stream_name="dark"))[0]
+        timestamp_bkg = list(h.data("Andor_image", stream_name="flat"))[0]
+    assert "zps_pi_r_monitor" in h.stream_names
+    pos = h.table("zps_pi_r_monitor")
+    timestamp_mot = timestamp_to_float(pos["time"])
+    
+    img_ini_timestamp = timestamp_tomo[0]
+    mot_ini_timestamp = timestamp_mot[1] # timestamp_mot[1] is the time when taking dark image
+    
+    tomo_time = timestamp_tomo - img_ini_timestamp
+    mot_time = timestamp_mot - mot_ini_timestamp 
+
+    mot_pos = np.array(pos["zps_pi_r"])
+    mot_pos_interp = np.interp(tomo_time, mot_time, mot_pos)
+
+    img_angle = mot_pos_interp
+    return img_angle
+    
+    
 def write_lakeshore_to_file(h, fname):
     scan_id = h.start["scan_id"]
     for tmp in h.start.keys():
@@ -71,22 +100,41 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
     scan_id = h.start["scan_id"]
     scan_type = h.start["plan_name"]
     #    x_eng = h.start['XEng']
-
+    t_new = datetime(2021, 5, 1)
+    t = h.start["time"] - 3600*60*4 # there are 4hour offset
+    t = datetime.utcfromtimestamp(t)
+    if t < t_new:
+        scan = "old"
+    else:
+        scan = "new"
+    
     if scan_type == "tomo_scan":
         print("exporting tomo scan: #{}".format(scan_id))
-        export_tomo_scan(h, fpath)
+        if scan == "old":
+            export_tomo_scan_legacy(h, fpath)
+        else:
+            export_tomo_scan_legacy(h, fpath)
         print("tomo scan: #{} loading finished".format(scan_id))
+        
     elif scan_type == "fly_scan":
         print("exporting fly scan: #{}".format(scan_id))
+        if scan == "old":
+            export_fly_scan_legacy(h, fpath)
+        else:
+            export_fly_scan(h, fpath)
         export_fly_scan(h, fpath)
         print("fly scan: #{} loading finished".format(scan_id))
+        
     elif scan_type == "fly_scan2":
         print("exporting fly scan2: #{}".format(scan_id))
         export_fly_scan2(h, fpath)
         print("fly scan2: #{} loading finished".format(scan_id))
     elif scan_type == "xanes_scan" or scan_type == "xanes_scan2":
         print("exporting xanes scan: #{}".format(scan_id))
-        export_xanes_scan(h, fpath)
+        if scan == "old":
+            export_xanes_scan_legacy(h, fpath)
+        else:
+            export_xanes_scan(h, fpath)
         print("xanes scan: #{} loading finished".format(scan_id))
     elif scan_type == "z_scan":
         print("exporting z_scan: #{}".format(scan_id))
@@ -145,20 +193,18 @@ def export_tomo_scan(h, fpath=None):
         x_eng = h.start["x_ray_energy"]
     bkg_img_num = h.start["num_bkg_images"]
     dark_img_num = h.start["num_dark_images"]
-    chunk_size = h.start["plan_args"]["chunk_size"]
+    imgs_per_angle = h.start["plan_args"]["imgs_per_angle"]
     angle_i = h.start["plan_args"]["start"]
     angle_e = h.start["plan_args"]["stop"]
     angle_n = h.start["plan_args"]["num"]
     exposure_t = h.start["plan_args"]["exposure_time"]
-    img = np.array(list(h.data("Andor_image")))
-    # img = np.squeeze(img)
-    img_dark = img[0:dark_img_num].reshape(-1, img.shape[-2], img.shape[-1])
-    img_tomo = img[dark_img_num:-bkg_img_num]
-    img_bkg = img[-bkg_img_num:].reshape(-1, img.shape[-2], img.shape[-1])
+    img = np.array(list(h.data("Andor_image", stream_name="primary")))
+    img_tomo = np.median(img, axis=1)
+    img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0]
+    img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0]
 
-    s = img_dark.shape
-    # img_dark_avg = np.mean(img_dark,axis=0).reshape(1, s[1], s[2])
-    # img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
+    img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
+    img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
     img_angle = np.linspace(angle_i, angle_e, angle_n)
 
     fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
@@ -167,6 +213,8 @@ def export_tomo_scan(h, fpath=None):
         hf.create_dataset("X_eng", data=x_eng)
         hf.create_dataset("img_bkg", data=img_bkg)
         hf.create_dataset("img_dark", data=img_dark)
+        hf.create_dataset("img_bkg_avg", data=img_bkg_avg.astype(np.float32))
+        hf.create_dataset("img_dark_avg", data=img_dark_avg.astype(np.float32))
         hf.create_dataset("img_tomo", data=img_tomo)
         hf.create_dataset("angle", data=img_angle)
     try:
@@ -177,7 +225,7 @@ def export_tomo_scan(h, fpath=None):
     del img_tomo
     del img_dark
     del img_bkg
-
+    
 
 def export_fly_scan(h, fpath=None):
     if fpath is None:
@@ -199,75 +247,15 @@ def export_fly_scan(h, fpath=None):
     M = (DetU_z_pos/zp_z_pos - 1)*10.
     pxl_sz = 6500./M
 
-    try:
-        x_eng = h.start["XEng"]
-    except:
-        x_eng = h.start["x_ray_energy"]
-    chunk_size = h.start["chunk_size"]
-    # sanity check: make sure we remembered the right stream name
-    assert "zps_pi_r_monitor" in h.stream_names
-    pos = h.table("zps_pi_r_monitor")
-    imgs = np.array(list(h.data("Andor_image")))
-    img_dark = imgs[0]
-    img_bkg = imgs[-1]
-    s = img_dark.shape
-    img_dark_avg = np.mean(img_dark, axis=0).reshape(1, s[1], s[2])
-    img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
+    x_eng = h.start["XEng"]
+    img_angle = get_fly_scan_angle(uid)   
 
-    imgs = imgs[1:-1]
-    s1 = imgs.shape
-    imgs = imgs.reshape([s1[0] * s1[1], s1[2], s1[3]])
-
-    with db.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
-        chunked_timestamps = list(h.data("Andor_image"))
-
-    chunked_timestamps = chunked_timestamps[1:-1]
-    raw_timestamps = []
-    for chunk in chunked_timestamps:
-        raw_timestamps.extend(chunk.tolist())
-
-    timestamps = convert_AD_timestamps(pd.Series(raw_timestamps))
-    pos["time"] = pos["time"].dt.tz_localize("US/Eastern")
-
-    img_day, img_hour = (
-        timestamps.dt.day,
-        timestamps.dt.hour,
-    )
-    img_min, img_sec, img_msec = (
-        timestamps.dt.minute,
-        timestamps.dt.second,
-        timestamps.dt.microsecond,
-    )
-    img_time = (
-        img_day * 86400 + img_hour * 3600 + img_min * 60 + img_sec + img_msec * 1e-6
-    )
-    img_time = np.array(img_time)
-
-    mot_day, mot_hour = (
-        pos["time"].dt.day,
-        pos["time"].dt.hour,
-    )
-    mot_min, mot_sec, mot_msec = (
-        pos["time"].dt.minute,
-        pos["time"].dt.second,
-        pos["time"].dt.microsecond,
-    )
-    mot_time = (
-        mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
-    )
-    mot_time = np.array(mot_time)
-
-    mot_pos = np.array(pos["zps_pi_r"])
-    offset = np.min([np.min(img_time), np.min(mot_time)])
-    img_time -= offset
-    mot_time -= offset
-    mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
-
-    pos2 = mot_pos_interp.argmax() + 1
-    #img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
-    img_angle = mot_pos_interp[: pos2]
-    #img_tomo = imgs[: pos2 - chunk_size]  # tomo images
-    img_tomo = imgs[: pos2]
+    img_tomo = np.array(list(h.data("Andor_image", stream_name="primary")))[0]
+    img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0]
+    img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0]
+    
+    img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
+    img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
 
     fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
 
@@ -289,17 +277,17 @@ def export_fly_scan(h, fpath=None):
         hf.create_dataset("r_ini", data=r_pos)
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=str(str(pxl_sz)+'nm')) 
-
+    '''
     try:
         write_lakeshore_to_file(h, fname)
     except:
         print("fails to write lakeshore info into {fname}")
-
+    '''
     del img_tomo
     del img_dark
     del img_bkg
-    del imgs
-
+    
+    
 def export_fly_scan2(h, fpath=None):
     if fpath is None:
         fpath = './'
@@ -420,7 +408,8 @@ def export_fly_scan2(h, fpath=None):
     del img_dark
     del img_bkg
     del imgs
-    
+
+
 def export_xanes_scan(h, fpath=None):
     if fpath is None:
         fpath = './'
@@ -444,38 +433,18 @@ def export_xanes_scan(h, fpath=None):
     chunk_size = h.start["chunk_size"]
     num_eng = h.start["num_eng"]
 
-    imgs = np.array(list(h.data("Andor_image")))
-    img_dark = imgs[0]
-    img_dark_avg = np.mean(img_dark, axis=0).reshape(
-        [1, img_dark.shape[1], img_dark.shape[2]]
-    )
+    img_xanes = np.array(list(h.data("Andor_image", stream_name="primary")))
+    img_xanes_avg = np.mean(img_xanes, axis=1)
+    img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))
+    img_dark_avg = np.mean(img_dark, axis=1)
+    img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))
+    img_bkg_avg = np.mean(img_bkg, axis=1)
+    
     eng_list = list(h.start["eng_list"])
-    s = imgs.shape
-    img_xanes_avg = np.zeros([num_eng, s[2], s[3]])
-    img_bkg_avg = np.zeros([num_eng, s[2], s[3]])
 
-    if scan_type == "xanes_scan":
-        for i in range(num_eng):
-            img_xanes = imgs[i + 1]
-            img_xanes_avg[i] = np.mean(img_xanes, axis=0)
-            img_bkg = imgs[i + 1 + num_eng]
-            img_bkg_avg[i] = np.mean(img_bkg, axis=0)
-    elif scan_type == "xanes_scan2":
-        j = 1
-        for i in range(num_eng):
-            img_xanes = imgs[j]
-            img_xanes_avg[i] = np.mean(img_xanes, axis=0)
-            img_bkg = imgs[j + 1]
-            img_bkg_avg[i] = np.mean(img_bkg, axis=0)
-            j = j + 2
-    else:
-        print("un-recognized xanes scan......")
-        return 0
     img_xanes_norm = (img_xanes_avg - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
     img_xanes_norm[np.isnan(img_xanes_norm)] = 0
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0
-    img_bkg = np.array(img_bkg, dtype=np.float32)
-    #    img_xanes_norm = np.array(img_xanes_norm, dtype=np.float32)
     fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
     with h5py.File(fname, "w") as hf:
         hf.create_dataset("uid", data=uid)
@@ -494,9 +463,9 @@ def export_xanes_scan(h, fpath=None):
     except:
         print("fails to write lakeshore info into {fname}")
 
-    del img_xanes, img_dark, img_bkg, img_xanes_avg, img_dark_avg
-    del img_bkg_avg, imgs, img_xanes_norm
-
+    del img_dark, img_dark_avg, img_bkg, img_bkg_avg, img_xanes, img_xanes_avg, img_xanes_norm
+    
+    
 
 def export_z_scan(h, fpath=None):
     if fpath is None:
@@ -1028,61 +997,6 @@ def export_raster_2D(h, binning=4, fpath=None):
         print(f"fails to write lakeshore info into {fn_h5_save}")
 
 
-"""    
-def export_multipos_2D_xanes_scan2(h):
-    scan_type = h.start['plan_name']
-    uid = h.start['uid']
-    note = h.start['note']
-    scan_id = h.start['scan_id']  
-    scan_time = h.start['time']
-#    x_eng = h.start['x_ray_energy']
-    x_eng = h.start['XEng'][1] 61748
-xf18id@xf18id-ws2:~/.ipython/profile_collection/startup$ 
-
-    chunk_size = h.start['chunk_size']
-    chunk_size = h.start['num_bkg_images']
-    num_eng = h.start['num_eng']
-    num_pos = h.start['num_pos']
-#    repeat_num = h.start['plan_args']['repeat_num']
-    imgs = np.array(list(h.data('Andor_image')))
-    imgs = np.mean(imgs, axis=1)
-    img_dark = imgs[0]
-    eng_list = list(h.start['eng_list'])
-    s = imgs.shape
-
-    img_xanes = np.zeros([num_pos, num_eng, imgs.shape[1], imgs.shape[2]])
-    img_bkg = np.zeros([num_eng, imgs.shape[1], imgs.shape[2]])
-    #for repeat in range(repeat_num):
-    for repeat in range(1):
-        index = 1
-        for i in range(num_eng):
-            for j in range(num_pos):
-                img_xanes[j, i] = imgs[index]
-                index += 1
-            img_bkg[i] = imgs[index]
-            index += 1
-
-        for i in range(num_eng):
-            for j in range(num_pos):
-                img_xanes[j,i] = (img_xanes[j,i] - img_dark) / (img_bkg[i] - img_dark)
-        # save data
-        fn = os.getcwd() + '/'
-        for j in range(num_pos):
-            fname = f'{fn}{scan_type}_id_{scan_id}_pos_{j}.h5'
-            with h5py.File(fname, 'w') as hf:
-                hf.create_dataset('uid', data = uid)
-                hf.create_dataset('scan_id', data = scan_id)
-                hf.create_dataset('note', data = str(note))
-                hf.create_dataset('scan_time', data = scan_time)
-                hf.create_dataset('X_eng', data = eng_list)
-                hf.create_dataset('img_bkg', data = np.array(img_bkg, dtype=np.float32))
-                hf.create_dataset('img_dark', data = np.array(img_dark, dtype=np.float32))
-                hf.create_dataset('img_xanes', data = np.array(img_xanes[j], dtype=np.float32))
-    del img_xanes
-    del img_bkg
-    del img_dark    
-    del imgs
-"""
 
 
 def export_multipos_2D_xanes_scan2(h, fpath=None):
