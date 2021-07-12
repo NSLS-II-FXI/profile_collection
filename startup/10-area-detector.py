@@ -265,11 +265,11 @@ MFS.stats1.read_attrs = ["total"]
 MFS.hdf5.read_attrs = []
 
 detA1 = Manta("XF:18IDB-BI{Det:A1}", name="detA1")
-# detA1.read_attrs = ['hdf5', 'stats1', 'stats5']
+detA1.read_attrs = ['hdf5', 'stats1']
 # detA1.read_attrs = ['hdf5']
 detA1.read_attrs = ["hdf5", "stats1"]
 detA1.stats1.read_attrs = ["total"]
-# detA1.stats5.read_attrs = ['total']
+#detA1.stats5.read_attrs = ['total']
 detA1.hdf5.read_attrs = []
 
 """

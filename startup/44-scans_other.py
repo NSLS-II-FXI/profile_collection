@@ -13,6 +13,7 @@ def test_scan(
     num_img=10,
     num_bkg=10,
     note="",
+    simu=False,
     md=None,
 ):
     """
@@ -23,11 +24,11 @@ def test_scan(
     exposure_time: float, exposure time for each image
 
     out_x: float(int), relative sample out position for zps.sx
-    
+
     out_y: float(int), relative sampel out position for zps.sy
 
     out_z: float(int), relative sampel out position for zps.sz
-    
+
     out_r: float(int), relative sampel out position for zps.pi_r
 
     num_img: int, number of images to take
@@ -36,7 +37,7 @@ def test_scan(
     """
 
     yield from _set_andor_param(exposure_time, exposure_time, 1)
-    
+
     detectors = [Andor]
     y_ini = zps.sy.position
     y_out = y_ini + out_y if not (out_y is None) else y_ini
@@ -65,7 +66,7 @@ def test_scan(
         "hints": {},
         "operator": "FXI",
         "note": note if note else "None",
-        "motor_pos": wh_pos(print_on_screen=0),
+        #"motor_pos": wh_pos(print_on_screen=0),
     }
     _md.update(md or {})
     _md["hints"].setdefault("dimensions", [(("time",), "primary")])
@@ -73,10 +74,13 @@ def test_scan(
     @stage_decorator(list(detectors))
     @run_decorator(md=_md)
     def inner_scan():
+        yield from _open_shutter(simu=simu)
+        '''
         yield from abs_set(shutter_open, 1, wait=True)
         yield from bps.sleep(2)
         yield from abs_set(shutter_open, 1, wait=True)
         yield from bps.sleep(2)
+        '''
         for i in range(num_img):
             yield from trigger_and_read(list(detectors))
         # taking out sample and take background image
@@ -86,10 +90,13 @@ def test_scan(
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         # close shutter, taking dark image
+        yield from _close_shutter(simu=simu)
+        '''
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
+        '''
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         yield from mv(zps.sz, z_ini)
@@ -99,6 +106,8 @@ def test_scan(
         # yield from abs_set(shutter_open, 1, wait=True)
 
     uid = yield from inner_scan()
+    yield from mv(Andor.cam.image_mode, 1)
+    yield from _close_shutter(simu=simu)
     txt = get_scan_parameter()
     insert_text(txt)
     print(txt)
@@ -140,7 +149,7 @@ def z_scan(
 
     exposure_time: float, exposure time for each image
 
-    note: str, experiment notes 
+    note: str, experiment notes
 
     """
 
@@ -153,7 +162,7 @@ def z_scan(
     y_ini = zps.sy.position  # sample y position (initial)
     y_out = y_ini + out_y if not (out_y is None) else y_ini# sample y position (out-position)
     x_ini = zps.sx.position
-    x_out = x_ini + out_x if not (out_x is None) else x_ini 
+    x_out = x_ini + out_x if not (out_x is None) else x_ini
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
@@ -208,29 +217,29 @@ def z_scan(
         yield from mv(zps.sx, x_out, zps.sy, y_out)
         yield from bps.sleep(0.5)
         yield from trigger_and_read(list(detectors) + [motor])
+        yield from _close_shutter(simu=simu)
+        yield from bps.sleep(0.5)
+        yield from trigger_and_read(list(detectors) + [motor])
         # dark images
         #        yield from abs_set(shutter_close, 1, wait=True)
         #        yield from bps.sleep(1)
         #        yield from abs_set(shutter_close, 1)
         #        yield from bps.sleep(1)
-        yield from _close_shutter(simu=simu)
-        yield from trigger_and_read(list(detectors) + [motor])
         # move back zone_plate and sample y
         yield from mv(zps.sx, x_ini)
         yield from mv(zps.sy, y_ini)
         yield from mv(zp.z, z_ini)
-
         yield from abs_set(shutter_open, 1, wait=True)
         yield from mv(Andor.cam.image_mode, 1)
+        
 
     uid = yield from inner_scan()
     yield from mv(Andor.cam.image_mode, 1)
-    yield from _close_shutter(simu=False)
+    yield from _close_shutter(simu=simu)
     txt = get_scan_parameter()
     insert_text(txt)
-    print(txt)
-    print("loading z_scan and save file to current directory")
-    #    load_z_scan(db[-1])
+    print(txt)    
+
     return uid
 
 
@@ -240,6 +249,7 @@ def z_scan2(
     steps=5,
     out_x=-100,
     out_y=-100,
+    out_z=0,
     chunk_size=10,
     exposure_time=0.1,
     note="",
@@ -266,7 +276,7 @@ def z_scan2(
 
     exposure_time: float, exposure time for each image
 
-    note: str, experiment notes 
+    note: str, experiment notes
 
     """
 
@@ -282,6 +292,7 @@ def z_scan2(
     x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
     z_out = z_ini if not (out_z is None) else z_ini
+    period = max(exposure_time+0.01, 0.05)
 
     yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=20)
 
@@ -295,6 +306,7 @@ def z_scan2(
             "steps": steps,
             "out_x": out_x,
             "out_y": out_y,
+            "out_z": out_z,
             "chunk_size": chunk_size,
             "exposure_time": exposure_time,
             "note": note if note else "None",
@@ -381,7 +393,7 @@ def z_scan3(
 
     exposure_time: float, exposure time for each image
 
-    note: str, experiment notes 
+    note: str, experiment notes
 
     """
 
@@ -398,7 +410,7 @@ def z_scan3(
 
     z_start = z_ini + start
     z_stop = z_ini + stop
-    
+
     yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=20)
 
     _md = {
@@ -524,7 +536,7 @@ def load_cell_scan(
     delay_time=0.5,
 ):
     """
-    At every position in the pzt_cm_bender_pos_list, scan the pbsl.y_ctr under diffenent energies 
+    At every position in the pzt_cm_bender_pos_list, scan the pbsl.y_ctr under diffenent energies
     Use as:
     load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_end, steps, delay_time=0.5)
     note: energies are in unit if keV
@@ -603,7 +615,7 @@ def load_cell_scan(
 
 def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
     """
-    At every position in the tm_pitch_list, scan the ssa_h_ctr_list 
+    At every position in the tm_pitch_list, scan the ssa_h_ctr_list
     Use as:
 
 
@@ -611,8 +623,8 @@ def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
     --------
     tm_pitch_list: tm incident angle list
 
-    ssa_h_ctr_list: ssa h ceter list    
-    
+    ssa_h_ctr_list: ssa h ceter list
+
     ssa_start: float, start energy in unit of keV
 
     ssa_end: float, end of energy in unit of keV
@@ -670,13 +682,13 @@ def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
 def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     """
     scanning ssa, with different pzt_tm_bender position
-    
+
     Inputs:
     --------
     bender_pos_list: list of pzt_tm position
         PV:     XF:18IDA-OP{Mir:TM-Ax:Bender}
 
-    ssa_motor: choose from ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr 
+    ssa_motor: choose from ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr
 
     ssa_start: float, start position of ssa_motor
 
@@ -738,7 +750,7 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     tm_yaw_pos_list: list of tm_yaw position
         PV:     XF:18IDA-OP{Mir:TM-Ax:Yaw}Mtr
 
-    ssa_motor: choose from ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr 
+    ssa_motor: choose from ssa.v_gap, ssa.v_ctr, ssa.h_gap, ssa.h_ctr
 
     ssa_start: float, start position of ssa_motor
 
@@ -909,7 +921,7 @@ def repeat_scan(detectors, motor, start, stop, steps, num=1, sleep_time=1.2):
 
 def overnight_count(detectors, num=1, delay=None, *, md=None):
     """
-    same function as the default "count", 
+    same function as the default "count",
     re_write it in order to add auto-logging
     """
     if num is None:
@@ -1028,7 +1040,7 @@ def knife_edge_scan_for_condensor(
     def gauss(x, *p):
         A, mu, sigma = p
         return A * np.exp(-((x - mu) ** 2) / (2.0 * sigma ** 2))
-        
+
 #    def fit_gauss()
 
     f = h5py.File(fn, "r")

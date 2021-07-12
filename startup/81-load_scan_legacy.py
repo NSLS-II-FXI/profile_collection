@@ -339,3 +339,94 @@ def fly_scan_repeat_legacy(
                     yield from bps.sleep(sleep_time)
             export_pdf(1)
 
+
+def export_multipos_2D_xanes_scan2(h, fpath=None):
+    if fpath is None:
+        fpath = './'
+    else:
+        if not fpath[-1] == '/':
+            fpath += '/'  
+    scan_type = h.start["plan_name"]
+    uid = h.start["uid"]
+    note = h.start["note"]
+    scan_id = h.start["scan_id"]
+    scan_time = h.start["time"]
+    #    x_eng = h.start['x_ray_energy']
+    x_eng = h.start["XEng"]
+    chunk_size = h.start["chunk_size"]
+    chunk_size = h.start["num_bkg_images"]
+    num_eng = h.start["num_eng"]
+    num_pos = h.start["num_pos"]
+    zp_z_pos = h.table("baseline")["zp_z"][1]
+    DetU_z_pos = h.table("baseline")["DetU_z"][1]
+    M = (DetU_z_pos/zp_z_pos - 1)*10.
+    pxl_sz = 6500./M
+    try:
+        repeat_num = h.start["plan_args"]["repeat_num"]
+    except:
+        repeat_num = 1
+    imgs = list(h.data("Andor_image"))
+
+    #    imgs = np.mean(imgs, axis=1)
+    img_dark = np.array(imgs[0])
+    img_dark = np.mean(img_dark, axis=0, keepdims=True)  # revised here
+    eng_list = list(h.start["eng_list"])
+    #    s = imgs.shape
+    s = img_dark.shape  # revised here e.g,. shape=(1, 2160, 2560)
+
+    #    img_xanes = np.zeros([num_pos, num_eng, imgs.shape[1], imgs.shape[2]])
+    img_xanes = np.zeros([num_pos, num_eng, s[1], s[2]])
+    img_bkg = np.zeros([num_eng, s[1], s[2]])
+    index = 1
+    for repeat in range(repeat_num):  # revised here
+        try:
+            print(f"repeat: {repeat}")
+            for i in range(num_eng):
+                for j in range(num_pos):
+                    img_xanes[j, i] = np.mean(np.array(imgs[index]), axis=0)
+                    index += 1
+                img_bkg[i] = np.mean(np.array(imgs[index]), axis=0)
+                index += 1
+
+            for i in range(num_eng):
+                for j in range(num_pos):
+                    img_xanes[j, i] = (img_xanes[j, i] - img_dark) / (
+                        img_bkg[i] - img_dark
+                    )
+            # save data
+            #fn = os.getcwd() + "/"
+            fn = fpath
+            for j in range(num_pos):
+                fname = (
+                    f"{fn}{scan_type}_id_{scan_id}_repeat_{repeat:02d}_pos_{j:02d}.h5"
+                )
+                print(f"saving {fname}")
+                with h5py.File(fname, "w") as hf:
+                    hf.create_dataset("uid", data=uid)
+                    hf.create_dataset("scan_id", data=scan_id)
+                    hf.create_dataset("note", data=str(note))
+                    hf.create_dataset("scan_time", data=scan_time)
+                    hf.create_dataset("X_eng", data=eng_list)
+                    hf.create_dataset(
+                        "img_bkg", data=np.array(img_bkg, dtype=np.float32)
+                    )
+                    hf.create_dataset(
+                        "img_dark", data=np.array(img_dark, dtype=np.float32)
+                    )
+                    hf.create_dataset(
+                        "img_xanes", data=np.array(img_xanes[j], dtype=np.float32)
+                    )
+                    hf.create_dataset("Magnification", data=M)
+                    hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+                try:
+                    write_lakeshore_to_file(h, fname)
+                except:
+                    print("fails to write lakeshore info into {fname}")
+        except:
+            print(f"fails in export repeat# {repeat}")
+    del img_xanes
+    del img_bkg
+    del img_dark
+    del imgs
+
+

@@ -10,11 +10,13 @@ def _close_shutter_legacy(simu=False):
             yield from abs_set(shutter_close, 1, wait=True)
             yield from bps.sleep(3)
             i += 1
-            print(f"try closing again ...")
+            print(f"try closing {i} time(s) ...")
             if i > 20:
                 print("fails to close shutter")
                 raise Exception("fails to close shutter")
                 break
+            reading = (yield from bps.rd(shutter_status))
+            print(reading)
 
 
 def _open_shutter_legacy(simu=False):
@@ -26,12 +28,14 @@ def _open_shutter_legacy(simu=False):
         reading = (yield from bps.rd(shutter_status))
         while reading:  # if 1:  closed; if 0: open
             yield from abs_set(shutter_open, 1, wait=True)
+            print(f"try opening {i} time(s) ...")
             yield from bps.sleep(1)
             i += 1
             if i > 5:
                 print("fails to open shutter")
                 raise Exception("fails to open shutter")
                 break
+            reading = (yield from bps.rd(shutter_status))
                 
 def tomo_scan_legacy(
     start,

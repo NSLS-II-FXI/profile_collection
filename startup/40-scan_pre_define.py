@@ -109,7 +109,20 @@ def _set_andor_param(
     #yield from abs_set(Andor.cam.acquire_period, period_cor)
     Andor.cam.acquire_period.put(period_cor)        
         
-        
+
+def _xanes_per_step(eng, detectors, motor, move_flag=1, move_clens_flag=1, info_flag=0, stream_name="primary"):
+    yield from move_zp_ccd(
+        eng, move_flag=move_flag, move_clens_flag=move_clens_flag, info_flag=info_flag
+    )
+    yield from bps.sleep(0.1)
+    if not (type(detectors) == list):
+        detectors = list(detectors)
+    if not (type(motor) == list):
+        motor = list(motor)
+    yield from trigger_and_read(detectors + motor, name=stream_name)
+    
+    
+'''        
 def _close_shutter(simu=False):
     if simu:
         print("testing: close shutter")
@@ -122,7 +135,46 @@ def _open_shutter(simu=False):
         print("testing: open shutter")
     else:
         yield from mv(shutter, 'Open')      
+'''
 
+def _close_shutter(simu=False):
+    if simu:
+        print("testing: close shutter")
+    else:
+        print("closing shutter ... ")
+        # yield from mv(shutter, 'Close')
+        i = 0
+        reading = (yield from bps.rd(shutter_status))
+        while not reading:  # if 1:  closed; if 0: open
+            yield from abs_set(shutter_close, 1, wait=True)
+            yield from bps.sleep(3)
+            i += 1
+            print(f"try closing {i} time(s) ...")
+            if i > 20:
+                print("fails to close shutter")
+                raise Exception("fails to close shutter")
+                break
+            reading = (yield from bps.rd(shutter_status))
+            
+
+
+def _open_shutter(simu=False):
+    if simu:
+        print("testing: open shutter")
+    else:
+        print("opening shutter ... ")
+        i = 0
+        reading = (yield from bps.rd(shutter_status))
+        while reading:  # if 1:  closed; if 0: open
+            yield from abs_set(shutter_open, 1, wait=True)
+            print(f"try opening {i} time(s) ...")
+            yield from bps.sleep(1)
+            i += 1
+            if i > 5:
+                print("fails to open shutter")
+                raise Exception("fails to open shutter")
+                break
+            reading = (yield from bps.rd(shutter_status))
                 
 def _set_rotation_speed(rs=1):
     yield from abs_set(zps.pi_r.velocity, rs)   
