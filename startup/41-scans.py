@@ -2691,6 +2691,14 @@ def multi_pos_xanes_3D(
     n = len(x_list)
     for rep in range(repeat):
         for i in range(n):
+            if x_list[i] is None:
+                x_list[i] = zps.sx.position
+            if y_list[i] is None:
+                y_list[i] =  zps.sy.position
+            if z_list[i] is None:
+                z_list[i] =  zps.sz.position
+            if r_list[i] is None:
+                r_list[i] =  zps.pi_r.position
             yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i], zps.pi_r, r_list[i])
             txt = f"start xanes_3D at pos1: x={x_list[i]}, y={y_list[i]}, z={z_list[i]}\nrepeat:{rep}"
             insert_text(txt)

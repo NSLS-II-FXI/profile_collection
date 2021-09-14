@@ -644,6 +644,8 @@ def multi_edge_xanes(
             return
 
 
+
+    
 def fly_scan2(
     exposure_time=0.1,
     start_angle = None,
@@ -877,6 +879,132 @@ def fly_scan2(
     insert_text(txt)
     print(txt)
     
+
+def grid_z_scan(
+    zstart=-0.03,
+    zstop=0.03,
+    zsteps=5,
+    gmesh=[[-5, 0, 5], [-5, 0, 5]],
+    out_x=-100,
+    out_y=-100,
+    chunk_size=10,
+    exposure_time=0.1,
+    note="",
+    md=None,
+    simu=False,
+):
+    """
+    scan the zone-plate to find best focus
+    use as:
+    z_scan(zstart=-0.03, zstop=0.03, zsteps=5, gmesh=[[-5, 0, 5], [-5, 0, 5]], out_x=-100, out_y=-100, chunk_size=10, exposure_time=0.1, fn='/home/xf18id/Documents/tmp/z_scan.h5', note='', md=None)
+
+    Input:
+    ---------
+    zstart: float, relative starting position of zp_z
+
+    zstop: float, relative zstop position of zp_z
+
+    zsteps: int, number of zstep between [zstart, zstop]
+
+    out_x: float, relative amount to move sample out for zps.sx
+
+    out_y: float, relative amount to move sample out for zps.sy
+
+    chunk_size: int, number of images per each subscan (for Andor camera)
+
+    exposure_time: float, exposure time for each image
+
+    note: str, experiment notes
+
+    """
+
+    detectors = [Andor]
+    motor = zp.z
+    z_ini = motor.position  # zp.z intial position
+    z_start = z_ini + zstart
+    z_stop = z_ini + zstop
+    zp_x_ini = zp.x.position
+    zp_y_ini = zp.y.position
+    #    detectors = [Andor]
+    y_ini = zps.sy.position  # sample y position (initial)
+    y_out = y_ini + out_y if not (out_y is None) else y_ini# sample y position (out-position)
+    x_ini = zps.sx.position
+    x_out = x_ini + out_x if not (out_x is None) else x_ini
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
+    yield from mv(Andor.cam.num_images, chunk_size)
+    yield from mv(Andor.cam.acquire_time, exposure_time)
+    period_cor = max(exposure_time+0.01, 0.05)
+    yield from mv(Andor.cam.acquire_period, period_cor)
+
+    _md = {
+        "detectors": [det.name for det in detectors],
+        "motors": [motor.name],
+        "XEng": XEng.position,
+        "plan_args": {
+            "zstart": zstart,
+            "zstop": zstop,
+            "zsteps": zsteps,
+            "gmesh": gmesh,
+            "out_x": out_x,
+            "out_y": out_y,
+            "chunk_size": chunk_size,
+            "exposure_time": exposure_time,
+            "note": note if note else "None",
+        },
+        "plan_name": "grid_z_scan",
+        "plan_pattern": "linspace",
+        "plan_pattern_module": "numpy",
+        "hints": {},
+        "operator": "FXI",
+        "motor_pos": wh_pos(print_on_screen=0),
+    }
+    _md.update(md or {})
+    my_var = np.linspace(z_start, z_stop, zsteps)
+    try:
+        dimensions = [(motor.hints["fields"], "primary")]
+    except (AttributeError, KeyError):
+        pass
+    else:
+        _md["hints"].setdefault("dimensions", dimensions)
+
+    @stage_decorator(list(detectors) + [motor])
+    @run_decorator(md=_md)
+    def inner_scan():
+        yield from _open_shutter(simu=simu)
+        for xx in gmesh[0]:
+            for yy in gmesh[1]:
+                yield from mv(zp.x, zp_x_ini+xx, zp.y, zp_y_ini+yy, wait=True)  
+                #yield from mv(zp.y, zp_y_ini+yy, wait=True)  
+                yield from bps.sleep(1)
+                for x in my_var:
+                    yield from mv(motor, x)
+                    yield from trigger_and_read(list(detectors) + [motor], name='primary')
+                # backgroud images
+                yield from mv(zps.sx, x_out, zps.sy, y_out, wait=True)
+                yield from bps.sleep(1)
+                yield from trigger_and_read(list(detectors) + [motor], name='flat') 
+                yield from mv(zps.sx, x_ini, zps.sy, y_ini, wait=True)
+                yield from bps.sleep(1)
+                #yield from mv(zps.sy, y_ini, wait=True)
+        yield from _close_shutter(simu=simu)
+        yield from bps.sleep(1)
+        yield from trigger_and_read(list(detectors) + [motor], name='dark')
+
+        yield from mv(zps.sx, x_ini)
+        yield from mv(zps.sy, y_ini)
+        yield from mv(zp.z, z_ini)
+        yield from mv(zp.x, zp_x_ini, zp.y, zp_y_ini, wait=True)  
+        yield from mv(Andor.cam.image_mode, 1)
+        
+    uid = yield from inner_scan()
+    yield from mv(Andor.cam.image_mode, 1)
+    yield from _close_shutter(simu=simu)
+    txt = get_scan_parameter()
+    insert_text(txt)
+    print(txt)    
+
+
 def dummy_scan( exposure_time=0.1,
     start_angle = None,
     relative_rot_angle=180,

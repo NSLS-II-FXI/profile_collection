@@ -229,7 +229,7 @@ def z_scan(
         yield from mv(zps.sx, x_ini)
         yield from mv(zps.sy, y_ini)
         yield from mv(zp.z, z_ini)
-        yield from abs_set(shutter_open, 1, wait=True)
+        # yield from abs_set(shutter_open, 1, wait=True)
         yield from mv(Andor.cam.image_mode, 1)
         
 
@@ -570,6 +570,7 @@ def load_cell_scan(
 
     check_eng_range([eng_start, eng_end])
     num_pbsl_pos = len(pbsl_y_pos_list)
+    yield from _open_shutter(simu=False)
 
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
@@ -607,6 +608,7 @@ def load_cell_scan(
         )
         fig.subplots_adjust(hspace=0.5)
         plt.show()
+    yield from _close_shutter(simu=False)    
     yield from mv(pbsl.y_ctr, pbsl_y_ctr_ini)
     print(f"moving pbsl.y_ctr back to initial position: {pbsl.y_ctr.position} mm")
     txt_finish = '## "load_cell_scan()" finished'

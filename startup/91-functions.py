@@ -1321,7 +1321,7 @@ def get_scan_parameter(scan_id=-1, print_flag=0):
     return txt
 
 
-def get_scan_timestamp(scan_id):
+def get_scan_timestamp(scan_id, return_flag=0):
     h = db[scan_id]
     scan_id = h.start["scan_id"]
     timestamp = h.start["time"]
@@ -1337,6 +1337,8 @@ def get_scan_timestamp(scan_id):
     )
     scan_time = f"scan#{scan_id}: {scan_year-20:04d}-{scan_mon:02d}-{scan_day:02d}   {scan_hour:02d}:{scan_min:02d}:{scan_sec:02d}"
     print(scan_time)
+    if return_flag:
+        return scan_time.split('#')[-1]
 
 
 def get_scan_file_name(scan_id):
