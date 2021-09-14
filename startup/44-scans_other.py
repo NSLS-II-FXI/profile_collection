@@ -526,7 +526,188 @@ def cond_scan(detectors=[detA1], *, md=None):
     return (yield from cond_inner_scan())
 
 
+
+from bluesky.callbacks.mpl_plotting import QtAwareCallback
+from bluesky.preprocessors import subs_wrapper
+
+class LoadCellScanPlot(QtAwareCallback):
+    """
+    Class for plotting data from 'load_cell_scan' plan.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(use_teleporter=kwargs.pop('use_teleporter', None))
+
+        self._start_new_figure = False  
+        self._show_axes_titles = False
+
+        self._scan_id_start = 0
+        self._scan_id_end = 0
+
+        self._fig = None
+        self._ax1 = None
+        self._ax2 = None
+
+        # Plan parameters
+        self.eng_start = 0
+        self.eng_end = 0
+        self.steps = 0
+        self.load_cell_force = 0
+        self.bender_pos = 0
+
+    def start_new_figure(self):
+        """
+        Create new figure when the next 'stop' document is received. The next plot
+        will be placed in the new figure. Call before the first scan in the series.
+        """
+        self._start_new_figure = True
+
+    def show_axes_titles(self):
+        """
+        Add subtitles to the current plot once the next stop document is received.
+        Call before the last scan in the series.
+        """
+        self._show_axes_titles = True
+
+    def stop(self, doc):
+        # Scan UID
+        uid = doc["run_start"]
+
+        h = db[uid]
+        # Scan ID
+        scan_id = h.start["scan_id"]
+
+        if self._start_new_figure:
+            self._fig = plt.figure()
+            self._ax1 = self._fig.add_subplot(211)
+            self._ax2 = self._fig.add_subplot(212)
+            
+            # Save ID of the first scan
+            self._scan_id_start = scan_id
+            self._scan_id_end = scan_id
+
+            self._start_new_figure = False
+
+        y0 = np.array(list(h.data(ic3.name)))
+        y1 = np.array(list(h.data(ic4.name)))
+        r = np.log(y0 / y1)
+        x = np.linspace(self.eng_start, self.eng_end, self.steps)
+        self._ax1.plot(x, r, ".-")
+        r_dif = np.array([0] + list(np.diff(r)))
+        self._ax2.plot(x, r_dif, ".-")
+
+        if self._show_axes_titles:
+            self._scan_id_end = scan_id
+
+            self._ax1.title.set_text(
+                "scan_id: {}-{}, ratio of: {}/{}".format(
+                    self._scan_id_start,
+                    self._scan_id_end,
+                    ic3.name,
+                    ic4.name,
+                )
+            )
+            self._ax2.title.set_text(
+                "load_cell: {}, bender_pos: {}".format(self.load_cell_force, self.bender_pos)
+            )
+            self._fig.subplots_adjust(hspace=0.5)
+
+            self._show_axes_titles = False
+    
+        super().stop(doc)
+
+
+lcs_plot = LoadCellScanPlot()
+
+
 def load_cell_scan(
+    pzt_cm_bender_pos_list,
+    pbsl_y_pos_list,
+    num,
+    eng_start,
+    eng_end,
+    steps,
+    delay_time=0.5,
+):
+    """
+    At every position in the pzt_cm_bender_pos_list, scan the pbsl.y_ctr under diffenent energies
+    Use as:
+    load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_end, steps, delay_time=0.5)
+    note: energies are in unit if keV
+
+    Inputs:
+    --------
+    pzt_cm_bender_pos_list: list of "CM_Bender Set Position"
+        PV:    XF:18IDA-OP{Mir:CM-Ax:Bender}SET_POSITION
+
+    pbsl_y_pos_list: list of PBSL_y Center Position
+        PV:    XF:18IDA-OP{PBSL:1-Ax:YCtr}Mtr
+
+    num: number of repeating scans (engergy scan) at each pzt_cm_bender position and each pbsl_y center position
+
+    eng_start: float, start energy in unit of keV
+
+    eng_end: float, end of energy in unit of keV
+
+    steps:  num of steps from eng_start to eng_end
+
+    delay_time: delay_time between each energy step, in unit of sec
+    """
+
+    txt1 = f"load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num={num}, eng_start={eng_start}, eng_end={eng_end}, steps={steps}, delay_time={delay_time})"
+    txt2 = f"pzt_cm_bender_pos_list = {pzt_cm_bender_pos_list}"
+    txt3 = f"pbsl_y_pos_list = {pbsl_y_pos_list}"
+    txt = "##" + txt1 + "\n" + txt2 + "\n" + txt3 + "\n  Consisting of:\n"
+    insert_text(txt)
+
+    pbsl_y_ctr_ini = pbsl.y_ctr.position
+
+    check_eng_range([eng_start, eng_end])
+    num_pbsl_pos = len(pbsl_y_pos_list)
+    yield from _open_shutter(simu=False)
+
+    # Set some parameters that are needed for plotting
+    lcs_plot.eng_start = eng_start
+    lcs_plot.eng_end = eng_end
+    lcs_plot.steps = steps
+
+    for bender_pos in pzt_cm_bender_pos_list:
+        yield from mv(pzt_cm.setpos, bender_pos)
+        yield from bps.sleep(5)
+        load_cell_force = (yield from bps.rd(pzt_cm_loadcell))
+
+        # Initiate creating of a new figure
+        lcs_plot.start_new_figure()
+
+        for pbsl_pos in pbsl_y_pos_list:
+            yield from mv(pbsl.y_ctr, pbsl_pos)
+            for i in range(num):
+                
+                # If the scan is the last in the series, display axes titles and align the plot 
+                if (pbsl_pos == pbsl_y_pos_list[-1]) and (i == num - 1):
+                    lcs_plot.load_cell_force = load_cell_force
+                    lcs_plot.bender_pos = bender_pos
+                    lcs_plot.show_axes_titles()
+                
+                eng_scan_with_plot = subs_wrapper(
+                        eng_scan(eng_start, stop=eng_end, num=steps, detectors=[ic3, ic4], delay_time=delay_time),
+                        [lcs_plot]
+                )
+                
+                yield from eng_scan_with_plot
+
+    yield from _close_shutter(simu=False)    
+    yield from mv(pbsl.y_ctr, pbsl_y_ctr_ini)
+    print(f"moving pbsl.y_ctr back to initial position: {pbsl.y_ctr.position} mm")
+    txt_finish = '## "load_cell_scan()" finished'
+    insert_text(txt_finish)
+
+
+# ===============================================================================================
+# The following is the original version of the plan code before the update.
+# DELETE THIS CODE AFTER IT IS VERIFIED THAT THE NEW VERSION OF 'load_cell_scan' works properly
+# ===============================================================================================
+def load_cell_scan_original(
     pzt_cm_bender_pos_list,
     pbsl_y_pos_list,
     num,
