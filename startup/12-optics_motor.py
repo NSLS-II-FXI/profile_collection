@@ -38,6 +38,8 @@ tm = mirror("XF:18IDA-OP{Mir:TM", name="tm")
 dcm = DCM("XF:18IDA-OP{Mono:DCM", name="dcm")
 pbsl = PBSL("XF:18IDA-OP{PBSL:1", name="pbsl")
 
+dcm_th2 = dcm.th2  # Required by the Queue Server
+
 motor_optics = [
     cm.x,
     cm.yaw,
@@ -74,5 +76,5 @@ motor_optics = [
     pbsl.ib,
 ]
 
-get_ipython().register_magics(BlueskyMagics)
+# get_ipython().register_magics(BlueskyMagics)
 # BlueskyMagics.positioners = motor_txm + motor_optics

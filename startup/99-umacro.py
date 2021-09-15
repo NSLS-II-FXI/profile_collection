@@ -489,3 +489,15 @@ def mono_scan_repeatibility_test(pzt_cm_bender_pos_list, pbsl_y_pos_list,
                                   pbsl_y_pos_list, 1,
                                   eng_start, eng_end, steps,
                                   delay_time=delay_time)
+
+del one_1d_step
+del one_nd_step
+del one_shot
+
+# Plans to fix
+#del eng_scan
+#del pzt_scan
+#del pzt_scan_multiple
+#del pzt_energy_scan
+#del pzt_overnight_scan
+

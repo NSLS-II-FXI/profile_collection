@@ -478,7 +478,16 @@ def z_scan3(
 
 #####################
 
-
+@parameter_annotation_decorator({
+    "parameters": {
+        "detectors": {
+            "annotation": "typing.List[DetectorType1]",
+            "devices": {"DetectorType1": ["detA1"]},
+            "default": ["detA1"],
+        }
+    }
+        
+})  
 def cond_scan(detectors=[detA1], *, md=None):
     motor = clens.x
 
@@ -1178,6 +1187,26 @@ def overnight_count(detectors, num=1, delay=None, *, md=None):
     return uid
 
 
+@parameter_annotation_decorator({
+    "parameters": {
+        "det": {
+            "annotation": "typing.List[DetectorType1]",
+            "devices": {"DetectorType1": ["detA1"]},
+            "default": ["detA1"],
+        },
+        "mot1": {
+            "annotation": "MotorType1",
+            "devices": {"MotorType1": ["zps_sz"]},
+            "default": "zps_sz",
+        },
+        "mot2": {
+            "annotation": "MotorType2",
+            "devices": {"MotorType2": ["zps_sz"]},
+            "default": "zps_sy",
+        },
+    }
+
+})
 def knife_edge_scan_for_condensor(
     det=[detA1],
     mot1=zps.sz,

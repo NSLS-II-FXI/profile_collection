@@ -180,6 +180,9 @@ betr = BetrandLens("XF:18IDB-OP", name="betr")
 zps = TXMSampleStage("XF:18IDB-OP", name="zps")
 XEng = MyEpicsMotor("XF:18IDA-OP{Mono:DCM-Ax:En}Mtr", name="XEng")
 
+zps_sy = zps.sy  # Required by the Queue Server
+zps_sz = zps.sz  # Required by the Queue Server
+
 th2_motor = MyEpicsMotor("XF:18IDA-OP{Mono:DCM-Ax:Th2}Mtr", name="th2_motor")
 th2_feedback = EpicsSignal("XF:18IDA-OP{Mono:DCM-Ax:Th2}PID", name="th2_feedback")
 th2_feedback_enable = EpicsSignal(

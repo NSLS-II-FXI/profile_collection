@@ -742,6 +742,16 @@ def mv_stage(motor, pos):
     yield Msg("wait", None, group=grp)
 
 
+@parameter_annotation_decorator({
+    "parameters": {
+        "detectors": {
+            "annotation": "typing.List[DetectorType1]",
+            "devices": {"DetectorType1": ["ic3", "ic4"]},
+            "default": ["ic3", "ic4"],
+        }
+    }
+        
+})
 def eng_scan(
     start, stop=None, num=1, detectors=[ic3, ic4], delay_time=1, note="", md=None
 ):

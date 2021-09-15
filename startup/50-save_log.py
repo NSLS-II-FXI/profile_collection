@@ -7,7 +7,8 @@ import subprocess
 import threading
 from datetime import datetime
 
-BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt + motor_lakeshore
+if not is_re_worker_active():
+    BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt + motor_lakeshore
 
 
 class Auto_Log_Save(object):
