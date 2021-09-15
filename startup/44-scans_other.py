@@ -548,12 +548,9 @@ class LoadCellScanPlot(QtAwareCallback):
         self._ax1 = None
         self._ax2 = None
 
-        # Plan parameters
-        self.eng_start = 0
-        self.eng_end = 0
-        self.steps = 0
-        self.load_cell_force = 0
-        self.bender_pos = 0
+        # Parameters used in 'ax2' title
+        self._load_cell_force = None 
+        self._bender_pos = None
 
     def start_new_figure(self):
         """
@@ -562,12 +559,14 @@ class LoadCellScanPlot(QtAwareCallback):
         """
         self._start_new_figure = True
 
-    def show_axes_titles(self):
+    def show_axes_titles(self, *, load_cell_force, bender_pos):
         """
         Add subtitles to the current plot once the next stop document is received.
         Call before the last scan in the series.
         """
         self._show_axes_titles = True
+        self._load_cell_force = load_cell_force
+        self._bender_pos = bender_pos
 
     def stop(self, doc):
         # Scan UID
@@ -576,6 +575,12 @@ class LoadCellScanPlot(QtAwareCallback):
         h = db[uid]
         # Scan ID
         scan_id = h.start["scan_id"]
+
+        plan_args = h.start["plan_args"]
+        # Get values for some parameters used for plotting
+        eng_start = plan_args["start"]
+        eng_end = plan_args["stop"]
+        steps = plan_args["num"]
 
         if self._start_new_figure:
             self._fig = plt.figure()
@@ -591,7 +596,7 @@ class LoadCellScanPlot(QtAwareCallback):
         y0 = np.array(list(h.data(ic3.name)))
         y1 = np.array(list(h.data(ic4.name)))
         r = np.log(y0 / y1)
-        x = np.linspace(self.eng_start, self.eng_end, self.steps)
+        x = np.linspace(eng_start, eng_end, steps)
         self._ax1.plot(x, r, ".-")
         r_dif = np.array([0] + list(np.diff(r)))
         self._ax2.plot(x, r_dif, ".-")
@@ -608,9 +613,14 @@ class LoadCellScanPlot(QtAwareCallback):
                 )
             )
             self._ax2.title.set_text(
-                "load_cell: {}, bender_pos: {}".format(self.load_cell_force, self.bender_pos)
+                "load_cell: {}, bender_pos: {}".format(
+                    self._load_cell_force if self._load_cell_force is not None else "NOT SET", 
+                    self._bender_pos if self._bender_pos is not None else "NOT SET")
             )
             self._fig.subplots_adjust(hspace=0.5)
+
+            self._load_cell_force = None
+            self._bender_pos = None
 
             self._show_axes_titles = False
     
@@ -666,11 +676,6 @@ def load_cell_scan(
     num_pbsl_pos = len(pbsl_y_pos_list)
     yield from _open_shutter(simu=False)
 
-    # Set some parameters that are needed for plotting
-    lcs_plot.eng_start = eng_start
-    lcs_plot.eng_end = eng_end
-    lcs_plot.steps = steps
-
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
         yield from bps.sleep(5)
@@ -685,9 +690,7 @@ def load_cell_scan(
                 
                 # If the scan is the last in the series, display axes titles and align the plot 
                 if (pbsl_pos == pbsl_y_pos_list[-1]) and (i == num - 1):
-                    lcs_plot.load_cell_force = load_cell_force
-                    lcs_plot.bender_pos = bender_pos
-                    lcs_plot.show_axes_titles()
+                    lcs_plot.show_axes_titles(load_cell_force=load_cell_force, bender_pos=bender_pos)
                 
                 eng_scan_with_plot = subs_wrapper(
                         eng_scan(eng_start, stop=eng_end, num=steps, detectors=[ic3, ic4], delay_time=delay_time),
