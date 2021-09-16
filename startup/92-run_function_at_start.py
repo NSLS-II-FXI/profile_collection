@@ -1,5 +1,5 @@
 import os
-if not os.environ.get('AZURE_TESTING'):
+if not os.environ.get('AZURE_TESTING') and not is_re_worker_active():
     new_user()
 show_global_para()
 run_pdf()
