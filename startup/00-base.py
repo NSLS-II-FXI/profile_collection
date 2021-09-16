@@ -79,6 +79,11 @@ del Broker
 
 nslsii.configure_base(get_ipython().user_ns, db, bec=True)
 
+# The following plan stubs should not be imported directly in the global namespace.
+#   Otherwise Queue Server will not be able to load the startup files.
+del one_1d_step
+del one_nd_step
+del one_shot
 
 # Make new RE.md storage available in old environments.
 from pathlib import Path
