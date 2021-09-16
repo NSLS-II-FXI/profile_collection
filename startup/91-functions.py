@@ -546,7 +546,12 @@ def show_global_para():
 ################################################################
 
 
-def new_user():
+def new_user(*, new_pi_name=None, new_proposal_id=None):
+    """
+    The function creates directory structure for a new user. If ``new_pi_name`` and/or
+    ``new_proposal_id`` are ``None``, the function asks the user to type PI name and/or
+    Proposal ID.
+    """
     now = datetime.now()
     year = np.str(now.year)
     mon = "{:02d}".format(now.month)
@@ -565,9 +570,12 @@ def new_user():
         pass
     print("\n")
 
-    PI_name = input("PI's name:")
+    if new_pi_name is None:
+        PI_name = input("PI's name:")
+    else:
+        PI_name = new_pi_name
     PI_name = PI_name.replace(" ", "_").upper()
-
+    
     if len(PI_name) == 0:
         cwd = os.getcwd()
         print(f"\nstay at current directory: {cwd}\n")
@@ -581,7 +589,11 @@ def new_user():
         fn = pre + PI_name
         print(fn)
     else:
-        proposal_id = input("Proposal ID:")
+        if new_proposal_id is None:
+            proposal_id = input("Proposal ID:")
+        else:
+            proposal_id = new_proposal_id
+
         fn = pre + PI_name + "_Proposal_" + proposal_id
         export_pdf(1)
         insert_text(f"New user: {fn}\n")
@@ -597,6 +609,22 @@ def new_user():
         pass
     os.chdir(fn)
     print("\nUser creating successful!\n\nEntering folder: {}\n".format(os.getcwd()))
+
+
+def create_new_user(pi_name:str, proposal_id:str):
+    """
+    The plans create directory structure for the new user. Parameters 'pi_name' and
+    'proposal_id' are expected to be strings.
+
+    Parameters
+    ----------
+    pi_name : str
+        PI name
+    propsal_id : str
+        Proposal ID
+    """
+    new_user(new_pi_name=pi_name, new_proposal_id=proposal_id)
+    yield from sleep(0.1)  # Short pause
 
 
 ################################################################

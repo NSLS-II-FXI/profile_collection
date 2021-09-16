@@ -1500,6 +1500,28 @@ existing_plans:
       name: name
     properties:
       is_generator: true
+  create_new_user:
+    description: 'The plans create directory structure for the new user. Parameters
+      ''pi_name'' and
+
+      ''proposal_id'' are expected to be strings.'
+    name: create_new_user
+    parameters:
+    - annotation:
+        type: str
+      description: PI name
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: pi_name
+    - annotation:
+        type: str
+      kind:
+        name: POSITIONAL_OR_KEYWORD
+        value: 1
+      name: proposal_id
+    properties:
+      is_generator: true
   damon_scan:
     name: damon_scan
     parameters:
