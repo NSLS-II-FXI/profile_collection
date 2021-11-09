@@ -49,7 +49,7 @@ def _take_image(detectors, motor, num, stream_name='primary'):
 def _set_Andor_chunk_size(detectors, chunk_size):
     for detector in detectors:
         yield from unstage(detector)
-    yield from mv(Andor.cam.num_images, chunk_size)
+    yield from bps.configure(Andor, {'cam.num_images':chunk_size})
     for detector in detectors:
         yield from stage(detector)
         
