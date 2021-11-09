@@ -31,8 +31,8 @@ def find_rot(fn, thresh=0.05, method=1):
     im2[np.isnan(im2)] = 0
     im1[im1 < thresh] = 0
     im2[im2 < thresh] = 0
-    im1 = medfilt2d(im1, 5)
-    im2 = medfilt2d(im2, 5)
+    im1 = medfilt2d(im1, 3)
+    im2 = medfilt2d(im2, 3)
     im1_fft = np.fft.fft2(im1)
     im2_fft = np.fft.fft2(im2)
     results = dftregistration(im1_fft, im2_fft)

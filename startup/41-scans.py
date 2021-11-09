@@ -190,6 +190,7 @@ def fly_scan(
     binning=None,
     note="",
     md=None,
+    move_to_ini_pos=True,
     simu=False,
 ):
     """
@@ -322,7 +323,7 @@ def fly_scan(
 
         # open shutter, tomo_images
         true_period = yield from rd(Andor.cam.acquire_period)
-        rot_time = relative_rot_angle / np.abs(rs)
+        rot_time = np.abs(relative_rot_angle) / np.abs(rs)
         num_img = int(rot_time / true_period) +2
 
         yield from _open_shutter(simu=simu)
@@ -355,14 +356,15 @@ def fly_scan(
             simu=simu,
         )
         yield from _close_shutter(simu=simu)
-        yield from _move_sample_in(
-            motor_x_ini,
-            motor_y_ini,
-            motor_z_ini,
-            motor_r_ini,
-            trans_first_flag=rot_first_flag,
-            repeat=3
-        ) 
+        if move_to_ini_pos:
+            yield from _move_sample_in(
+                motor_x_ini,
+                motor_y_ini,
+                motor_z_ini,
+                motor_r_ini,
+                trans_first_flag=rot_first_flag,
+                repeat=3
+            ) 
         for flt in filters:
             yield from mv(flt, 0)
 
@@ -752,6 +754,8 @@ def mv_stage(motor, pos):
     }
         
 })
+
+
 def eng_scan(
     start, stop=None, num=1, detectors=[ic3, ic4], delay_time=1, note="", md=None
 ):
@@ -2743,9 +2747,9 @@ def tomo_mosaic(x_ini, y_ini, z_ini,
         simu=False, note=''
 		):
         
-    y_list = np.arange(y_ini, y_ini+y_step_size*y_num_steps, y_step_size) 
-    x_list = np.arange(x_ini, x_ini+x_step_size*x_num_steps, x_step_size)
-    z_list = np.arange(z_ini, z_ini+z_step_size*z_num_steps, z_step_size)                                                    
+    y_list = np.arange(y_ini, y_ini+y_step_size*y_num_steps-1, y_step_size) 
+    x_list = np.arange(x_ini, x_ini+x_step_size*x_num_steps-1, x_step_size)
+    z_list = np.arange(z_ini, z_ini+z_step_size*z_num_steps-1, z_step_size)                                                    
     txt1 = '\n###############################################'    
     txt2 = '\n#######    start mosaic tomography scan  ######'
     txt3 = '\n###############################################'

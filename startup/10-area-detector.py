@@ -127,9 +127,13 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
     hdf5 = Cpt(
         HDF5PluginWithFileStore,
         suffix="HDF1:",
-        write_path_template="/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/",
+        write_path_template="/nsls2/data/fxi/assets/default/%Y/%m/%d/",
+        #write_path_template="/nsls2/data/fxi/legacy/Andor/%Y/%m/%d/",
+        #write_path_template="/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/",
         # write_path_template='/dev/shm/%Y/%m/%d/' ,
-        root="/NSLS2/xf18id1/DATA/Andor",
+        root="/nsls2/data/fxi/assets/default",
+        #root = "/nsls2/data/fxi/legacy/Andor",
+        #root="/NSLS2/xf18id1/DATA/Andor",
         # write_path_template='/tmp/',
         # root='/dev/shm',
     )
@@ -212,7 +216,8 @@ class Manta(SingleTrigger, AreaDetector):
     hdf5 = Cpt(
         HDF5PluginWithFileStore,
         suffix="HDF1:",
-        write_path_template="/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/",
+        write_path_template="/nsls2/data/fxi/legacy/Andor/%Y/%m/%d/",
+        #write_path_template="/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/",
         # write_path_template = '/dev/shm/',
         root="/NSLS2/xf18id1/DATA/Andor",
         # write_path_template='/tmp/',
@@ -284,7 +289,7 @@ Andor.hdf5.read_attrs = []
 """
 
 
-Andor = AndorKlass("XF:18IDB-BI{Det:Neo}", name="Andor")
+Andor = AndorKlass("XF:18IDB-BI{Det:Neo2}", name="Andor")
 Andor.cam.ensure_nonblocking()
 # Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
 # Andor.read_attrs = ['hdf5']

@@ -1005,6 +1005,154 @@ def grid_z_scan(
     print(txt)    
 
 
+def xxanes_scan(eng_list, delay_time=0.5, repeat=1, note="", md=None):
+    """
+    eng_list: energy list in keV 
+    delay_time: delay_time between each energy step, in unit of sec
+    note: string; optional, description of the scan
+    """
+    check_eng_range([eng_list[0], eng_list[1]])
+    print(0)
+    yield from _open_shutter(simu=False)
+    detectors=[ic3, ic4]
+    motor_x = XEng
+    motor_x_ini = motor_x.position  # initial position of motor_x
+
+    # added by XH -- start
+    motor_y = dcm
+    # added by XH -- end
+
+    _md = {
+        "detectors": [det.name for det in detectors],
+        "motors": [motor_x.name, motor_y.name],
+        "XEng": XEng.position,
+        "plan_name": "xxanes",
+        "plan_args": {
+            "eng": eng_list,
+            "detectors": "detectors",
+            "delay_time": delay_time,
+            "repeat": repeat,
+            "note": note if note else "None",
+        },
+        "plan_pattern": "linspace",
+        "plan_pattern_module": "numpy",
+        "hints": {},
+        "operator": "FXI",
+        "note": note if note else "None",
+        }
+    _md.update(md or {})
+    try:
+        dimensions = [(motor_x.hints["fields"], "primary"), (motor_y.hints["fields"], "primary")]
+    except (AttributeError, KeyError):
+        pass
+    else:
+        _md["hints"].setdefault("dimensions", dimensions)
+
+    @stage_decorator(list(detectors) + [motor_x, motor_y])
+    @run_decorator(md=_md)
+    def eng_inner_scan():
+        for eng in eng_list:
+            yield from mv(motor_x, eng)
+            yield from bps.sleep(delay_time)
+            yield from bps.repeat(
+                partial(bps.trigger_and_read, list(detectors) + [motor_x, motor_y] ), num=repeat, delay=0.01
+                )
+            #yield from trigger_and_read(list(detectors) + [motor_x, motor_y])
+        yield from mv(motor_x, motor_x_ini)
+    yield from eng_inner_scan()
+    yield from _close_shutter(simu=False)    
+    
+
+def raster_scan_xh(
+    mot1=zps.sx,
+    mot1_start=-100,
+    mot1_end=100,
+    mot1_points=6,
+    mot2=zps.sy,
+    mot2_start=-50,
+    mot2_end=50,
+    mot2_points=6,
+    mot2_snake=False,
+    out_x=100,
+    out_y=100,
+    exp_time=0.1,
+    chunk_size=1,
+    note="",
+    md=None,
+    simu=False
+):
+    detectors = [Andor]
+    y_ini = zps.sy.position  # sample y position (initial)
+    y_out = y_ini + out_y if not (out_y is None) else y_ini# sample y position (out-position)
+    x_ini = zps.sx.position
+    x_out = x_ini + out_x if not (out_x is None) else x_ini
+    yield from mv(Andor.cam.acquire, 0)
+    yield from mv(Andor.cam.image_mode, 0)
+    yield from mv(Andor.cam.num_images, chunk_size)
+    yield from mv(Andor.cam.acquire_time, exp_time)
+    period_cor = max(exp_time+0.01, 0.05)
+    yield from mv(Andor.cam.acquire_period, period_cor)
+
+    _md = {
+        "detectors": [det.name for det in detectors],
+        "motors": [mot1.name, mot2.name],
+        "XEng": XEng.position,
+        "plan_args": {
+            "mot1_start": mot1_start,
+            "mot1_stop": mot1_end,
+            "mot1_pnts": mot1_points,
+            "mot2_start": mot2_start,
+            "mot2_stop": mot2_end,
+            "mot2_pnts": mot2_points,
+            "mot2_snake": mot2_snake,
+            "out_x": out_x,
+            "out_y": out_y,
+            "exposure_time": exp_time,
+            "note": note if note else "",
+        },
+        "plan_name": "raster_scan_xh",
+        "plan_pattern": "linspace",
+        "plan_pattern_module": "numpy",
+        "hints": {},
+        "operator": "FXI",
+        "motor_pos": wh_pos(print_on_screen=0),
+    }
+    _md.update(md or {})
+    
+    # @stage_decorator(list(detectors) + [mot1, mot2])
+    # @run_decorator(md=_md)
+    # def inner_scan():
+    yield from _open_shutter(simu=simu)
+    yield from rel_grid_scan(
+        detectors,
+        mot1,
+        mot1_start,
+        mot1_end,
+        mot1_points,
+        mot2,
+        mot2_start,
+        mot2_end,
+        mot2_points,
+        mot2_snake,
+    )
+    yield from mv(zps.sx, x_out, zps.sy, y_out, wait=True)
+    yield from stage(Andor)
+    yield from bps.sleep(1)
+    yield from trigger_and_read(list(detectors) + [mot1, mot2], name='flat') 
+    yield from mv(zps.sx, x_ini, zps.sy, y_ini, wait=True)
+    yield from bps.sleep(1)              
+    yield from _close_shutter(simu=simu)
+    yield from stage(Andor)
+    yield from bps.sleep(1)
+    yield from trigger_and_read(list(detectors) + [mot1, mot2], name='dark')
+
+    yield from mv(zps.sx, x_ini)
+    yield from mv(zps.sy, y_ini) 
+    yield from unstage(Andor)
+    yield from mv(Andor.cam.image_mode, 1)
+    yield from _close_shutter(simu=simu)
+    
+
 def dummy_scan( exposure_time=0.1,
     start_angle = None,
     relative_rot_angle=180,
@@ -1159,20 +1307,20 @@ def radiographic_record(exp_t=0.1, period=0.1, t_span=10, stop=True,
         yield from bps.sleep(1)        
         
         yield from mv(Andor.cam.num_images, int(t_span/period))
-        yield from trigger_and_read([Andor])
+        yield from trigger_and_read([Andor], name='primary')
         
         yield from mv(zps.sx, motor_x_out, 
                       zps.sy, motor_y_out, 
                       zps.sz, motor_z_out,
                       zps.pi_r, motor_r_out)  
         yield from mv(Andor.cam.num_images,20)
-        yield from trigger_and_read([Andor])
+        yield from trigger_and_read([Andor], name='flat')
         yield from _close_shutter(simu=simu)
         yield from mv(zps.sx, motor_x_ini, 
                       zps.sy, motor_y_ini, 
                       zps.sz, motor_z_ini,
                       zps.pi_r, motor_r_ini) 
-        yield from trigger_and_read([Andor])
+        yield from trigger_and_read([Andor], name='dark')
         yield from mv(Andor.cam.image_mode, 1)
         for flt in filters:
             yield from mv(flt, 0)
