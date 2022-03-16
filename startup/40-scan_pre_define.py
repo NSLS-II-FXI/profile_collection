@@ -100,9 +100,6 @@ def _set_andor_param(
 ):
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
-    if (not binning is None) and len(binning) == 2:
-        yield from mv(Andor.cam.bin_y, binning[0],
-                      Andor.cam.bin_x, binning[1])
     yield from mv(Andor.cam.num_images, chunk_size)
     period_cor = period
     yield from mv(Andor.cam.acquire_time, exposure_time)
