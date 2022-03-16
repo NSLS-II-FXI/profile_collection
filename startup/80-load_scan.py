@@ -136,6 +136,11 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
         else:
             export_xanes_scan(h, fpath)
         print("xanes scan: #{} loading finished".format(scan_id))
+        
+    elif scan_type == 'xanes_scan_img_only':
+        print("exporting xanes scan image only: #{}".format(scan_id))
+        export_xanes_scan_img_only(h, fpath)
+        print("xanes scan img only: #{} loading finished".format(scan_id))
     elif scan_type == "z_scan":
         print("exporting z_scan: #{}".format(scan_id))
         export_z_scan(h, fpath)
@@ -446,6 +451,62 @@ def export_xanes_scan(h, fpath=None):
     img_xanes_norm[np.isnan(img_xanes_norm)] = 0
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0
     fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
+    with h5py.File(fname, "w") as hf:
+        hf.create_dataset("uid", data=uid)
+        hf.create_dataset("scan_id", data=scan_id)
+        hf.create_dataset("note", data=str(note))
+        hf.create_dataset("scan_time", data=scan_time)
+        hf.create_dataset("X_eng", data=eng_list)
+        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+        hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
+        hf.create_dataset("Magnification", data=M)
+        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print("fails to write lakeshore info into {fname}")
+
+    del img_dark, img_dark_avg, img_bkg, img_bkg_avg, img_xanes, img_xanes_avg, img_xanes_norm
+    
+
+def export_xanes_scan_img_only(h, fpath=None):
+    if fpath is None:
+        fpath = './'
+    else:
+        if not fpath[-1] == '/':
+            fpath += '/'  
+    zp_z_pos = h.table("baseline")["zp_z"][1]
+    DetU_z_pos = h.table("baseline")["DetU_z"][1]
+    M = (DetU_z_pos/zp_z_pos - 1)*10.
+    pxl_sz = 6500./M
+    scan_type = h.start["plan_name"]
+    #    scan_type = 'xanes_scan'
+    uid = h.start["uid"]
+    note = h.start["note"]
+    scan_id = h.start["scan_id"]
+    scan_time = h.start["time"]
+    try:
+        x_eng = h.start["XEng"]
+    except:
+        x_eng = h.start["x_ray_energy"]
+    chunk_size = h.start["chunk_size"]
+    num_eng = h.start["num_eng"]
+
+    img_xanes = np.array(list(h.data("Andor_image", stream_name="primary")))
+    img_xanes_avg = np.mean(img_xanes, axis=1)
+    img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))
+    img_dark_avg = np.mean(img_dark, axis=1)
+    img_bkg = np.ones(img_xanes.shape)
+    img_bkg_avg = np.ones(img_dark_avg.shape)
+    
+    eng_list = list(h.start["eng_list"])
+
+    img_xanes_norm = (img_xanes_avg - img_dark_avg) * 1.0
+    img_xanes_norm[np.isnan(img_xanes_norm)] = 0
+    img_xanes_norm[np.isinf(img_xanes_norm)] = 0
+    fname = fpath + scan_type + "_id_" + str(scan_id) + "_img_only.h5"
     with h5py.File(fname, "w") as hf:
         hf.create_dataset("uid", data=uid)
         hf.create_dataset("scan_id", data=scan_id)
