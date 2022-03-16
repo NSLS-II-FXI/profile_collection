@@ -737,6 +737,122 @@ def xanes_scan(
 
 
 
+def xanes_scan_img_only(
+    eng_list,
+    exposure_time=0.1,
+    chunk_size=5,
+    simu=False,
+    note="",
+    md=None,
+):
+    """
+    Scan the energy and take 2D image, will take dark image, but will not move sample out to take background image)
+
+    Inputs:
+    -------
+    eng_list: list or numpy array,
+        energy in unit of keV
+
+    exposure_time: float
+        unit of seconds
+
+    chunk_size: int
+        number of background images == num of dark images
+
+    note: string
+        adding note to the scan
+
+    simu: Bool, default is False
+        True: will simulate closing/open shutter without really closing/opening
+        False: will really close/open shutter
+
+
+    """
+    global ZONE_PLATE
+    detectors = [Andor, ic3]
+    period = exposure_time if exposure_time >= 0.05 else 0.05
+    yield from _set_andor_param(exposure_time, period, chunk_size)
+    motor_eng = XEng
+    eng_ini = XEng.position
+
+    motor_x_ini = zps.sx.position
+    motor_y_ini = zps.sy.position
+    motor_z_ini = zps.sz.position
+    motor_r_ini = zps.pi_r.position
+
+    rs_ini = (yield from bps.rd(zps.pi_r.velocity))
+    motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
+
+    _md = {
+        "detectors": [det.name for det in detectors],
+        "motors": [mot.name for mot in motor],
+        "num_eng": len(eng_list),
+        "chunk_size": chunk_size,
+        "exposure_time": exposure_time,
+        "eng_list": eng_list,
+        "XEng": XEng.position,
+        "plan_args": {
+            "eng_list": "eng_list",
+            "exposure_time": exposure_time,
+            "chunk_size": chunk_size,
+            "note": note if note else "None",
+            "zone_plate": ZONE_PLATE,
+        },
+        "plan_name": "xanes_scan_img_only",
+        "hints": {},
+        "operator": "FXI",
+        "zone_plate": ZONE_PLATE,
+        "note": note if note else "None",
+        #'motor_pos':  wh_pos(print_on_screen=0),
+    }
+    _md.update(md or {})
+    try:
+        dimensions = [(motor.hints["fields"], "primary")]
+    except (AttributeError, KeyError):
+        pass
+    else:
+        _md["hints"].setdefault("dimensions", dimensions)
+
+    @stage_decorator(list(detectors) + motor)
+    @run_decorator(md=_md)
+    def xanes_inner_scan():
+        print("\ntake {} dark images...".format(chunk_size))
+        yield from _set_rotation_speed(rs=30)
+        yield from _take_dark_image(detectors, motor, 1, chunk_size, stream_name='dark', simu=simu)
+
+        print(f"\nopening shutter, and start xanes scan: {chunk_size} images per each energy...")
+        yield from _open_shutter(simu)
+        for eng in eng_list:
+            yield from _xanes_per_step(
+                eng, detectors, motor, move_flag=1, move_clens_flag=0, info_flag=0, stream_name='primary'
+            )
+
+        yield from _move_sample_in(
+            motor_x_ini,
+            motor_y_ini,
+            motor_z_ini,
+            motor_r_ini,
+            repeat=2,
+            trans_first_flag=1,
+        )
+        yield from move_zp_ccd(eng_ini, info_flag=0)
+
+        print("closing shutter")
+        yield from _close_shutter(simu)
+
+    yield from xanes_inner_scan()
+    txt1 = get_scan_parameter()
+    eng_list = np.round(eng_list, 5)
+    if len(eng_list) > 10:
+        txt2 = f"eng_list: {eng_list[0:10]}, ... {eng_list[-5:]}\n"
+    else:
+        txt2 = f"eng_list: {eng_list}"
+    txt = txt1 + "\n" + txt2
+    insert_text(txt)
+    print(txt)
+
+
+
 def mv_stage(motor, pos):
     grp = _short_uid("set")
     yield Msg("checkpoint")
@@ -2746,6 +2862,14 @@ def tomo_mosaic(x_ini, y_ini, z_ini,
         start_angle=None, relative_rot_angle=180, relative_move_flag=True,
         simu=False, note=''
 		):
+
+
+    if x_ini is None:
+        x_ini = zps.sx.position
+    if y_ini is None:
+        y_ini = zps.sy.position
+    if z_ini is None:
+        z_ini = zps.sz.position
         
     y_list = np.arange(y_ini, y_ini+y_step_size*y_num_steps-1, y_step_size) 
     x_list = np.arange(x_ini, x_ini+x_step_size*x_num_steps-1, x_step_size)
