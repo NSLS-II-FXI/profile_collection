@@ -1,0 +1,9 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    mpl_qtthread/_version.py,
+    docs/source/conf.py
+max-line-length = 115
