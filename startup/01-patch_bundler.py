@@ -1,8 +1,8 @@
 from bluesky.bundlers import RunBundler as _OrigBundler
 import bluesky
 
-class PatchedRunBundler(_OrigBundler):
 
+class PatchedRunBundler(_OrigBundler):
     async def configure(self, msg):
         """Configure an object
 
@@ -22,13 +22,13 @@ class PatchedRunBundler(_OrigBundler):
             obj_set, _ = self._descriptors[name]
             if obj in obj_set:
                 del self._descriptors[name]
-    
 
         if obj in self._describe_cache:
             del self._describe_cache[obj]
             del self._config_desc_cache[obj]
             del self._config_values_cache[obj]
             del self._config_ts_cache[obj]
+
 
 bluesky.run_engine.RunBundler = PatchedRunBundler
 bluesky.bundlers.RunBundler = PatchedRunBundler

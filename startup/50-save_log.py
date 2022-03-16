@@ -33,7 +33,7 @@ class Auto_Log_Save(object):
 def save_pos(print_flag=0, comment=""):
     """
     Get motor positions and save to file /NSLS2/xf18id1/DATA/Motor_position_log/
-    To print it out, set print_flag=1 
+    To print it out, set print_flag=1
     """
 
     class Tee(object):

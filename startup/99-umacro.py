@@ -30,7 +30,7 @@ def fit_2D_xanes_non_iter(img_xanes, eng, spectrum_ref, error_thresh=0.1):
     ----------
     A: reference spectrum (2-colume array: xray_energy vs. absorption_spectrum)
     X: fitted coefficient of each ref spectrum
-    b: experimental 2D XANES data 
+    b: experimental 2D XANES data
 
     Outputs:
     ----------
@@ -117,7 +117,7 @@ def fit_2D_xanes_iter(
 
     spectrum_ref: dictionary, obtained from, e.g. spectrum_ref = load_xanes_ref(Ni2, Ni3)
 
-    coef0: initial guess of the fitted coefficient, 
+    coef0: initial guess of the fitted coefficient,
            it has dimention of [num_of_referece, img_xanes.shape[1], img_xanes.shape[2]]
 
     learning_rate: float
@@ -481,12 +481,23 @@ Zn_eng_list_wl = np.genfromtxt(
 #        print('sleep for 600sec')
 ###############################
 
-def mono_scan_repeatibility_test(pzt_cm_bender_pos_list, pbsl_y_pos_list,
-                                 eng_start, eng_end, steps,
-                                 delay_time=0.5, repeat=1):
-    for ii in range(repeat):
-        yield from load_cell_scan(pzt_cm_bender_pos_list,
-                                  pbsl_y_pos_list, 1,
-                                  eng_start, eng_end, steps,
-                                  delay_time=delay_time)
 
+def mono_scan_repeatibility_test(
+    pzt_cm_bender_pos_list,
+    pbsl_y_pos_list,
+    eng_start,
+    eng_end,
+    steps,
+    delay_time=0.5,
+    repeat=1,
+):
+    for ii in range(repeat):
+        yield from load_cell_scan(
+            pzt_cm_bender_pos_list,
+            pbsl_y_pos_list,
+            1,
+            eng_start,
+            eng_end,
+            steps,
+            delay_time=delay_time,
+        )

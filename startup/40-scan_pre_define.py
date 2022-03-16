@@ -35,9 +35,9 @@ def _move_sample_in(in_x, in_y, in_z, in_r, repeat=1, trans_first_flag=1):
         else:
             yield from mv(zps.pi_r, in_r)
             yield from mv(zps.sx, in_x, zps.sy, in_y, zps.sz, in_z)
-            
-            
-def _take_image(detectors, motor, num, stream_name='primary'):
+
+
+def _take_image(detectors, motor, num, stream_name="primary"):
     if not (type(detectors) == list):
         detectors = list(detectors)
     if not (type(motor) == list):
@@ -49,25 +49,19 @@ def _take_image(detectors, motor, num, stream_name='primary'):
 def _set_Andor_chunk_size(detectors, chunk_size):
     for detector in detectors:
         yield from unstage(detector)
-    yield from bps.configure(Andor, {'cam.num_images':chunk_size})
+    yield from bps.configure(Andor, {"cam.num_images": chunk_size})
     for detector in detectors:
         yield from stage(detector)
-        
+
 
 def _take_dark_image(
-    detectors, 
-    motor, 
-    num=1, 
-    chunk_size=1,  
-    stream_name='dark',
-    simu=False
+    detectors, motor, num=1, chunk_size=1, stream_name="dark", simu=False
 ):
-    yield from _close_shutter(simu)    
+    yield from _close_shutter(simu)
     original_num_images = yield from rd(Andor.cam.num_images)
     yield from _set_Andor_chunk_size(detectors, chunk_size)
     yield from _take_image(detectors, motor, num, stream_name=stream_name)
     yield from _set_Andor_chunk_size(detectors, original_num_images)
-    
 
 
 def _take_bkg_image(
@@ -80,8 +74,8 @@ def _take_bkg_image(
     num=1,
     chunk_size=1,
     rot_first_flag=1,
-    stream_name='flat',
-    simu=False    
+    stream_name="flat",
+    simu=False,
 ):
     yield from _move_sample_out(
         out_x, out_y, out_z, out_r, repeat=2, rot_first_flag=rot_first_flag
@@ -90,24 +84,27 @@ def _take_bkg_image(
     yield from _set_Andor_chunk_size(detectors, chunk_size)
     yield from _take_image(detectors, motor, num, stream_name=stream_name)
     yield from _set_Andor_chunk_size(detectors, original_num_images)
-        
-        
-def _set_andor_param(
-    exposure_time=0.1, 
-    period=0.1, 
-    chunk_size=1,
-    binning=[1,1]
-):
+
+
+def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1, binning=[1, 1]):
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     period_cor = period
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    #yield from abs_set(Andor.cam.acquire_period, period_cor)
-    Andor.cam.acquire_period.put(period_cor)        
-        
+    # yield from abs_set(Andor.cam.acquire_period, period_cor)
+    Andor.cam.acquire_period.put(period_cor)
 
-def _xanes_per_step(eng, detectors, motor, move_flag=1, move_clens_flag=1, info_flag=0, stream_name="primary"):
+
+def _xanes_per_step(
+    eng,
+    detectors,
+    motor,
+    move_flag=1,
+    move_clens_flag=1,
+    info_flag=0,
+    stream_name="primary",
+):
     yield from move_zp_ccd(
         eng, move_flag=move_flag, move_clens_flag=move_clens_flag, info_flag=info_flag
     )
@@ -117,9 +114,9 @@ def _xanes_per_step(eng, detectors, motor, move_flag=1, move_clens_flag=1, info_
     if not (type(motor) == list):
         motor = list(motor)
     yield from trigger_and_read(detectors + motor, name=stream_name)
-    
-    
-'''        
+
+
+"""        
 def _close_shutter(simu=False):
     if simu:
         print("testing: close shutter")
@@ -132,7 +129,8 @@ def _open_shutter(simu=False):
         print("testing: open shutter")
     else:
         yield from mv(shutter, 'Open')      
-'''
+"""
+
 
 def _close_shutter(simu=False):
     if simu:
@@ -141,7 +139,7 @@ def _close_shutter(simu=False):
         print("closing shutter ... ")
         # yield from mv(shutter, 'Close')
         i = 0
-        reading = (yield from bps.rd(shutter_status))
+        reading = yield from bps.rd(shutter_status)
         while not reading:  # if 1:  closed; if 0: open
             yield from abs_set(shutter_close, 1, wait=True)
             yield from bps.sleep(3)
@@ -151,8 +149,7 @@ def _close_shutter(simu=False):
                 print("fails to close shutter")
                 raise Exception("fails to close shutter")
                 break
-            reading = (yield from bps.rd(shutter_status))
-            
+            reading = yield from bps.rd(shutter_status)
 
 
 def _open_shutter(simu=False):
@@ -161,7 +158,7 @@ def _open_shutter(simu=False):
     else:
         print("opening shutter ... ")
         i = 0
-        reading = (yield from bps.rd(shutter_status))
+        reading = yield from bps.rd(shutter_status)
         while reading:  # if 1:  closed; if 0: open
             yield from abs_set(shutter_open, 1, wait=True)
             print(f"try opening {i} time(s) ...")
@@ -171,9 +168,11 @@ def _open_shutter(simu=False):
                 print("fails to open shutter")
                 raise Exception("fails to open shutter")
                 break
-            reading = (yield from bps.rd(shutter_status))
-                
+            reading = yield from bps.rd(shutter_status)
+
+
 def _set_rotation_speed(rs=1):
-    yield from abs_set(zps.pi_r.velocity, rs)   
-#        
-        
+    yield from abs_set(zps.pi_r.velocity, rs)
+
+
+#

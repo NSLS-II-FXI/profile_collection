@@ -12,10 +12,10 @@ sd.baseline = [
     cm,
     tm,
     pbsl,
-    #pzt_dcm_chi2.pos,
-    #pzt_dcm_th2.pos,
-    #pzt_cm_loadcell,
-    #pzt_tm_loadcell,
+    # pzt_dcm_chi2.pos,
+    # pzt_dcm_th2.pos,
+    # pzt_cm_loadcell,
+    # pzt_tm_loadcell,
     V4,
     V5,
     filter1,
@@ -23,6 +23,6 @@ sd.baseline = [
     filter3,
     filter4,
 ]
-#temporary take off lakeshore336,
+# temporary take off lakeshore336,
 
 bec.disable_baseline()

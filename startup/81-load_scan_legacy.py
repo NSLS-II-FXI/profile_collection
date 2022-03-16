@@ -1,9 +1,9 @@
 def export_tomo_scan_legacy(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     scan_type = "tomo_scan"
     scan_id = h.start["scan_id"]
     try:
@@ -48,10 +48,10 @@ def export_tomo_scan_legacy(h, fpath=None):
 
 def export_fly_scan_legacy(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     uid = h.start["uid"]
     note = h.start["note"]
     scan_type = "fly_scan"
@@ -63,8 +63,8 @@ def export_fly_scan_legacy(h, fpath=None):
     r_pos = h.table("baseline")["zps_pi_r"][1]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
 
     try:
         x_eng = h.start["XEng"]
@@ -131,10 +131,10 @@ def export_fly_scan_legacy(h, fpath=None):
     mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
 
     pos2 = mot_pos_interp.argmax() + 1
-    #img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
-    img_angle = mot_pos_interp[: pos2]
-    #img_tomo = imgs[: pos2 - chunk_size]  # tomo images
-    img_tomo = imgs[: pos2]
+    # img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
+    img_angle = mot_pos_interp[:pos2]
+    # img_tomo = imgs[: pos2 - chunk_size]  # tomo images
+    img_tomo = imgs[:pos2]
 
     fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
 
@@ -155,7 +155,7 @@ def export_fly_scan_legacy(h, fpath=None):
         hf.create_dataset("z_ini", data=z_pos)
         hf.create_dataset("r_ini", data=r_pos)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(str(pxl_sz)+'nm')) 
+        hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
 
     try:
         write_lakeshore_to_file(h, fname)
@@ -170,14 +170,14 @@ def export_fly_scan_legacy(h, fpath=None):
 
 def export_xanes_scan_legacy(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     scan_type = h.start["plan_name"]
     #    scan_type = 'xanes_scan'
     uid = h.start["uid"]
@@ -234,7 +234,7 @@ def export_xanes_scan_legacy(h, fpath=None):
         hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
         hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
     try:
         write_lakeshore_to_file(h, fname)
@@ -247,7 +247,7 @@ def export_xanes_scan_legacy(h, fpath=None):
 
 def fly_scan_repeat_legacy(
     exposure_time=0.03,
-    start_angle = None,
+    start_angle=None,
     relative_rot_angle=185,
     period=0.05,
     chunk_size=20,
@@ -275,7 +275,7 @@ def fly_scan_repeat_legacy(
         for i in range(repeat):
             yield from fly_scan_legacy(
                 exposure_time=exposure_time,
-                start_angle = start_angle,
+                start_angle=start_angle,
                 relative_rot_angle=relative_rot_angle,
                 period=period,
                 chunk_size=chunk_size,
@@ -342,10 +342,10 @@ def fly_scan_repeat_legacy(
 
 def export_multipos_2D_xanes_scan2_lagacy(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     scan_type = h.start["plan_name"]
     uid = h.start["uid"]
     note = h.start["note"]
@@ -359,8 +359,8 @@ def export_multipos_2D_xanes_scan2_lagacy(h, fpath=None):
     num_pos = h.start["num_pos"]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     try:
         repeat_num = h.start["plan_args"]["repeat_num"]
     except:
@@ -394,7 +394,7 @@ def export_multipos_2D_xanes_scan2_lagacy(h, fpath=None):
                         img_bkg[i] - img_dark
                     )
             # save data
-            #fn = os.getcwd() + "/"
+            # fn = os.getcwd() + "/"
             fn = fpath
             for j in range(num_pos):
                 fname = (
@@ -417,7 +417,7 @@ def export_multipos_2D_xanes_scan2_lagacy(h, fpath=None):
                         "img_xanes", data=np.array(img_xanes[j], dtype=np.float32)
                     )
                     hf.create_dataset("Magnification", data=M)
-                    hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+                    hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
                 try:
                     write_lakeshore_to_file(h, fname)
                 except:
@@ -428,5 +428,3 @@ def export_multipos_2D_xanes_scan2_lagacy(h, fpath=None):
     del img_bkg
     del img_dark
     del imgs
-
-

@@ -185,7 +185,7 @@ def recon(
     """
     reconstruct 3D tomography
     Inputs:
-    --------  
+    --------
     fn: string
         filename of scan, e.g. 'fly_scan_0001.h5'
     rot_cen: float
@@ -193,8 +193,8 @@ def recon(
     sli: list
         a range of slice to recontruct, e.g. [100:300]
     bingning: int
-        binning the reconstruted 3D tomographic image 
-    zero_flag: bool 
+        binning the reconstruted 3D tomographic image
+    zero_flag: bool
         if 1: set negative pixel value to 0
         if 0: keep negative pixel value
     block_list: list
@@ -202,7 +202,7 @@ def recon(
     denoise_flag: int
         0: no denoising on projection image
         1: wiener denoising
-        2: gaussian denoising   
+        2: gaussian denoising
     """
 
     from PIL import Image
@@ -330,7 +330,7 @@ def denoise(prj, denoise_flag):
         import skimage.restoration as skr
 
         ss = prj.shape
-        psf = np.ones([2, 2]) / (2 ** 2)
+        psf = np.ones([2, 2]) / (2**2)
         reg = None
         balance = 0.3
         is_real = True

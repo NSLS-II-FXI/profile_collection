@@ -5,7 +5,7 @@ def _close_shutter_legacy(simu=False):
         print("closing shutter ... ")
         # yield from mv(shutter, 'Close')
         i = 0
-        reading = (yield from bps.rd(shutter_status))
+        reading = yield from bps.rd(shutter_status)
         while not reading:  # if 1:  closed; if 0: open
             yield from abs_set(shutter_close, 1, wait=True)
             yield from bps.sleep(3)
@@ -15,7 +15,7 @@ def _close_shutter_legacy(simu=False):
                 print("fails to close shutter")
                 raise Exception("fails to close shutter")
                 break
-            reading = (yield from bps.rd(shutter_status))
+            reading = yield from bps.rd(shutter_status)
             print(reading)
 
 
@@ -25,7 +25,7 @@ def _open_shutter_legacy(simu=False):
     else:
         print("opening shutter ... ")
         i = 0
-        reading = (yield from bps.rd(shutter_status))
+        reading = yield from bps.rd(shutter_status)
         while reading:  # if 1:  closed; if 0: open
             yield from abs_set(shutter_open, 1, wait=True)
             print(f"try opening {i} time(s) ...")
@@ -35,8 +35,9 @@ def _open_shutter_legacy(simu=False):
                 print("fails to open shutter")
                 raise Exception("fails to open shutter")
                 break
-            reading = (yield from bps.rd(shutter_status))
-                
+            reading = yield from bps.rd(shutter_status)
+
+
 def tomo_scan_legacy(
     start,
     stop,
@@ -173,11 +174,11 @@ def tomo_scan_legacy(
 
     yield from tomo_inner_scan()
     print("tomo-scan is disabled, try to use fly_scan")
-    
-                    
+
+
 def fly_scan_legacy(
     exposure_time=0.1,
-    start_angle = None,
+    start_angle=None,
     relative_rot_angle=180,
     period=0.15,
     chunk_size=20,
@@ -193,7 +194,7 @@ def fly_scan_legacy(
     filters=[],
     rot_back_velo=30,
     md=None,
-    binning=[1, 1]
+    binning=[1, 1],
 ):
     """
     Inputs:
@@ -201,9 +202,9 @@ def fly_scan_legacy(
     exposure_time: float, in unit of sec
 
     start_angle: float
-        starting angle 
+        starting angle
 
-    relative_rot_angle: float, 
+    relative_rot_angle: float,
         total rotation angles start from current rotary stage (zps.pi_r) position
 
     period: float, in unit of sec
@@ -237,7 +238,7 @@ def fly_scan_legacy(
     simu: Bool, default is False
         True: will simulate closing/open shutter without really closing/opening
         False: will really close/open shutter
-    
+
     """
     global ZONE_PLATE
 
@@ -310,8 +311,7 @@ def fly_scan_legacy(
         _md["hints"].setdefault("dimensions", dimensions)
 
     yield from mv(Andor.cam.acquire, 0)
-    yield from mv(Andor.cam.bin_y, binning[0],
-                  Andor.cam.bin_x, binning[1])
+    yield from mv(Andor.cam.bin_y, binning[0], Andor.cam.bin_x, binning[1])
     yield from _set_andor_param(
         exposure_time=exposure_time, period=period, chunk_size=chunk_size
     )
@@ -325,8 +325,8 @@ def fly_scan_legacy(
         for flt in filters:
             yield from mv(flt, 1)
             yield from mv(flt, 1)
-        yield from bps.sleep(1) 
-        
+        yield from bps.sleep(1)
+
         # close shutter, dark images: numer=chunk_size (e.g.20)
         print("\nshutter closed, taking dark images...")
         yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
@@ -343,7 +343,7 @@ def fly_scan_legacy(
         print("\nTaking background images...")
         yield from _set_rotation_speed(rs=rot_back_velo)
         #        yield from abs_set(zps.pi_r.velocity, rs)
-        
+
         yield from _take_bkg_image(
             motor_x_out,
             motor_y_out,
@@ -373,8 +373,8 @@ def fly_scan_legacy(
     insert_text(txt)
     print(txt)
     return uid
-    
-    
+
+
 def xanes_scan_legacy(
     eng_list,
     exposure_time=0.1,
@@ -452,7 +452,7 @@ def xanes_scan_legacy(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    rs_ini = (yield from bps.rd(zps.pi_r.velocity))
+    rs_ini = yield from bps.rd(zps.pi_r.velocity)
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     _md = {
@@ -631,8 +631,8 @@ def xanes_scan2_legacy(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    rs_ini = (yield from bps.rd(zps.pi_r.velocity))
-    #rs_ini = zps.pi_r.velocity.get()
+    rs_ini = yield from bps.rd(zps.pi_r.velocity)
+    # rs_ini = zps.pi_r.velocity.get()
 
     motor = [motor_eng, zps.sx, zps.sy, zps.sz, zps.pi_r]
 
@@ -684,7 +684,7 @@ def xanes_scan2_legacy(
         # take dark image
         print("\ntake {} dark images...".format(chunk_size))
         yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
-        
+
         print(
             "\nopening shutter, and start xanes scan: {} images per each energy... ".format(
                 chunk_size
@@ -738,11 +738,11 @@ def xanes_scan2_legacy(
     txt = txt1 + "\n" + txt2
     insert_text(txt)
     print(txt)
-    
-    
+
+
 def fly_scan_repeat_legacy(
     exposure_time=0.03,
-    start_angle = None,
+    start_angle=None,
     relative_rot_angle=185,
     period=0.05,
     chunk_size=20,
@@ -770,7 +770,7 @@ def fly_scan_repeat_legacy(
         for i in range(repeat):
             yield from fly_scan(
                 exposure_time=exposure_time,
-                start_angle = start_angle,
+                start_angle=start_angle,
                 relative_rot_angle=relative_rot_angle,
                 period=period,
                 chunk_size=chunk_size,
@@ -833,12 +833,12 @@ def fly_scan_repeat_legacy(
                 if i != repeat - 1:
                     yield from bps.sleep(sleep_time)
             export_pdf(1)
-   
-   
+
+
 def xanes_3D_legacy(
     eng_list,
     exposure_time=0.05,
-    start_angle = None,
+    start_angle=None,
     relative_rot_angle=185,
     period=0.05,
     chunk_size=20,
@@ -851,13 +851,12 @@ def xanes_3D_legacy(
     relative_move_flag=1,
     rot_first_flag=1,
     note="",
-    binning = [2, 2]
+    binning=[2, 2],
 ):
     txt = "start 3D xanes scan, containing following fly_scan:\n"
     insert_text(txt)
     yield from mv(Andor.cam.acquire, 0)
-    yield from mv(Andor.cam.bin_y, binning[0],
-                  Andor.cam.bin_x, binning[1])
+    yield from mv(Andor.cam.bin_y, binning[0], Andor.cam.bin_x, binning[1])
     for eng in eng_list:
         yield from move_zp_ccd(eng, move_flag=1)
         my_note = note + f"_energy={eng}"
@@ -869,7 +868,7 @@ def xanes_3D_legacy(
             start_angle=start_angle,
             relative_rot_angle=relative_rot_angle,
             period=period,
-            chunk_size = chunk_size,
+            chunk_size=chunk_size,
             out_x=out_x,
             out_y=out_y,
             out_z=out_z,
@@ -883,16 +882,15 @@ def xanes_3D_legacy(
         yield from bps.sleep(1)
     yield from mv(Andor.cam.image_mode, 1)
     export_pdf(1)
-    
-             
-    
+
+
 def multi_pos_xanes_3D_legacy(
     eng_list,
     x_list,
     y_list,
     z_list,
     r_list,
-    start_angle = None,
+    start_angle=None,
     exposure_time=0.05,
     relative_rot_angle=185,
     period=0.05,
@@ -906,7 +904,7 @@ def multi_pos_xanes_3D_legacy(
     traditional_sequence_flag=1,
     note="",
     sleep_time=0,
-    binning = [2, 2],
+    binning=[2, 2],
     repeat=1,
 ):
     n = len(x_list)
@@ -928,7 +926,7 @@ def multi_pos_xanes_3D_legacy(
             yield from xanes_3D_legacy(
                 eng_list,
                 exposure_time=exposure_time,
-                start_angle =start_angle,
+                start_angle=start_angle,
                 relative_rot_angle=relative_rot_angle,
                 period=period,
                 out_x=out_x,
@@ -940,11 +938,12 @@ def multi_pos_xanes_3D_legacy(
                 relative_move_flag=relative_move_flag,
                 rot_first_flag=traditional_sequence_flag,
                 note=note,
-                binning = [2, 2],
+                binning=[2, 2],
             )
         print(f"sleep for {sleep_time} sec\n\n\n\n")
         yield from bps.sleep(sleep_time)
-        
+
+
 # ### Backup before modification 09/23/2019
 #
 # def fly_scan(exposure_time=0.1, relative_rot_angle = 180, period=0.15, chunk_size=20, out_x=None, out_y=2000, out_z=None,  out_r=None, rs=1, note='', simu=False, relative_move_flag=1, traditional_sequence_flag=1, filters=[], md=None):
@@ -1089,5 +1088,3 @@ def multi_pos_xanes_3D_legacy(
 #    insert_text(txt)
 #    print(txt)
 #    return uid
-
-
