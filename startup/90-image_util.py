@@ -16,16 +16,16 @@ def pad(img, thick, direction):
 
     Parameters:
     -----------
-    img: 2d or 3d array 
+    img: 2d or 3d array
         2D or 3D images
     thick: int
         padding thickness for all directions
         if thick == odd, automatically increase it to thick+1
     direction: int
-        0: padding in axes = 0 (2D or 3D image) 
+        0: padding in axes = 0 (2D or 3D image)
         1: padding in axes = 1 (2D or 3D image)
         2: padding in axes = 2 (3D image)
- 
+
     Return:
     -------
     2d or 3d array
@@ -131,7 +131,7 @@ def bin_ndarray(ndarray, new_shape=None, operation="mean"):
     Bins an ndarray in all axes based on the target shape, by summing or
         averaging.
 
-    Number of output dimensions must match number of input dimensions and 
+    Number of output dimensions must match number of input dimensions and
         new axes must divide old ones.
 
     Example
@@ -231,49 +231,49 @@ def get_circle_line_from_img(
 
 def dftregistration(buf1ft, buf2ft, usfac=100):
     """
-       # function [output Greg] = dftregistration(buf1ft,buf2ft,usfac);
-       # Efficient subpixel image registration by crosscorrelation. This code
-       # gives the same precision as the FFT upsampled cross correlation in a
-       # small fraction of the computation time and with reduced memory
-       # requirements. It obtains an initial estimate of the
-crosscorrelation peak
-       # by an FFT and then refines the shift estimation by upsampling the DFT
-       # only in a small neighborhood of that estimate by means of a
-       # matrix-multiply DFT. With this procedure all the image points
-are used to
-       # compute the upsampled crosscorrelation.
-       # Manuel Guizar - Dec 13, 2007
+           # function [output Greg] = dftregistration(buf1ft,buf2ft,usfac);
+           # Efficient subpixel image registration by crosscorrelation. This code
+           # gives the same precision as the FFT upsampled cross correlation in a
+           # small fraction of the computation time and with reduced memory
+           # requirements. It obtains an initial estimate of the
+    crosscorrelation peak
+           # by an FFT and then refines the shift estimation by upsampling the DFT
+           # only in a small neighborhood of that estimate by means of a
+           # matrix-multiply DFT. With this procedure all the image points
+    are used to
+           # compute the upsampled crosscorrelation.
+           # Manuel Guizar - Dec 13, 2007
 
-       # Portions of this code were taken from code written by Ann M. Kowalczyk
-       # and James R. Fienup.
-       # J.R. Fienup and A.M. Kowalczyk, "Phase retrieval for a complex-valued
-       # object by using a low-resolution image," J. Opt. Soc. Am. A 7, 450-458
-       # (1990).
+           # Portions of this code were taken from code written by Ann M. Kowalczyk
+           # and James R. Fienup.
+           # J.R. Fienup and A.M. Kowalczyk, "Phase retrieval for a complex-valued
+           # object by using a low-resolution image," J. Opt. Soc. Am. A 7, 450-458
+           # (1990).
 
-       # Citation for this algorithm:
-       # Manuel Guizar-Sicairos, Samuel T. Thurman, and James R. Fienup,
-       # "Efficient subpixel image registration algorithms," Opt. Lett. 33,
-       # 156-158 (2008).
+           # Citation for this algorithm:
+           # Manuel Guizar-Sicairos, Samuel T. Thurman, and James R. Fienup,
+           # "Efficient subpixel image registration algorithms," Opt. Lett. 33,
+           # 156-158 (2008).
 
-       # Inputs
-       # buf1ft    Fourier transform of reference image,
-       #           DC in (1,1)   [DO NOT FFTSHIFT]
-       # buf2ft    Fourier transform of image to register,
-       #           DC in (1,1) [DO NOT FFTSHIFT]
-       # usfac     Upsampling factor (integer). Images will be registered to
-       #           within 1/usfac of a pixel. For example usfac = 20 means the
-       #           images will be registered within 1/20 of a pixel.
-(default = 1)
+           # Inputs
+           # buf1ft    Fourier transform of reference image,
+           #           DC in (1,1)   [DO NOT FFTSHIFT]
+           # buf2ft    Fourier transform of image to register,
+           #           DC in (1,1) [DO NOT FFTSHIFT]
+           # usfac     Upsampling factor (integer). Images will be registered to
+           #           within 1/usfac of a pixel. For example usfac = 20 means the
+           #           images will be registered within 1/20 of a pixel.
+    (default = 1)
 
-       # Outputs
-       # output =  [error,diffphase,net_row_shift,net_col_shift]
-       # error     Translation invariant normalized RMS error between f and g
-       # diffphase     Global phase difference between the two images (should be
-       #               zero if images are non-negative).
-       # net_row_shift net_col_shift   Pixel shifts between images
-       # Greg      (Optional) Fourier transform of registered version of buf2ft,
-       #           the global phase difference is compensated for.
-   """
+           # Outputs
+           # output =  [error,diffphase,net_row_shift,net_col_shift]
+           # error     Translation invariant normalized RMS error between f and g
+           # diffphase     Global phase difference between the two images (should be
+           #               zero if images are non-negative).
+           # net_row_shift net_col_shift   Pixel shifts between images
+           # Greg      (Optional) Fourier transform of registered version of buf2ft,
+           #           the global phase difference is compensated for.
+    """
 
     # Compute error for no pixel shift
     if usfac == 0:
@@ -392,7 +392,7 @@ are used to
                     dftshift - row_shift * usfac,
                     dftshift - col_shift * usfac,
                 )
-            ) / (md2 * nd2 * usfac ** 2)
+            ) / (md2 * nd2 * usfac**2)
             # Locate maximum and map back to original pixel grid
             max1, loc1 = idxmax(np.abs(CC))
             rloc = int(round(loc1[0]))
@@ -400,10 +400,10 @@ are used to
 
             CCmax = CC[rloc, cloc]
             rg00 = dftups(buf1ft * np.conj(buf1ft), 1, 1, usfac) / (
-                md2 * nd2 * usfac ** 2
+                md2 * nd2 * usfac**2
             )
             rf00 = dftups(buf2ft * np.conj(buf2ft), 1, 1, usfac) / (
-                md2 * nd2 * usfac ** 2
+                md2 * nd2 * usfac**2
             )
             rloc = rloc - dftshift
             cloc = cloc - dftshift
@@ -463,34 +463,34 @@ are used to
 
 def dftups(inp, nor, noc, usfac=1, roff=0, coff=0):
     """
-       # function out=dftups(in,nor,noc,usfac,roff,coff);
-       # Upsampled DFT by matrix multiplies, can compute an upsampled
-DFT in just
-       # a small region.
-       # usfac         Upsampling factor (default usfac = 1)
-       # [nor,noc]     Number of pixels in the output upsampled DFT, in
-       #               units of upsampled pixels (default = size(in))
-       # roff, coff    Row and column offsets, allow to shift the
-output array to
-       #               a region of interest on the DFT (default = 0)
-       # Recieves DC in upper left corner, image center must be in (1,1)
-       # Manuel Guizar - Dec 13, 2007
-       # Modified from dftus, by J.R. Fienup 7/31/06
+           # function out=dftups(in,nor,noc,usfac,roff,coff);
+           # Upsampled DFT by matrix multiplies, can compute an upsampled
+    DFT in just
+           # a small region.
+           # usfac         Upsampling factor (default usfac = 1)
+           # [nor,noc]     Number of pixels in the output upsampled DFT, in
+           #               units of upsampled pixels (default = size(in))
+           # roff, coff    Row and column offsets, allow to shift the
+    output array to
+           #               a region of interest on the DFT (default = 0)
+           # Recieves DC in upper left corner, image center must be in (1,1)
+           # Manuel Guizar - Dec 13, 2007
+           # Modified from dftus, by J.R. Fienup 7/31/06
 
-       # This code is intended to provide the same result as if the following
-       # operations were performed
-       #   - Embed the array "in" in an array that is usfac times larger in each
-       #     dimension. ifftshift to bring the center of the image to (1,1).
-       #   - Take the FFT of the larger array
-       #   - Extract an [nor, noc] region of the result. Starting with the
-       #     [roff+1 coff+1] element.
+           # This code is intended to provide the same result as if the following
+           # operations were performed
+           #   - Embed the array "in" in an array that is usfac times larger in each
+           #     dimension. ifftshift to bring the center of the image to (1,1).
+           #   - Take the FFT of the larger array
+           #   - Extract an [nor, noc] region of the result. Starting with the
+           #     [roff+1 coff+1] element.
 
-       # It achieves this result by computing the DFT in the output
-array without
-       # the need to zeropad. Much faster and memory efficient than the
-       # zero-padded FFT approach if [nor noc] are much smaller than
-[nr*usfac nc*usfac]
-   """
+           # It achieves this result by computing the DFT in the output
+    array without
+           # the need to zeropad. Much faster and memory efficient than the
+           # zero-padded FFT approach if [nor noc] are much smaller than
+    [nr*usfac nc*usfac]
+    """
 
     ndim = np.shape(inp)
     nr = int(round(ndim[0]))
@@ -524,7 +524,11 @@ def idxmax(data):
     maxd = np.max(np.abs(data))
     # t1 = mplp.mlab.find(np.abs(data) == maxd)
     t1 = np.argmin(np.abs(np.abs(data) - maxd))
-    idx = np.zeros([len(ndim),])
+    idx = np.zeros(
+        [
+            len(ndim),
+        ]
+    )
     for ii in range(len(ndim) - 1):
         t1, t2 = np.modf(1.0 * t1 / np.prod(ndim[(ii + 1) :]))
         idx[ii] = t2

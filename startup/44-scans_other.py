@@ -66,7 +66,7 @@ def test_scan(
         "hints": {},
         "operator": "FXI",
         "note": note if note else "None",
-        #"motor_pos": wh_pos(print_on_screen=0),
+        # "motor_pos": wh_pos(print_on_screen=0),
     }
     _md.update(md or {})
     _md["hints"].setdefault("dimensions", [(("time",), "primary")])
@@ -75,12 +75,12 @@ def test_scan(
     @run_decorator(md=_md)
     def inner_scan():
         yield from _open_shutter(simu=simu)
-        '''
+        """
         yield from abs_set(shutter_open, 1, wait=True)
         yield from bps.sleep(2)
         yield from abs_set(shutter_open, 1, wait=True)
         yield from bps.sleep(2)
-        '''
+        """
         for i in range(num_img):
             yield from trigger_and_read(list(detectors))
         # taking out sample and take background image
@@ -91,12 +91,12 @@ def test_scan(
             yield from trigger_and_read(list(detectors))
         # close shutter, taking dark image
         yield from _close_shutter(simu=simu)
-        '''
+        """
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
-        '''
+        """
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         yield from mv(zps.sz, z_ini)
@@ -160,14 +160,16 @@ def z_scan(
     z_stop = z_ini + stop
     #    detectors = [Andor]
     y_ini = zps.sy.position  # sample y position (initial)
-    y_out = y_ini + out_y if not (out_y is None) else y_ini# sample y position (out-position)
+    y_out = (
+        y_ini + out_y if not (out_y is None) else y_ini
+    )  # sample y position (out-position)
     x_ini = zps.sx.position
     x_out = x_ini + out_x if not (out_x is None) else x_ini
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exposure_time)
-    period_cor = max(exposure_time+0.01, 0.05)
+    period_cor = max(exposure_time + 0.01, 0.05)
     yield from mv(Andor.cam.acquire_period, period_cor)
 
     _md = {
@@ -231,14 +233,13 @@ def z_scan(
         yield from mv(zp.z, z_ini)
         # yield from abs_set(shutter_open, 1, wait=True)
         yield from mv(Andor.cam.image_mode, 1)
-        
 
     uid = yield from inner_scan()
     yield from mv(Andor.cam.image_mode, 1)
     yield from _close_shutter(simu=simu)
     txt = get_scan_parameter()
     insert_text(txt)
-    print(txt)    
+    print(txt)
 
     return uid
 
@@ -287,14 +288,18 @@ def z_scan2(
     zp_stop = zp_ini + stop
     #    detectors = [Andor]
     y_ini = zps.sy.position  # sample y position (initial)
-    y_out = y_ini + out_y  if not (out_y is None) else y_ini# sample y position (out-position)
+    y_out = (
+        y_ini + out_y if not (out_y is None) else y_ini
+    )  # sample y position (out-position)
     x_ini = zps.sx.position
     x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
     z_out = z_ini if not (out_z is None) else z_ini
-    period = max(exposure_time+0.01, 0.05)
+    period = max(exposure_time + 0.01, 0.05)
 
-    yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=20)
+    yield from _set_andor_param(
+        exposure_time=exposure_time, period=period, chunk_size=20
+    )
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -402,7 +407,9 @@ def z_scan3(
 
     #    detectors = [Andor]
     y_ini = zps.sy.position  # sample y position (initial)
-    y_out = y_ini + out_y  if not (out_y is None) else y_ini# sample y position (out-position)
+    y_out = (
+        y_ini + out_y if not (out_y is None) else y_ini
+    )  # sample y position (out-position)
     x_ini = zps.sx.position
     x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
@@ -411,7 +418,9 @@ def z_scan3(
     z_start = z_ini + start
     z_stop = z_ini + stop
 
-    yield from _set_andor_param(exposure_time=exposure_time, period=period, chunk_size=20)
+    yield from _set_andor_param(
+        exposure_time=exposure_time, period=period, chunk_size=20
+    )
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -479,13 +488,27 @@ def z_scan3(
 #####################
 
 
+@parameter_annotation_decorator(
+    {
+        "parameters": {
+            "detectors": {
+                "annotation": "typing.List[DetectorType1]",
+                "devices": {"DetectorType1": ["detA1"]},
+                "default": ["detA1"],
+            }
+        }
+    }
+)
 def cond_scan(detectors=[detA1], *, md=None):
     motor = clens.x
 
     _md = {
         "detectors": [det.name for det in detectors],
         "motors": [clens.x.name],
-        "plan_args": {"detectors": list(map(repr, detectors)), "motor": repr(motor),},
+        "plan_args": {
+            "detectors": list(map(repr, detectors)),
+            "motor": repr(motor),
+        },
         "plan_name": "cond_scan",
         "hints": {},
         "operator": "FXI",
@@ -526,9 +549,9 @@ def cond_scan(detectors=[detA1], *, md=None):
     return (yield from cond_inner_scan())
 
 
-
 from bluesky.callbacks.mpl_plotting import QtAwareCallback
 from bluesky.preprocessors import subs_wrapper
+
 
 class LoadCellScanPlot(QtAwareCallback):
     """
@@ -536,9 +559,9 @@ class LoadCellScanPlot(QtAwareCallback):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(use_teleporter=kwargs.pop('use_teleporter', None))
+        super().__init__(use_teleporter=kwargs.pop("use_teleporter", None))
 
-        self._start_new_figure = False  
+        self._start_new_figure = False
         self._show_axes_titles = False
 
         self._scan_id_start = 0
@@ -549,7 +572,7 @@ class LoadCellScanPlot(QtAwareCallback):
         self._ax2 = None
 
         # Parameters used in 'ax2' title
-        self._load_cell_force = None 
+        self._load_cell_force = None
         self._bender_pos = None
 
     def start_new_figure(self):
@@ -586,7 +609,7 @@ class LoadCellScanPlot(QtAwareCallback):
             self._fig = plt.figure()
             self._ax1 = self._fig.add_subplot(211)
             self._ax2 = self._fig.add_subplot(212)
-            
+
             # Save ID of the first scan
             self._scan_id_start = scan_id
             self._scan_id_end = scan_id
@@ -614,8 +637,11 @@ class LoadCellScanPlot(QtAwareCallback):
             )
             self._ax2.title.set_text(
                 "load_cell: {}, bender_pos: {}".format(
-                    self._load_cell_force if self._load_cell_force is not None else "NOT SET", 
-                    self._bender_pos if self._bender_pos is not None else "NOT SET")
+                    self._load_cell_force
+                    if self._load_cell_force is not None
+                    else "NOT SET",
+                    self._bender_pos if self._bender_pos is not None else "NOT SET",
+                )
             )
             self._fig.subplots_adjust(hspace=0.5)
 
@@ -623,7 +649,7 @@ class LoadCellScanPlot(QtAwareCallback):
             self._bender_pos = None
 
             self._show_axes_titles = False
-    
+
         super().stop(doc)
 
 
@@ -679,7 +705,7 @@ def load_cell_scan(
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
         yield from bps.sleep(5)
-        load_cell_force = (yield from bps.rd(pzt_cm_loadcell))
+        load_cell_force = yield from bps.rd(pzt_cm_loadcell)
 
         # Initiate creating of a new figure
         lcs_plot.start_new_figure()
@@ -687,19 +713,27 @@ def load_cell_scan(
         for pbsl_pos in pbsl_y_pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
-                
-                # If the scan is the last in the series, display axes titles and align the plot 
+
+                # If the scan is the last in the series, display axes titles and align the plot
                 if (pbsl_pos == pbsl_y_pos_list[-1]) and (i == num - 1):
-                    lcs_plot.show_axes_titles(load_cell_force=load_cell_force, bender_pos=bender_pos)
-                
+                    lcs_plot.show_axes_titles(
+                        load_cell_force=load_cell_force, bender_pos=bender_pos
+                    )
+
                 eng_scan_with_plot = subs_wrapper(
-                        eng_scan(eng_start, stop=eng_end, num=steps, detectors=[ic3, ic4], delay_time=delay_time),
-                        [lcs_plot]
+                    eng_scan(
+                        eng_start,
+                        stop=eng_end,
+                        num=steps,
+                        detectors=[ic3, ic4],
+                        delay_time=delay_time,
+                    ),
+                    [lcs_plot],
                 )
-                
+
                 yield from eng_scan_with_plot
 
-    yield from _close_shutter(simu=False)    
+    yield from _close_shutter(simu=False)
     yield from mv(pbsl.y_ctr, pbsl_y_ctr_ini)
     print(f"moving pbsl.y_ctr back to initial position: {pbsl.y_ctr.position} mm")
     txt_finish = '## "load_cell_scan()" finished'
@@ -762,14 +796,17 @@ def load_cell_scan_original(
         fig = plt.figure()
         ax1 = fig.add_subplot(211)
         ax2 = fig.add_subplot(212)
-        load_cell_force = (yield from bps.rd(pzt_cm_loadcell))
-
+        load_cell_force = yield from bps.rd(pzt_cm_loadcell)
 
         for pbsl_pos in pbsl_y_pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
                 yield from eng_scan(
-                    eng_start, stop=eng_end, num=steps, detectors=[ic3, ic4], delay_time=delay_time
+                    eng_start,
+                    stop=eng_end,
+                    num=steps,
+                    detectors=[ic3, ic4],
+                    delay_time=delay_time,
                 )
                 h = db[-1]
                 y0 = np.array(list(h.data(ic3.name)))
@@ -792,7 +829,7 @@ def load_cell_scan_original(
         )
         fig.subplots_adjust(hspace=0.5)
         plt.show()
-    yield from _close_shutter(simu=False)    
+    yield from _close_shutter(simu=False)
     yield from mv(pbsl.y_ctr, pbsl_y_ctr_ini)
     print(f"moving pbsl.y_ctr back to initial position: {pbsl.y_ctr.position} mm")
     txt_finish = '## "load_cell_scan()" finished'
@@ -893,7 +930,7 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
     for bender_pos in bender_pos_list:
         yield from mv(pzt_motor, bender_pos)
         yield from bps.sleep(2)
-        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
+        load_cell_force = yield from bps.rd(pzt_tm_loadcell)
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
@@ -954,7 +991,7 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
     for tm_yaw_pos in tm_yaw_pos_list:
         yield from mv(motor, tm_yaw_pos)
         yield from bps.sleep(2)
-        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
+        load_cell_force = yield from bps.rd(pzt_tm_loadcell)
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
@@ -1004,7 +1041,7 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     for pbsl_x_gap in pbsl_x_gap_list:
         yield from mv(motor, pbsl_x_gap)
         yield from bps.sleep(2)
-        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
+        load_cell_force = yield from bps.rd(pzt_tm_loadcell)
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
@@ -1053,7 +1090,7 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     for pbsl_y_gap in pbsl_y_gap_list:
         yield from mv(motor, pbsl_y_gap)
         yield from bps.sleep(2)
-        load_cell_force = (yield from bps.rd(pzt_tm_loadcell))
+        load_cell_force = yield from bps.rd(pzt_tm_loadcell)
         fig = plt.figure()
         ax1 = fig.add_subplot(311)
         ax2 = fig.add_subplot(312)
@@ -1178,6 +1215,27 @@ def overnight_count(detectors, num=1, delay=None, *, md=None):
     return uid
 
 
+@parameter_annotation_decorator(
+    {
+        "parameters": {
+            "det": {
+                "annotation": "typing.List[DetectorType1]",
+                "devices": {"DetectorType1": ["detA1"]},
+                "default": ["detA1"],
+            },
+            "mot1": {
+                "annotation": "MotorType1",
+                "devices": {"MotorType1": ["zps_sz"]},
+                "default": "zps_sz",
+            },
+            "mot2": {
+                "annotation": "MotorType2",
+                "devices": {"MotorType2": ["zps_sz"]},
+                "default": "zps_sy",
+            },
+        }
+    }
+)
 def knife_edge_scan_for_condensor(
     det=[detA1],
     mot1=zps.sz,
@@ -1225,9 +1283,9 @@ def knife_edge_scan_for_condensor(
 
     def gauss(x, *p):
         A, mu, sigma = p
-        return A * np.exp(-((x - mu) ** 2) / (2.0 * sigma ** 2))
+        return A * np.exp(-((x - mu) ** 2) / (2.0 * sigma**2))
 
-#    def fit_gauss()
+    #    def fit_gauss()
 
     f = h5py.File(fn, "r")
     img = f["/entry/data/data"][:]
@@ -1242,7 +1300,7 @@ def knife_edge_scan_for_condensor(
     for ii in range(zpt):
         (l,) = ax0.plot(
             cur[ii * ypt : (ii + 1) * ypt],
-#            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
+            #            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
         )
         line0.append(l)
         line0[ii].set_label("{0}".format(ii))
@@ -1253,7 +1311,7 @@ def knife_edge_scan_for_condensor(
     for ii in range(zpt):
         (l,) = ax1.plot(
             np.gradient(np.log10(cur[ii * ypt : (ii + 1) * ypt])),
-#            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
+            #            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
         )
         line1.append(l)
         line1[ii].set_label("{0}".format(ii))
@@ -1269,14 +1327,14 @@ def knife_edge_scan_for_condensor(
         params, extras = curve_fit(
             gauss, y, np.gradient(np.log10(cur[ii * ypt : (ii + 1) * ypt])), p0
         )
-#        params, extras = least_squares(
-#            gauss, y, jac='3-points', np.gradient(np.log10(cur[ii * ypt : (ii + 1) * ypt])), p0
-#        )
+        #        params, extras = least_squares(
+        #            gauss, y, jac='3-points', np.gradient(np.log10(cur[ii * ypt : (ii + 1) * ypt])), p0
+        #        )
         wz.append(params[2])
         (l,) = ax2.plot(
             yf,
             gauss(yf, *params),
-#            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
+            #            color=(0.1 * ii, np.mod(0.2 * ii, 1), np.mod(0.3 * ii, 1)),
         )
 
         line2.append(l)

@@ -52,7 +52,8 @@ class Lakeshore336(Device):
     ChanC = Cpt(Lakeshore336Channel, "-Chan:C}")
     ChanD = Cpt(Lakeshore336Channel, "-Chan:D}")
 
-'''
+
+"""
 lakeshore336 = Lakeshore336("XF:18ID-ES{Env:01", name="lakeshore336")
 lakeshore336.ChanA.wait_for_connection()
 lakeshore336.ChanB.wait_for_connection()
@@ -68,5 +69,5 @@ motor_lakeshore = [
     lakeshore336.out3.ramp_rate,
     lakeshore336.out3.ramp_enabled,
 ]
-'''
+"""
 motor_lakeshore = []

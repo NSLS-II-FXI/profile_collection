@@ -6,12 +6,13 @@
 #        export_single_scan(int(item), binning)
 #        db.reg.clear_process_cache()
 
+
 def timestamp_to_float(t):
     tf = []
     for ts in t:
         tf.append(ts.timestamp())
     return np.array(tf)
-    
+
 
 def get_fly_scan_angle(scan_id):
     h = db[scan_id]
@@ -22,20 +23,22 @@ def get_fly_scan_angle(scan_id):
     assert "zps_pi_r_monitor" in h.stream_names
     pos = h.table("zps_pi_r_monitor")
     timestamp_mot = timestamp_to_float(pos["time"])
-    
+
     img_ini_timestamp = timestamp_tomo[0]
-    mot_ini_timestamp = timestamp_mot[1] # timestamp_mot[1] is the time when taking dark image
-    
+    mot_ini_timestamp = timestamp_mot[
+        1
+    ]  # timestamp_mot[1] is the time when taking dark image
+
     tomo_time = timestamp_tomo - img_ini_timestamp
-    mot_time = timestamp_mot - mot_ini_timestamp 
+    mot_time = timestamp_mot - mot_ini_timestamp
 
     mot_pos = np.array(pos["zps_pi_r"])
     mot_pos_interp = np.interp(tomo_time, mot_time, mot_pos)
 
     img_angle = mot_pos_interp
     return img_angle
-    
-    
+
+
 def write_lakeshore_to_file(h, fname):
     scan_id = h.start["scan_id"]
     for tmp in h.start.keys():
@@ -48,16 +51,16 @@ def write_lakeshore_to_file(h, fname):
 
 
 def export_scan(scan_id, scan_id_end=None, binning=4, date_end_by=None, fpath=None):
-    '''
-    e.g. load_scan([0001, 0002]) 
-    '''
+    """
+    e.g. load_scan([0001, 0002])
+    """
     if scan_id_end is None:
         if isinstance(scan_id, int):
             scan_id = [scan_id]
-        for item in scan_id:        
+        for item in scan_id:
             try:
-                #export_single_scan(int(item), binning)
-                custom_export(int(item), binning, date_end_by=date_end_by, fpath=fpath)  
+                # export_single_scan(int(item), binning)
+                custom_export(int(item), binning, date_end_by=date_end_by, fpath=fpath)
             except Exception as ex:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
@@ -65,9 +68,9 @@ def export_scan(scan_id, scan_id_end=None, binning=4, date_end_by=None, fpath=No
                 continue
             db.reg.clear_process_cache()
     else:
-        for i in range(scan_id, scan_id_end+1):
+        for i in range(scan_id, scan_id_end + 1):
             try:
-                #export_single_scan(int(i), binning)
+                # export_single_scan(int(i), binning)
                 custom_export(int(i), binning, date_end_by=date_end_by, fpath=fpath)
             except Exception as ex:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -78,22 +81,23 @@ def export_scan(scan_id, scan_id_end=None, binning=4, date_end_by=None, fpath=No
 
 
 def custom_export(scan_id, binning=4, date_end_by=None, fpath=None):
-    '''
+    """
     date_end_by: string, e.g., '2020-01-20'
-    '''
-    tmp = list(db(scan_id = scan_id))
-    n = len(tmp)    
+    """
+    tmp = list(db(scan_id=scan_id))
+    n = len(tmp)
     if date_end_by is None:
         export_single_scan(scan_id, binning)
     else:
         for sid in tmp:
-            uid = sid.start['uid']
-            timestamp = sid.start['time']
-            ts = pd.to_datetime(timestamp, unit='s').tz_localize('US/Eastern') 
+            uid = sid.start["uid"]
+            timestamp = sid.start["time"]
+            ts = pd.to_datetime(timestamp, unit="s").tz_localize("US/Eastern")
             date_end = covert_date_to_datetime(date_end_by)
-            if ts < date_end:      
+            if ts < date_end:
                 export_single_scan(uid, binning)
                 break
+
 
 def export_single_scan(scan_id=-1, binning=4, fpath=None):
     h = db[scan_id]
@@ -101,13 +105,13 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
     scan_type = h.start["plan_name"]
     #    x_eng = h.start['XEng']
     t_new = datetime(2021, 5, 1)
-    t = h.start["time"] - 3600*60*4 # there are 4hour offset
+    t = h.start["time"] - 3600 * 60 * 4  # there are 4hour offset
     t = datetime.utcfromtimestamp(t)
     if t < t_new:
         scan = "old"
     else:
         scan = "new"
-    
+
     if scan_type == "tomo_scan":
         print("exporting tomo scan: #{}".format(scan_id))
         if scan == "old":
@@ -115,7 +119,7 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
         else:
             export_tomo_scan_legacy(h, fpath)
         print("tomo scan: #{} loading finished".format(scan_id))
-        
+
     elif scan_type == "fly_scan":
         print("exporting fly scan: #{}".format(scan_id))
         if scan == "old":
@@ -124,7 +128,7 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
             export_fly_scan(h, fpath)
         export_fly_scan(h, fpath)
         print("fly scan: #{} loading finished".format(scan_id))
-        
+
     elif scan_type == "fly_scan2":
         print("exporting fly scan2: #{}".format(scan_id))
         export_fly_scan2(h, fpath)
@@ -136,6 +140,11 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
         else:
             export_xanes_scan(h, fpath)
         print("xanes scan: #{} loading finished".format(scan_id))
+
+    elif scan_type == "xanes_scan_img_only":
+        print("exporting xanes scan image only: #{}".format(scan_id))
+        export_xanes_scan_img_only(h, fpath)
+        print("xanes scan img only: #{} loading finished".format(scan_id))
     elif scan_type == "z_scan":
         print("exporting z_scan: #{}".format(scan_id))
         export_z_scan(h, fpath)
@@ -181,10 +190,10 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
 
 def export_tomo_scan(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     scan_type = "tomo_scan"
     scan_id = h.start["scan_id"]
     try:
@@ -225,14 +234,14 @@ def export_tomo_scan(h, fpath=None):
     del img_tomo
     del img_dark
     del img_bkg
-    
+
 
 def export_fly_scan(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     uid = h.start["uid"]
     note = h.start["note"]
     scan_type = "fly_scan"
@@ -244,16 +253,16 @@ def export_fly_scan(h, fpath=None):
     r_pos = h.table("baseline")["zps_pi_r"][1]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
 
     x_eng = h.start["XEng"]
-    img_angle = get_fly_scan_angle(uid)   
+    img_angle = get_fly_scan_angle(uid)
 
     img_tomo = np.array(list(h.data("Andor_image", stream_name="primary")))[0]
     img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0]
     img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0]
-    
+
     img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
     img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
 
@@ -276,24 +285,24 @@ def export_fly_scan(h, fpath=None):
         hf.create_dataset("z_ini", data=z_pos)
         hf.create_dataset("r_ini", data=r_pos)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(str(pxl_sz)+'nm')) 
-    '''
+        hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
+    """
     try:
         write_lakeshore_to_file(h, fname)
     except:
         print("fails to write lakeshore info into {fname}")
-    '''
+    """
     del img_tomo
     del img_dark
     del img_bkg
-    
-    
+
+
 def export_fly_scan2(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     uid = h.start["uid"]
     note = h.start["note"]
     scan_type = "fly_scan2"
@@ -305,8 +314,8 @@ def export_fly_scan2(h, fpath=None):
     r_pos = h.table("baseline")["zps_pi_r"][1]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
 
     try:
         x_eng = h.start["XEng"]
@@ -316,7 +325,7 @@ def export_fly_scan2(h, fpath=None):
     # sanity check: make sure we remembered the right stream name
     assert "zps_pi_r_monitor" in h.stream_names
     pos = h.table("zps_pi_r_monitor")
-#    imgs = list(h.data("Andor_image"))
+    #    imgs = list(h.data("Andor_image"))
     img_dark = np.array(list(h.data("Andor_image"))[-1][:])
     img_bkg = np.array(list(h.data("Andor_image"))[-2][:])
     s = img_dark.shape
@@ -373,9 +382,9 @@ def export_fly_scan2(h, fpath=None):
     mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
 
     pos2 = mot_pos_interp.argmax() + 1
-    #img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
+    # img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
     img_angle = mot_pos_interp[:pos2]
-    #img_tomo = imgs[: pos2 - chunk_size]  # tomo images
+    # img_tomo = imgs[: pos2 - chunk_size]  # tomo images
     img_tomo = imgs[:pos2]
 
     fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
@@ -397,7 +406,7 @@ def export_fly_scan2(h, fpath=None):
         hf.create_dataset("z_ini", data=z_pos)
         hf.create_dataset("r_ini", data=r_pos)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(str(pxl_sz)+'nm')) 
+        hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
 
     try:
         write_lakeshore_to_file(h, fname)
@@ -412,14 +421,14 @@ def export_fly_scan2(h, fpath=None):
 
 def export_xanes_scan(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     scan_type = h.start["plan_name"]
     #    scan_type = 'xanes_scan'
     uid = h.start["uid"]
@@ -439,7 +448,7 @@ def export_xanes_scan(h, fpath=None):
     img_dark_avg = np.mean(img_dark, axis=1)
     img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))
     img_bkg_avg = np.mean(img_bkg, axis=1)
-    
+
     eng_list = list(h.start["eng_list"])
 
     img_xanes_norm = (img_xanes_avg - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
@@ -456,27 +465,98 @@ def export_xanes_scan(h, fpath=None):
         hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
         hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
     try:
         write_lakeshore_to_file(h, fname)
     except:
         print("fails to write lakeshore info into {fname}")
 
-    del img_dark, img_dark_avg, img_bkg, img_bkg_avg, img_xanes, img_xanes_avg, img_xanes_norm
-    
-    
+    del (
+        img_dark,
+        img_dark_avg,
+        img_bkg,
+        img_bkg_avg,
+        img_xanes,
+        img_xanes_avg,
+        img_xanes_norm,
+    )
+
+
+def export_xanes_scan_img_only(h, fpath=None):
+    if fpath is None:
+        fpath = "./"
+    else:
+        if not fpath[-1] == "/":
+            fpath += "/"
+    zp_z_pos = h.table("baseline")["zp_z"][1]
+    DetU_z_pos = h.table("baseline")["DetU_z"][1]
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
+    scan_type = h.start["plan_name"]
+    #    scan_type = 'xanes_scan'
+    uid = h.start["uid"]
+    note = h.start["note"]
+    scan_id = h.start["scan_id"]
+    scan_time = h.start["time"]
+    try:
+        x_eng = h.start["XEng"]
+    except:
+        x_eng = h.start["x_ray_energy"]
+    chunk_size = h.start["chunk_size"]
+    num_eng = h.start["num_eng"]
+
+    img_xanes = np.array(list(h.data("Andor_image", stream_name="primary")))
+    img_xanes_avg = np.mean(img_xanes, axis=1)
+    img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))
+    img_dark_avg = np.mean(img_dark, axis=1)
+    img_bkg = np.ones(img_xanes.shape)
+    img_bkg_avg = np.ones(img_dark_avg.shape)
+
+    eng_list = list(h.start["eng_list"])
+
+    img_xanes_norm = (img_xanes_avg - img_dark_avg) * 1.0
+    img_xanes_norm[np.isnan(img_xanes_norm)] = 0
+    img_xanes_norm[np.isinf(img_xanes_norm)] = 0
+    fname = fpath + scan_type + "_id_" + str(scan_id) + "_img_only.h5"
+    with h5py.File(fname, "w") as hf:
+        hf.create_dataset("uid", data=uid)
+        hf.create_dataset("scan_id", data=scan_id)
+        hf.create_dataset("note", data=str(note))
+        hf.create_dataset("scan_time", data=scan_time)
+        hf.create_dataset("X_eng", data=eng_list)
+        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+        hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
+        hf.create_dataset("Magnification", data=M)
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print("fails to write lakeshore info into {fname}")
+
+    del (
+        img_dark,
+        img_dark_avg,
+        img_bkg,
+        img_bkg_avg,
+        img_xanes,
+        img_xanes_avg,
+        img_xanes_norm,
+    )
+
 
 def export_z_scan(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     scan_type = h.start["plan_name"]
     scan_id = h.start["scan_id"]
     uid = h.start["uid"]
@@ -506,7 +586,7 @@ def export_z_scan(h, fpath=None):
         hf.create_dataset("img", data=img_zscan.astype(np.float32))
         hf.create_dataset("img_norm", data=img_norm.astype(np.float32))
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
     try:
         write_lakeshore_to_file(h, fname)
@@ -518,14 +598,14 @@ def export_z_scan(h, fpath=None):
 
 def export_z_scan2(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     scan_type = h.start["plan_name"]
     scan_id = h.start["scan_id"]
     uid = h.start["uid"]
@@ -555,12 +635,16 @@ def export_z_scan2(h, fpath=None):
         hf.create_dataset("scan_id", data=scan_id)
         hf.create_dataset("note", data=str(note))
         hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg.astype(np.float32), dtype=np.float32))
+        hf.create_dataset(
+            "img_bkg", data=np.array(img_bkg.astype(np.float32), dtype=np.float32)
+        )
         hf.create_dataset("img_dark", data=img_dark.astype(np.float32))
         hf.create_dataset("img", data=img_zscan.astype(np.float32))
-        hf.create_dataset("img_norm", data=np.array(img_norm.astype(np.float32), dtype=np.float32))
+        hf.create_dataset(
+            "img_norm", data=np.array(img_norm.astype(np.float32), dtype=np.float32)
+        )
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
     try:
         write_lakeshore_to_file(h, fname)
@@ -572,14 +656,14 @@ def export_z_scan2(h, fpath=None):
 
 def export_test_scan(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     import tifffile
 
     scan_type = h.start["plan_name"]
@@ -613,7 +697,7 @@ def export_test_scan(h, fpath=None):
         hf.create_dataset("img", data=np.array(img_test, dtype=np.float32))
         hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
     #    tifffile.imsave(fname_tif, img_norm)
 
     try:
@@ -629,20 +713,20 @@ def export_count_img(h, fpath=None):
     load images (e.g. RE(count([Andor], 10)) ) and save to .h5 file
     """
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     try:
         zp_z_pos = h.table("baseline")["zp_z"][1]
         DetU_z_pos = h.table("baseline")["DetU_z"][1]
-        M = (DetU_z_pos/zp_z_pos - 1)*10.
-        pxl_sz = 6500./M
+        M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+        pxl_sz = 6500.0 / M
     except:
         M = 0
         pxl_sz = 0
-        print('fails to calculate magnification and pxl size')
-        
+        print("fails to calculate magnification and pxl size")
+
     uid = h.start["uid"]
     det = h.start["detectors"][0]
     img = get_img(h, det)
@@ -653,7 +737,7 @@ def export_count_img(h, fpath=None):
         hf.create_dataset("uid", data=uid)
         hf.create_dataset("scan_id", data=scan_id)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
     try:
         write_lakeshore_to_file(h, fn)
     except:
@@ -662,10 +746,10 @@ def export_count_img(h, fpath=None):
 
 def export_delay_scan(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     det = h.start["detectors"][0]
     scan_type = h.start["plan_name"]
     scan_id = h.start["scan_id"]
@@ -678,8 +762,8 @@ def export_delay_scan(h, fpath=None):
     mot_steps = h.start["plan_args"]["steps"]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     if det == "detA1" or det == "Andor":
         img = get_img(h, det)
         fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
@@ -694,7 +778,7 @@ def export_delay_scan(h, fpath=None):
             hf.create_dataset("steps", data=mot_steps)
             hf.create_dataset("motor", data=mot_name)
             hf.create_dataset("Magnification", data=M)
-            hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
         try:
             write_lakeshore_to_file(h, fname)
         except:
@@ -705,10 +789,10 @@ def export_delay_scan(h, fpath=None):
 
 def export_multipos_count(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     scan_type = h.start["plan_name"]
     scan_id = h.start["scan_id"]
     uid = h.start["uid"]
@@ -717,8 +801,8 @@ def export_multipos_count(h, fpath=None):
     note = h.start["note"]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
 
     img_raw = list(h.data("Andor_image"))
     img_dark = np.squeeze(np.array(img_raw[:num_dark]))
@@ -738,14 +822,14 @@ def export_multipos_count(h, fpath=None):
             tmp_img = np.array(img_raw[index + i * 2])
             tmp_bkg = np.array(img_raw[index + i * 2 + 1])
             img_group[i, j] = (tmp_img - img_dark_avg) / (tmp_bkg - img_dark_avg)
-    #fn = os.getcwd() + "/"
+    # fn = os.getcwd() + "/"
     fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
     with h5py.File(fname, "w") as hf:
         hf.create_dataset("uid", data=uid)
         hf.create_dataset("scan_id", data=scan_id)
         hf.create_dataset("note", data=str(note))
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
         for i in range(num_of_position):
             hf.create_dataset(f"img_pos{i+1}", data=np.squeeze(img_group[i]))
     try:
@@ -756,14 +840,14 @@ def export_multipos_count(h, fpath=None):
 
 def export_grid2D_rel(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     uid = h.start["uid"]
     note = h.start["note"]
     scan_type = "grid2D_rel"
@@ -775,7 +859,7 @@ def export_grid2D_rel(h, fpath=None):
     img = np.squeeze(np.array(list(h.data("Andor_image"))))
 
     fname = scan_type + "_id_" + str(scan_id)
-    #cwd = os.getcwd()
+    # cwd = os.getcwd()
     cwd = fpath
     try:
         os.mkdir(cwd + f"{fname}")
@@ -792,11 +876,12 @@ def export_grid2D_rel(h, fpath=None):
 def export_raster_2D_2(h, binning=4, fpath=None):
     import tifffile
     from skimage import io
+
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     uid = h.start["uid"]
     note = h.start["note"]
     scan_type = "grid2D_rel"
@@ -812,8 +897,8 @@ def export_raster_2D_2(h, binning=4, fpath=None):
     pix = h.start["plan_args"]["pxl"]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
 
     img_raw = np.squeeze(np.array(list(h.data("Andor_image"))))
     img_dark_avg = np.mean(img_raw[:num_dark], axis=0, keepdims=True)
@@ -871,8 +956,8 @@ def export_raster_2D_2(h, binning=4, fpath=None):
         f.writelines(pos_file)
     # tifffile.imsave(fout_tiff, np.array(img_patch_bin, dtype=np.float32))
     num_img = int(x_num) * int(y_num)
-    #cwd = os.getcwd()
-    #new_dir = f"{cwd}/raster_scan_{scan_id}"
+    # cwd = os.getcwd()
+    # new_dir = f"{cwd}/raster_scan_{scan_id}"
     new_dir = fpath + f"raster_scan_{scan_id}"
     if not os.path.exists(new_dir):
         os.mkdir(new_dir)
@@ -892,7 +977,7 @@ def export_raster_2D_2(h, binning=4, fpath=None):
         hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, np.float32))
         hf.create_dataset("XEng", data=x_eng)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
     try:
         write_lakeshore_to_file(h, fn_h5_save)
     except:
@@ -901,11 +986,12 @@ def export_raster_2D_2(h, binning=4, fpath=None):
 
 def export_raster_2D(h, binning=4, fpath=None):
     import tifffile
+
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
 
     uid = h.start["uid"]
     note = h.start["note"]
@@ -922,8 +1008,8 @@ def export_raster_2D(h, binning=4, fpath=None):
     pix = h.start["plan_args"]["pxl"]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
 
     img_raw = np.squeeze(np.array(list(h.data("Andor_image"))))
     img_dark_avg = np.mean(img_raw[:num_dark], axis=0, keepdims=True)
@@ -969,8 +1055,8 @@ def export_raster_2D(h, binning=4, fpath=None):
         f.writelines(pos_file)
     tifffile.imsave(fout_tiff, np.array(img_patch_bin, dtype=np.float32))
     num_img = int(x_num) * int(y_num)
-    #cwd = os.getcwd()
-    #new_dir = f"{cwd}/raster_scan_{scan_id}"
+    # cwd = os.getcwd()
+    # new_dir = f"{cwd}/raster_scan_{scan_id}"
     new_dir = fpath + f"raster_scan_{scan_id}"
     if not os.path.exists(new_dir):
         os.mkdir(new_dir)
@@ -990,21 +1076,19 @@ def export_raster_2D(h, binning=4, fpath=None):
         hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, np.float32))
         hf.create_dataset("XEng", data=x_eng)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
     try:
         write_lakeshore_to_file(h, fn_h5_save)
     except:
         print(f"fails to write lakeshore info into {fn_h5_save}")
 
 
-
-
 def export_multipos_2D_xanes_scan2(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     scan_type = h.start["plan_name"]
     uid = h.start["uid"]
     note = h.start["note"]
@@ -1018,32 +1102,32 @@ def export_multipos_2D_xanes_scan2(h, fpath=None):
     num_pos = h.start["num_pos"]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     try:
         repeat_num = h.start["plan_args"]["repeat_num"]
     except:
         repeat_num = 1
-        
+
     img_xanes = np.array(list(h.data("Andor_image", stream_name="primary")))
     img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))
     img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))
-    
+
     img_xanes = np.mean(img_xanes, axis=1)
     img_dark = np.mean(img_dark, axis=1)
     img_bkg = np.mean(img_bkg, axis=1)
-    
+
     eng_list = list(h.start["eng_list"])
-    
+
     for repeat in range(repeat_num):  # revised here
         try:
             print(f"repeat: {repeat}")
             id_s = int(repeat * num_eng)
-            id_e = int((repeat+1) * num_eng)
-            img_x = img_xanes[id_s*num_pos : id_e*num_pos] # xanes image
-            img_b = img_bkg[id_s : id_e] # bkg image
+            id_e = int((repeat + 1) * num_eng)
+            img_x = img_xanes[id_s * num_pos : id_e * num_pos]  # xanes image
+            img_b = img_bkg[id_s:id_e]  # bkg image
             # save data
-            #fn = os.getcwd() + "/"
+            # fn = os.getcwd() + "/"
             fn = fpath
             for j in range(num_pos):
                 img_p = img_x[j::num_pos]
@@ -1068,13 +1152,13 @@ def export_multipos_2D_xanes_scan2(h, fpath=None):
                         "img_xanes", data=np.array(img_p_n, dtype=np.float32)
                     )
                     hf.create_dataset("Magnification", data=M)
-                    hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
-                '''
+                    hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+                """
                 try:
                     write_lakeshore_to_file(h, fname)
                 except:
                     print("fails to write lakeshore info into {fname}")
-                '''
+                """
         except:
             print(f"fails in export repeat# {repeat}")
     del img_xanes
@@ -1085,14 +1169,14 @@ def export_multipos_2D_xanes_scan2(h, fpath=None):
 
 def export_multipos_2D_xanes_scan3(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     scan_type = h.start["plan_name"]
     uid = h.start["uid"]
     note = h.start["note"]
@@ -1126,7 +1210,7 @@ def export_multipos_2D_xanes_scan3(h, fpath=None):
         for j in range(num_pos):
             img_xanes[j, i] = (img_xanes[j, i] - img_dark) / (img_bkg[i] - img_dark)
     # save data
-    #fn = os.getcwd() + "/"
+    # fn = os.getcwd() + "/"
     fn = fpath
     for j in range(num_pos):
         fname = f"{fn}{scan_type}_id_{scan_id}_pos_{j}.h5"
@@ -1139,9 +1223,10 @@ def export_multipos_2D_xanes_scan3(h, fpath=None):
             hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
             hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
             hf.create_dataset(
-                "img_xanes", data=np.array(img_xanes[j], dtype=np.float32))
+                "img_xanes", data=np.array(img_xanes[j], dtype=np.float32)
+            )
             hf.create_dataset("Magnification", data=M)
-            hf.create_dataset("Pixel Size", data=str(pxl_sz)+'nm') 
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
         try:
             write_lakeshore_to_file(h, fname)
@@ -1155,10 +1240,10 @@ def export_multipos_2D_xanes_scan3(h, fpath=None):
 
 def export_user_fly_only(h, fpath=None):
     if fpath is None:
-        fpath = './'
+        fpath = "./"
     else:
-        if not fpath[-1] == '/':
-            fpath += '/'  
+        if not fpath[-1] == "/":
+            fpath += "/"
     uid = h.start["uid"]
     note = h.start["note"]
     scan_type = h.start["plan_name"]
@@ -1271,130 +1356,97 @@ def export_user_fly_only(h, fpath=None):
 
 def export_scan_change_expo_time(h, fpath=None, save_range_x=[], save_range_y=[]):
     from skimage import io
+
     if fpath is None:
         fpath = os.getcwd()
-    if not fpath[-1] == '/':
-            fpath += '/'
+    if not fpath[-1] == "/":
+        fpath += "/"
     scan_id = h.start["scan_id"]
-    fpath += f'scan_{scan_id}/'
-    fpath_t1 = fpath + 't1/'
-    fpath_t2 = fpath + 't2/'
+    fpath += f"scan_{scan_id}/"
+    fpath_t1 = fpath + "t1/"
+    fpath_t2 = fpath + "t2/"
     os.makedirs(fpath, exist_ok=True, mode=0o777)
     os.makedirs(fpath_t1, exist_ok=True, mode=0o777)
     os.makedirs(fpath_t2, exist_ok=True, mode=0o777)
 
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
-    M = (DetU_z_pos/zp_z_pos - 1)*10.
-    pxl_sz = 6500./M
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
     scan_type = h.start["plan_name"]
     uid = h.start["uid"]
-    note = h.start['plan_args']["note"]
-   
-    scan_time = h.start["time"]
-    x_eng = h.start["x_ray_energy"]    
-    t1 = h.start['plan_args']['t1']
-    t2 = h.start['plan_args']['t2']
+    note = h.start["plan_args"]["note"]
 
-    img_sizeX = h.start['plan_args']['img_sizeX']
-    img_sizeY = h.start['plan_args']['img_sizeY']
-    pxl = h.start['plan_args']['pxl']
+    scan_time = h.start["time"]
+    x_eng = h.start["x_ray_energy"]
+    t1 = h.start["plan_args"]["t1"]
+    t2 = h.start["plan_args"]["t2"]
+
+    img_sizeX = h.start["plan_args"]["img_sizeX"]
+    img_sizeY = h.start["plan_args"]["img_sizeY"]
+    pxl = h.start["plan_args"]["pxl"]
     step_x = img_sizeX * pxl
     step_y = img_sizeY * pxl
-    
-    x_range = h.start['plan_args']['x_range']
-    y_range = h.start['plan_args']['y_range']
+
+    x_range = h.start["plan_args"]["x_range"]
+    y_range = h.start["plan_args"]["y_range"]
 
     imgs = list(h.data("Andor_image"))
     s = imgs[0].shape
-    
-    if len(save_range_x)==0:
+
+    if len(save_range_x) == 0:
         save_range_x = [0, s[0]]
-    if len(save_range_y)==0:
+    if len(save_range_y) == 0:
         save_range_y = [0, s[1]]
 
     img_dark_t1 = np.median(np.array(imgs[:5]), axis=0)
     img_dark_t2 = np.median(np.array(imgs[5:10]), axis=0)
     imgs = imgs[10:]
 
-    nx = np.abs(x_range[1] - x_range[0] +1)
-    ny = np.abs(y_range[1] - y_range[0] +1) 
+    nx = np.abs(x_range[1] - x_range[0] + 1)
+    ny = np.abs(y_range[1] - y_range[0] + 1)
     pos_x = np.zeros(nx * ny)
     pos_y = pos_x.copy()
 
     idx = 0
 
     for ii in range(nx):
-        if not ii%100:
-            print(f'nx = {ii}')
+        if not ii % 100:
+            print(f"nx = {ii}")
         for jj in range(ny):
-            if not jj%10:
-                print(f'ny = {jj}')
+            if not jj % 10:
+                print(f"ny = {jj}")
             pos_x[idx] = ii * step_x
             pos_y[idx] = jj * step_y
             idx += 1
             id_c = ii * ny * (5 + 5 + 2) + jj * (5 + 5 + 2)
             img_t1 = imgs[id_c]
             img_t2 = imgs[id_c + 1]
-            img_bkg_t1 = imgs[(id_c+2):(id_c+7)]
+            img_bkg_t1 = imgs[(id_c + 2) : (id_c + 7)]
             img_bkg_t1 = np.median(img_bkg_t1, axis=0)
-            img_bkg_t2 = imgs[(id_c+7):(id_c+12)]
+            img_bkg_t2 = imgs[(id_c + 7) : (id_c + 12)]
             img_bkg_t2 = np.median(img_bkg_t2, axis=0)
 
             img_t1_n = (img_t1 - img_dark_t1) / (img_bkg_t1 - img_dark_t1)
             img_t2_n = (img_t2 - img_dark_t2) / (img_bkg_t2 - img_dark_t2)
-            
-            fsave_t1 = fpath_t1 + f'img_t1_{idx:05d}.tiff'
-            fsave_t2 = fpath_t2 + f'img_t2_{idx:05d}.tiff'
 
-            im1 = img_t1_n[0, save_range_x[0]:save_range_x[1], save_range_y[0]:save_range_y[1]]
-            im2 = img_t2_n[0, save_range_x[0]:save_range_x[1], save_range_y[0]:save_range_y[1]]
+            fsave_t1 = fpath_t1 + f"img_t1_{idx:05d}.tiff"
+            fsave_t2 = fpath_t2 + f"img_t2_{idx:05d}.tiff"
+
+            im1 = img_t1_n[
+                0, save_range_x[0] : save_range_x[1], save_range_y[0] : save_range_y[1]
+            ]
+            im2 = img_t2_n[
+                0, save_range_x[0] : save_range_x[1], save_range_y[0] : save_range_y[1]
+            ]
             io.imsave(fsave_t1, im1.astype(np.float32))
             io.imsave(fsave_t2, im2.astype(np.float32))
-    with h5py.File(fpath, 'w') as hf:
-        hf.create_dataset('scan_id', data = scan_id)
-        hf.create_dataset('scan_type', data = scan_type)
-        hf.create_dataset('uid', data = uid)
-        hf.create_dataset('pxl_sz', data = pxl_sz)
-        hf.create_dataset('note', data = note)        
-        hf.create_dataset('XEng', data = x_eng)
-        hf.create_dataset('pos_x', data = pos_x)
-        hf.create_dataset('pos_y', data = pos_y)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
-
-
-
-
-
-
-
-
-
-
-
+    with h5py.File(fpath, "w") as hf:
+        hf.create_dataset("scan_id", data=scan_id)
+        hf.create_dataset("scan_type", data=scan_type)
+        hf.create_dataset("uid", data=uid)
+        hf.create_dataset("pxl_sz", data=pxl_sz)
+        hf.create_dataset("note", data=note)
+        hf.create_dataset("XEng", data=x_eng)
+        hf.create_dataset("pos_x", data=pos_x)
+        hf.create_dataset("pos_y", data=pos_y)

@@ -5,19 +5,19 @@ import pprint
 from operator import attrgetter
 from PIL import Image
 from scipy.signal import medfilt2d
-  
+
 
 def check_latest_scan_id(init_guess=60000, search_size=100):
-    sid_from_md = RE.md['scan_id']
+    sid_from_md = RE.md["scan_id"]
     if len(list(db(scan_id=sid_from_md))) > 0:
-        sid_i = max(db[-1].start['scan_id'], sid_from_md, init_guess)
-    else: # current RE.md['scan_id'] is an empty scan, e.g., someone set RE.md['scan_id'] mistakely
-        sid_i = max(db[-1].start['scan_id'], init_guess)
+        sid_i = max(db[-1].start["scan_id"], sid_from_md, init_guess)
+    else:  # current RE.md['scan_id'] is an empty scan, e.g., someone set RE.md['scan_id'] mistakely
+        sid_i = max(db[-1].start["scan_id"], init_guess)
     sid = sid_i
     n = len(list(db(scan_id=sid)))
     if len(list(db(scan_id=sid))) == 1:
         for i in range(1, 11):
-            if len(list(db(scan_id=sid+i))) == 1:
+            if len(list(db(scan_id=sid + i))) == 1:
                 break
         if i == 10:
             return print(f'\nThe latest scan_id is {sid}, set RE.md["scan_id"]={sid}')
@@ -27,29 +27,29 @@ def check_latest_scan_id(init_guess=60000, search_size=100):
         n = len(list(db(scan_id=sid)))
         print(sid)
     sid_n = sid
-    sid = int((sid_i + sid_n)/2)
-    print(f'sid_i = {sid_i}, sid_n = {sid_n}')
+    sid = int((sid_i + sid_n) / 2)
+    print(f"sid_i = {sid_i}, sid_n = {sid_n}")
     while 1:
-        print(f'sid_i = {sid_i}, sid_n = {sid_n} --> sid = {sid}')
+        print(f"sid_i = {sid_i}, sid_n = {sid_n} --> sid = {sid}")
         n = len(list(db(scan_id=sid)))
         if n > 0:
             sid_i = sid
         else:  # n=0: scan_id is empty
             sid_n = sid
-        sid = int((sid_i + sid_n)/2)
-    #    print(f'sid_i = {sid_i}, sid_n = {sid_n} --> sid = {sid}')
+        sid = int((sid_i + sid_n) / 2)
+        #    print(f'sid_i = {sid_i}, sid_n = {sid_n} --> sid = {sid}')
         if sid_n - sid_i <= 1:
             break
     tmp = []
-    for i in range(10): # check following 10 scans if any scan_id has not be used ever
-        tmp.append(len(list(db(scan_id=sid+i))))
+    for i in range(10):  # check following 10 scans if any scan_id has not be used ever
+        tmp.append(len(list(db(scan_id=sid + i))))
     tmp_len_equal_1 = np.where(np.array(tmp) == 1)[0]
     if len(tmp_len_equal_1):
         sid = sid + tmp_len_equal_1[-1]
     sid = int(sid)
-    while not (len(list(db(scan_id=sid))) == 1 and len(list(db(scan_id=sid+1))) == 0):
+    while not (len(list(db(scan_id=sid))) == 1 and len(list(db(scan_id=sid + 1))) == 0):
         sid += 1
-    RE.md['scan_id'] = sid
+    RE.md["scan_id"] = sid
     return print(f'\nThe latest scan_id is {sid}, set RE.md["scan_id"]={sid}')
 
 
@@ -103,7 +103,7 @@ def record_calib_pos_new(n):
     pp.pprint(tmp)
     df = pd.DataFrame.from_dict(CALIBER, orient="index")
     df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv")
-    #df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
+    # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
     print(
         f'calib_pos{n} recored: current Magnification = GLOBAL_MAG = {CALIBER[f"mag{n}"]}'
     )
@@ -119,12 +119,12 @@ def remove_caliber_pos(n):
             if k[-1] == str(n):
                 del CALIBER[k]
         df = pd.DataFrame.from_dict(CALIBER, orient="index")
-        #df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
+        # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
         df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv")
     except:
         CALIBER = CALIBER.copy()
         print(f"fails to remove CALIBER postion {n}, or it does not exist")
-        print('CALIBER not changed')
+        print("CALIBER not changed")
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(CALIBER)
 
@@ -132,12 +132,16 @@ def remove_caliber_pos(n):
 def print_caliber(print_eng_only=1, pos=-1):
     if print_eng_only:
         for k in CALIBER.keys():
-            if 'XEng' in k:
-                print(f'{k}: {CALIBER[k]:2.5f} keV')
-        print('If want to display full list of motor position, use "print_caliber(0, pos=1)"')
-        print('e.g., print_caliber(0, pos=-1) will display all recorded position in detail')
-        print('e.g., print_caliber(0, pos=1) will display will position 1 only')
-        
+            if "XEng" in k:
+                print(f"{k}: {CALIBER[k]:2.5f} keV")
+        print(
+            'If want to display full list of motor position, use "print_caliber(0, pos=1)"'
+        )
+        print(
+            "e.g., print_caliber(0, pos=-1) will display all recorded position in detail"
+        )
+        print("e.g., print_caliber(0, pos=1) will display will position 1 only")
+
     else:
         if pos == -1:
             pp = pprint.PrettyPrinter(indent=4)
@@ -147,12 +151,13 @@ def print_caliber(print_eng_only=1, pos=-1):
             for k in CALIBER.keys():
                 if k[-1] == str(pos):
                     tmp[k] = CALIBER[k]
-                    print(f'{k:>20s}: {CALIBER[k]:4.8f}') 
-            #pp = pprint.PrettyPrinter(indent=4)
-            #pp.pprint(tmp)
+                    print(f"{k:>20s}: {CALIBER[k]:4.8f}")
+            # pp = pprint.PrettyPrinter(indent=4)
+            # pp.pprint(tmp)
+
 
 def read_calib_file_new(return_flag=0):
-    #fn = "/home/xf18id/.ipython/profile_collection/startup/calib_new.csv"
+    # fn = "/home/xf18id/.ipython/profile_collection/startup/calib_new.csv"
     fn = "/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv"
     df = pd.read_csv(fn, index_col=0)
     d = df.to_dict("split")
@@ -163,7 +168,7 @@ def read_calib_file_new(return_flag=0):
 
     # pp = pprint.PrettyPrinter(indent=4)
     # pp.pprint(CALIBER)
-    print('Energy caliberated at: ')
+    print("Energy caliberated at: ")
     print_caliber()
     # except:
     #    print(f'fails to read calibriation file')
@@ -171,19 +176,20 @@ def read_calib_file_new(return_flag=0):
     if return_flag:
         return CALIBER
 
+
 def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0):
     """
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
         move_zp_ccd_with_const_mag(eng_new=8.0, move_flag=1)
     Note:
-        in the above commend, it will use two energy calibration points to calculate the motor 
-        position of XEng=8.0 keV. 
+        in the above commend, it will use two energy calibration points to calculate the motor
+        position of XEng=8.0 keV.
         specfically, one of the calibration points is > 8keV, the other one is < 8keV
 
     Inputs:
     -------
-    eng_new:  float 
+    eng_new:  float
           User defined energy, in unit of keV
     flag: int
           0: Do calculation without moving real stages
@@ -212,7 +218,6 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
     t = find_nearest(eng_new, ENG_val)
     eng1 = ENG_val.pop(t)
     id1 = ENG_idx.pop(t)
-    
 
     ENG_val_copy = np.array(ENG_val.copy())
     ENG_idx_copy = np.array(ENG_idx.copy())
@@ -230,7 +235,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
     else:
         t = find_nearest(eng_new, ENG_val)
         eng2 = ENG_val[t]
-        id2 = ENG_idx[t]       
+        id2 = ENG_idx[t]
 
     mag1 = CALIBER[f"mag{id1}"]
     mag2 = CALIBER[f"mag{id2}"]
@@ -524,6 +529,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
 
 ################################
 
+
 def show_global_para():
     print(f"GLOBAL_MAG = {GLOBAL_MAG} X")  # total magnification
     print(f"GLOBAL_VLM_MAG = {GLOBAL_VLM_MAG} X")  # vlm magnification
@@ -546,7 +552,12 @@ def show_global_para():
 ################################################################
 
 
-def new_user():
+def new_user(*, new_pi_name=None, new_proposal_id=None):
+    """
+    The function creates directory structure for a new user. If ``new_pi_name`` and/or
+    ``new_proposal_id`` are ``None``, the function asks the user to type PI name and/or
+    Proposal ID.
+    """
     now = datetime.now()
     year = np.str(now.year)
     mon = "{:02d}".format(now.month)
@@ -565,13 +576,16 @@ def new_user():
         pass
     print("\n")
 
-    PI_name = input("PI's name:")
+    if new_pi_name is None:
+        PI_name = input("PI's name:")
+    else:
+        PI_name = new_pi_name
     PI_name = PI_name.replace(" ", "_").upper()
 
     if len(PI_name) == 0:
         cwd = os.getcwd()
         print(f"\nstay at current directory: {cwd}\n")
-        return    
+        return
     if PI_name[0] == "*":
         cwd = os.getcwd()
         print(f"\nstay at current directory: {cwd}\n")
@@ -581,7 +595,11 @@ def new_user():
         fn = pre + PI_name
         print(fn)
     else:
-        proposal_id = input("Proposal ID:")
+        if new_proposal_id is None:
+            proposal_id = input("Proposal ID:")
+        else:
+            proposal_id = new_proposal_id
+
         fn = pre + PI_name + "_Proposal_" + proposal_id
         export_pdf(1)
         insert_text(f"New user: {fn}\n")
@@ -597,6 +615,22 @@ def new_user():
         pass
     os.chdir(fn)
     print("\nUser creating successful!\n\nEntering folder: {}\n".format(os.getcwd()))
+
+
+def create_new_user(pi_name: str, proposal_id: str):
+    """
+    The plans create directory structure for the new user. Parameters 'pi_name' and
+    'proposal_id' are expected to be strings.
+
+    Parameters
+    ----------
+    pi_name : str
+        PI name
+    propsal_id : str
+        Proposal ID
+    """
+    new_user(new_pi_name=pi_name, new_proposal_id=proposal_id)
+    yield from sleep(0.1)  # Short pause
 
 
 ################################################################
@@ -658,9 +692,9 @@ def cal_parameter(eng, print_flag=1):
     print_flag: int
         0: print outputs
         1: no print
-        
+
     Outputs:
-    -------- 
+    --------
     wave_length(nm), focal_length(mm), NA(rad if print_flag=1, mrad if print_flag=0), DOF(mm)
     """
 
@@ -677,7 +711,7 @@ def cal_parameter(eng, print_flag=1):
     wave_length = h * c / (ec * eng * 1000) * 1e9  # nm
     focal_length = OUT_ZONE_WIDTH * ZONE_DIAMETER / (wave_length) / 1000  # mm
     NA = wave_length / (2 * OUT_ZONE_WIDTH)
-    DOF = wave_length / NA ** 2 / 1000  # um
+    DOF = wave_length / NA**2 / 1000  # um
     if print_flag:
         print(
             "Wave length: {0:2.2f} nm\nFocal_length: {1:2.2f} mm\nNA: {2:2.2f} mrad\nDepth of focus: {3:2.2f} um".format(
@@ -696,10 +730,10 @@ def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
 
     Inputs:
     -------
-    eng_new:  float 
+    eng_new:  float
           User defined energy, in unit of keV
     eng_ini:  float
-          if eng_ini < 4.000 (keV), will eng_ini = current Xray energy 
+          if eng_ini < 4.000 (keV), will eng_ini = current Xray energy
     print_flag: int
           0: Do calculation without moving real stages
           1: Will move stages
@@ -1338,7 +1372,7 @@ def get_scan_timestamp(scan_id, return_flag=0):
     scan_time = f"scan#{scan_id}: {scan_year-20:04d}-{scan_mon:02d}-{scan_day:02d}   {scan_hour:02d}:{scan_min:02d}:{scan_sec:02d}"
     print(scan_time)
     if return_flag:
-        return scan_time.split('#')[-1]
+        return scan_time.split("#")[-1]
 
 
 def get_scan_file_name(scan_id):

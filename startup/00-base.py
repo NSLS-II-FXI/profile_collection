@@ -4,11 +4,42 @@
 from datetime import datetime
 from ophyd.signal import EpicsSignalBase, EpicsSignal, DEFAULT_CONNECTION_TIMEOUT
 
+try:
+    from bluesky_queueserver import is_re_worker_active, parameter_annotation_decorator
+
+except ImportError:
+    # Remove the try..except once 'bluesky_queueserver' is included in the collection environment
+
+    def is_re_worker_active():
+        return False
+
+    import functools
+
+    def parameter_annotation_decorator(annotation):
+        def function_wrap(func):
+            if inspect.isgeneratorfunction(func):
+
+                @functools.wraps(func)
+                def wrapper(*args, **kwargs):
+                    return (yield from func(*args, **kwargs))
+
+            else:
+
+                @functools.wraps(func)
+                def wrapper(*args, **kwargs):
+                    return func(*args, **kwargs)
+
+            return wrapper
+
+        return function_wrap
+
+
 def print_now():
-    return datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S.%f')
+    return datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S.%f")
+
 
 def wait_for_connection_base(self, timeout=DEFAULT_CONNECTION_TIMEOUT):
-    '''Wait for the underlying signals to initialize or connect'''
+    """Wait for the underlying signals to initialize or connect"""
     if timeout is DEFAULT_CONNECTION_TIMEOUT:
         timeout = self.connection_timeout
     # print(f'{print_now()}: waiting for {self.name} to connect within {timeout:.4f} s...')
@@ -18,11 +49,12 @@ def wait_for_connection_base(self, timeout=DEFAULT_CONNECTION_TIMEOUT):
         # print(f'{print_now()}: waited for {self.name} to connect for {time.time() - start:.4f} s.')
     except TimeoutError:
         if self._destroyed:
-            raise DestroyedError('Signal has been destroyed')
+            raise DestroyedError("Signal has been destroyed")
         raise
 
+
 def wait_for_connection(self, timeout=DEFAULT_CONNECTION_TIMEOUT):
-    '''Wait for the underlying signals to initialize or connect'''
+    """Wait for the underlying signals to initialize or connect"""
     if timeout is DEFAULT_CONNECTION_TIMEOUT:
         timeout = self.connection_timeout
     # print(f'{print_now()}: waiting for {self.name} to connect within {timeout:.4f} s...')
@@ -30,11 +62,13 @@ def wait_for_connection(self, timeout=DEFAULT_CONNECTION_TIMEOUT):
     self._ensure_connected(self._read_pv, self._write_pv, timeout=timeout)
     # print(f'{print_now()}: waited for {self.name} to connect for {time.time() - start:.4f} s.')
 
+
 EpicsSignalBase.wait_for_connection = wait_for_connection_base
 EpicsSignal.wait_for_connection = wait_for_connection
 ###############################################################################
 
 from ophyd.signal import EpicsSignalBase
+
 # EpicsSignalBase.set_default_timeout(timeout=10, connection_timeout=10)  # old style
 EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)  # new style
 
@@ -42,17 +76,24 @@ import nslsii
 from datetime import datetime
 
 # Register bluesky IPython magics.
-from bluesky.magics import BlueskyMagics
+if not is_re_worker_active():
+    from bluesky.magics import BlueskyMagics
 
-get_ipython().register_magics(BlueskyMagics)
+    get_ipython().register_magics(BlueskyMagics)
 
 from bluesky.preprocessors import stage_decorator, run_decorator
 from databroker.v0 import Broker
-db = Broker.named('fxi')
+
+db = Broker.named("fxi")
 del Broker
 
 nslsii.configure_base(get_ipython().user_ns, db, bec=True)
 
+# The following plan stubs should not be imported directly in the global namespace.
+#   Otherwise Queue Server will not be able to load the startup files.
+del one_1d_step
+del one_nd_step
+del one_shot
 
 # Make new RE.md storage available in old environments.
 from pathlib import Path
@@ -78,6 +119,7 @@ except ImportError:
         but that the full contents are synced to disk when the PersistentDict
         instance is garbage collected.
         """
+
         def __init__(self, directory):
             self._directory = directory
             self._file = zict.File(directory)
@@ -93,8 +135,10 @@ except ImportError:
                 zfile.update((k, dump(v)) for k, v in cache.items())
 
             import weakref
+
             self._finalizer = weakref.finalize(
-                self, finalize, self._file, self._cache, PersistentDict._dump)
+                self, finalize, self._file, self._cache, PersistentDict._dump
+            )
 
         @property
         def directory(self):
@@ -119,17 +163,11 @@ except ImportError:
             "Encode as msgpack using numpy-aware encoder."
             # See https://github.com/msgpack/msgpack-python#string-and-binary-type
             # for more on use_bin_type.
-            return msgpack.packb(
-                obj,
-                default=msgpack_numpy.encode,
-                use_bin_type=True)
+            return msgpack.packb(obj, default=msgpack_numpy.encode, use_bin_type=True)
 
         @staticmethod
         def _load(file):
-            return msgpack.unpackb(
-                file,
-                object_hook=msgpack_numpy.decode,
-                raw=False)
+            return msgpack.unpackb(file, object_hook=msgpack_numpy.decode, raw=False)
 
         def flush(self):
             """Force a write of the current state to disk"""
@@ -140,7 +178,10 @@ except ImportError:
             """Force a reload from disk, overwriting current cache"""
             self._cache = dict(super().items())
 
-runengine_metadata_dir = appdirs.user_data_dir(appname="bluesky") / Path("runengine-metadata")
+
+runengine_metadata_dir = appdirs.user_data_dir(appname="bluesky") / Path(
+    "runengine-metadata"
+)
 
 # PersistentDict will create the directory if it does not exist
 RE.md = PersistentDict(runengine_metadata_dir)
@@ -186,6 +227,7 @@ RE.msg_hook = ts_msg_hook
 
 ## HACK HACK
 
+
 def rd(obj, *, default_value=0):
     """Reads a single-value non-triggered object
 
@@ -224,7 +266,7 @@ def rd(obj, *, default_value=0):
         The "single" value of the device
 
     """
-    hints = getattr(obj, 'hints', {}).get("fields", [])
+    hints = getattr(obj, "hints", {}).get("fields", [])
     if len(hints) > 1:
         msg = (
             f"Your object {obj} ({obj.name}.{getattr(obj, 'dotted_name', '')}) "
@@ -273,6 +315,7 @@ def rd(obj, *, default_value=0):
         raise ValueError(msg) from er
     else:
         return data["value"]
+
 
 # monkey batch bluesky.plans_stubs to fix bug.
 bps.rd = rd

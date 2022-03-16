@@ -24,7 +24,7 @@ def reset_pdf():
     PDF_ARGS[
         "fn_log"
     ] = f'/NSLS2/xf18id1/DATA/FXI_log/TXM_log_test_{PDF_ARGS["year"]}{PDF_ARGS["month"]}{PDF_ARGS["day"]}.pdf'
-    #PDF_ARGS["temp_folder"] = "/home/xf18id/.ipython/profile_collection/startup/temp"
+    # PDF_ARGS["temp_folder"] = "/home/xf18id/.ipython/profile_collection/startup/temp"
     PDF_ARGS["temp_folder"] = "/NSLS2/xf18id1/DATA/FXI_log/temp"
     PDF_ARGS["temp_img_folder"] = PDF_ARGS["temp_folder"] + "/img"
     PDF_ARGS["fn_tmp"] = PDF_ARGS["temp_folder"] + "/tmp.pdf"
@@ -162,7 +162,7 @@ def insert_pic(fn="", ratio=0.3):
         )
         PDF_ARGS["Cursor_x"] = 0.6 * inch
         PDF_ARGS["Cursor_y"] -= inch / 2
-        insert_text('insert pic:'+fn)
+        insert_text("insert pic:" + fn)
         # PDF_ARGS['tmp_flag'] += 1
 
     except:
@@ -232,8 +232,8 @@ def merge_log():
             for line in fp:
                 if line[0] == "\n":
                     print(f"tmp_txt={tmp_txt}")
-                    if 'insert pic' in tmp_txt.split(':')[0]:
-                        insert_pic(tmp_txt.split(':')[1])
+                    if "insert pic" in tmp_txt.split(":")[0]:
+                        insert_pic(tmp_txt.split(":")[1])
                     else:
                         insert_text(tmp_txt, 0)
                     tmp_txt = ""

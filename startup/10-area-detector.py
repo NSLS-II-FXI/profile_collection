@@ -26,14 +26,18 @@ class ExternalFileReference(Signal):
     """
     A pure software signal where a Device can stash a datum_id
     """
+
     def __init__(self, *args, shape, **kwargs):
         super().__init__(*args, **kwargs)
         self.shape = shape
 
     def describe(self):
         res = super().describe()
-        res[self.name].update(dict(external="FILESTORE:", dtype="array", shape=self.shape))
+        res[self.name].update(
+            dict(external="FILESTORE:", dtype="array", shape=self.shape)
+        )
         return res
+
 
 class AndorCam(CamV33Mixin, AreaDetectorCam):
     def __init__(self, *args, **kwargs):
@@ -60,7 +64,7 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
         self._ts_datum_factory = None
         self._ts_resource_uid = ""
         self._ts_counter = None
-    
+
     def stage(self):
         self._ts_counter = itertools.count()
         return super().stage()
@@ -80,7 +84,7 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
 
         # Update the shape that describe() will report.
         self.time_stamp.shape = [self.get_frames_per_point()]
-        
+
         resource, self._ts_datum_factory = resource_factory(
             spec="AD_HDF5_TS",
             root=str(self.reg_root),
@@ -96,7 +100,7 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
         # again, don't re-work the normal code path... yet
         ret = super().generate_datum(key, timestamp, datum_kwargs)
         datum_kwargs = datum_kwargs or {}
-        datum_kwargs.update({'point_number': next(self._ts_counter)})
+        datum_kwargs.update({"point_number": next(self._ts_counter)})
         # make the timestamp datum, in this case we know they match
         datum = self._ts_datum_factory(datum_kwargs)
         datum_id = datum["datum_id"]
@@ -127,14 +131,20 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
     hdf5 = Cpt(
         HDF5PluginWithFileStore,
         suffix="HDF1:",
-        write_path_template="/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/",
-        # write_path_template='/dev/shm/%Y/%m/%d/' ,
-        root="/NSLS2/xf18id1/DATA/Andor",
+        write_path_template="/nsls2/data/fxi/legacy/Andor/%Y/%m/%d/",
+        # write_path_template='/tmp/test_2022/%Y/%m/%d/' ,
+        # write_path_template="/nsls2/data/fxi/assets/default/%Y/%m/%d/",
+        # write_path_template="/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/",
+        # root="/nsls2/data/fxi/assets/default",
+        root="/nsls2/data/fxi/legacy/Andor",
+        # root = "/tmp/test_2022",
+        # root="/NSLS2/xf18id1/DATA/Andor",
         # write_path_template='/tmp/',
         # root='/dev/shm',
     )
 
     ac_period = Cpt(EpicsSignal, "cam1:AcquirePeriod")
+    binning = Cpt(EpicsSignal, "cam1:A3Binning")
 
     def stop(self):
         self.hdf5.capture.put(0)
@@ -212,6 +222,7 @@ class Manta(SingleTrigger, AreaDetector):
     hdf5 = Cpt(
         HDF5PluginWithFileStore,
         suffix="HDF1:",
+        # write_path_template="/nsls2/data/fxi/legacy/Andor/%Y/%m/%d/",
         write_path_template="/NSLS2/xf18id1/DATA/Andor/%Y/%m/%d/",
         # write_path_template = '/dev/shm/',
         root="/NSLS2/xf18id1/DATA/Andor",
@@ -265,11 +276,11 @@ MFS.stats1.read_attrs = ["total"]
 MFS.hdf5.read_attrs = []
 
 detA1 = Manta("XF:18IDB-BI{Det:A1}", name="detA1")
-detA1.read_attrs = ['hdf5', 'stats1']
+detA1.read_attrs = ["hdf5", "stats1"]
 # detA1.read_attrs = ['hdf5']
 detA1.read_attrs = ["hdf5", "stats1"]
 detA1.stats1.read_attrs = ["total"]
-#detA1.stats5.read_attrs = ['total']
+# detA1.stats5.read_attrs = ['total']
 detA1.hdf5.read_attrs = []
 
 """
@@ -284,7 +295,7 @@ Andor.hdf5.read_attrs = []
 """
 
 
-Andor = AndorKlass("XF:18IDB-BI{Det:Neo}", name="Andor")
+Andor = AndorKlass("XF:18IDB-BI{Det:Neo2}", name="Andor")
 Andor.cam.ensure_nonblocking()
 # Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
 # Andor.read_attrs = ['hdf5']
@@ -295,16 +306,16 @@ Andor.hdf5.read_attrs = ["time_stamp"]
 Andor.stage_sigs["cam.image_mode"] = 0
 for k in ("image", "stats1", "trans1", "roi1", "proc1"):
     getattr(Andor, k).ensure_nonblocking()
-Andor.hdf5.time_stamp.name = 'Andor_timestamps'
+Andor.hdf5.time_stamp.name = "Andor_timestamps"
 
 
-#vlm = Manta("XF:18IDB-BI{VLM:1}", name="vlm")
+# vlm = Manta("XF:18IDB-BI{VLM:1}", name="vlm")
 # detA1.read_attrs = ['hdf5', 'stats1', 'stats5']
 # detA1.read_attrs = ['hdf5']
-#vlm.read_attrs = ["hdf5", "stats1"]
-#vlm.stats1.read_attrs = ["total"]
+# vlm.read_attrs = ["hdf5", "stats1"]
+# vlm.stats1.read_attrs = ["total"]
 # detA1.stats5.read_attrs = ['total']
-#vlm.hdf5.read_attrs = []
+# vlm.hdf5.read_attrs = []
 
 
 for det in [detA1, Andor]:
