@@ -270,11 +270,11 @@ def user_fly_scan(
     motor_r_ini = zps.pi_r.position
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r, zps.pi_x]
 
-    detectors = [Andor, ic3]
-    offset_angle = -2.0 * rs
-    current_rot_angle = zps.pi_r.position
+    dets = [Andor, ic3]
+    taxi_ang = -2.0 * rs
+    cur_rot_ang = zps.pi_r.position
 
-    #  target_rot_angle = current_rot_angle + relative_rot_angle
+    #  tgt_rot_ang = cur_rot_ang + rel_rot_ang
     _md = {
         "detectors": ["Andor"],
         "motors": [mot.name for mot in motor],
@@ -312,13 +312,13 @@ def user_fly_scan(
 
     print("set rotation speed: {} deg/sec".format(rs))
 
-    @stage_decorator(list(detectors) + motor)
+    @stage_decorator(list(dets) + motor)
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def inner_scan():
         # close shutter, dark images: numer=chunk_size (e.g.20)
         print("\nshutter closed, taking dark images...")
-        yield from _take_dark_image(detectors, motor, num_dark=1, simu=simu)
+        yield from _take_dark_image(dets, motor, num_dark=1, simu=simu)
 
         yield from mv(zps.pi_x, 0)
         yield from mv(zps.pi_r, -50)
@@ -326,11 +326,11 @@ def user_fly_scan(
         # open shutter, tomo_images
         yield from _open_shutter(simu=simu)
         print("\nshutter opened, taking tomo images...")
-        yield from mv(zps.pi_r, -50 + offset_angle)
+        yield from mv(zps.pi_r, -50 + taxi_ang)
         status = yield from abs_set(zps.pi_r, 50, wait=False)
         yield from bps.sleep(2)
         while not status.done:
-            yield from trigger_and_read(list(detectors) + motor)
+            yield from trigger_and_read(list(dets) + motor)
         # bkg images
         print("\nTaking background images...")
         yield from _set_rotation_speed(rs=30)
@@ -338,7 +338,7 @@ def user_fly_scan(
 
         yield from mv(zps.pi_x, 12)
         yield from mv(zps.pi_r, 70)
-        yield from trigger_and_read(list(detectors) + motor)
+        yield from trigger_and_read(list(dets) + motor)
 
         yield from _close_shutter(simu=simu)
         yield from mv(zps.pi_r, 0)
@@ -385,7 +385,7 @@ def mosaic_fly_scan(
     z_list,
     r_list,
     exposure_time=0.1,
-    relative_rot_angle=150,
+    rel_rot_ang=150,
     period=0.1,
     chunk_size=20,
     out_x=None,
@@ -480,7 +480,7 @@ def multi_pos_3D_xanes(
     z_list=[0],
     r_list=[0],
     exposure_time=0.05,
-    relative_rot_angle=182,
+    rel_rot_ang=182,
     rs=2,
 ):
     """
@@ -489,7 +489,7 @@ def multi_pos_3D_xanes(
 
     to run:
 
-    RE(multi_pos_3D_xanes(Ni_eng_list, x_list=[a, b, c], y_list=[aa,bb,cc], z_list=[aaa,bbb, ccc], r_list=[0, 0, 0], exposure_time=0.05, relative_rot_angle=185, rs=3, out_x=1500, out_y=-1500, out_z=-770, out_r=0, note='NC')
+    RE(multi_pos_3D_xanes(Ni_eng_list, x_list=[a, b, c], y_list=[aa,bb,cc], z_list=[aaa,bbb, ccc], r_list=[0, 0, 0], exposure_time=0.05, rel_rot_ang=185, rs=3, out_x=1500, out_y=-1500, out_z=-770, out_r=0, note='NC')
     """
     num_pos = len(x_list)
     for i in range(num_pos):
@@ -502,7 +502,7 @@ def multi_pos_3D_xanes(
         yield from xanes_3D(
             eng_list,
             exposure_time=exposure_time,
-            relative_rot_angle=relative_rot_angle,
+            relative_rot_angle=rel_rot_ang,
             period=exposure_time,
             out_x=out_x,
             out_y=out_y,
