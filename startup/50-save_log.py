@@ -14,7 +14,7 @@ if not is_re_worker_active():
 
 class Auto_Log_Save(object):
     """
-    Auto save the motor position into logfile (/NSLS2/xf18id1/DATA/Motor_position_log/) at 11pm everyday.
+    Auto save the motor position into logfile (/nsls2/data/fxi-new/legacy/log/motor_position/) at 11pm everyday.
     """
 
     def __init__(self, interval=1):
@@ -33,7 +33,7 @@ class Auto_Log_Save(object):
 
 def save_pos(print_flag=0, comment=""):
     """
-    Get motor positions and save to file /NSLS2/xf18id1/DATA/Motor_position_log/
+    Get motor positions and save to file /nsls2/data/fxi-new/legacy/log/motor_position/
     To print it out, set print_flag=1
     """
 
@@ -58,7 +58,7 @@ def save_pos(print_flag=0, comment=""):
     minu = "{:02d}".format(now.minute)
     current_date = year + "-" + mon + "-" + day
 
-    base_dir = Path("/NSLS2/xf18id1/DATA/Motor_position_log/")
+    base_dir = Path("/nsls2/data/fxi-new/legacy/log/motor_position/")
     base_dir.mkdir(parents=True, exist_ok=True)
     fn = f"log-{current_date}_{hour}-{minu}.log"
     f = open(base_dir / fn, "w")
