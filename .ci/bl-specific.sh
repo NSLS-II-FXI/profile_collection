@@ -3,7 +3,6 @@
 export AZURE_TESTING=1
 
 sudo mkdir -v -p /nsls2/data/fxi-new/legacy/log/
-sudo chown -Rv $USER: /NSLS2
 sudo chown -Rv $USER: /nsls2/data
 
 echo -e "Current directory: $PWD"
