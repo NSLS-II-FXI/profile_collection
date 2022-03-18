@@ -6,10 +6,8 @@ import time
 import subprocess
 import threading
 from datetime import datetime
-from pathlib import Path
 
-if not is_re_worker_active():
-    BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt + motor_lakeshore
+BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt + motor_lakeshore
 
 
 class Auto_Log_Save(object):

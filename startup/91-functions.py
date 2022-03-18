@@ -803,7 +803,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
 
     Inputs:
     -------
-    eng_new:  float
+    eng_new:  float 
           User defined energy, in unit of keV
     flag: int
           0: Do calculation without moving real stages
@@ -816,12 +816,12 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
         eng_ini = XEng.position
         check_eng_range([eng_ini])
         zp_ini, det_ini, zp_delta, det_delta, zp_final, det_final = cal_zp_ccd_position(eng_new, eng_ini, print_flag=0)
-
+        
         assert ((det_final) > det.z.low_limit and (det_final) < det.z.high_limit), print ('Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.'.format(det_final, det.z.low_limit, det.z.high_limit))
 
         eng1 = CALIBER['XEng_pos1']
         eng2 = CALIBER['XEng_pos2']
-
+        
         #pzt_dcm_th2_eng1 = CALIBER['th2_pos1']
         dcm_chi2_eng1 = CALIBER['chi2_pos1']
         zp_x_pos_eng1 = CALIBER['zp_x_pos1']
@@ -868,7 +868,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
             aper_y_target = (eng_new - eng2)*(aper_y_eng1 - aper_y_eng2)/(eng1 - eng2) + aper_y_eng2
             #pzt_dcm_th2_ini = (yield from bps.rd(pzt_dcm_th2.pos))
             pzt_dcm_chi2_ini = (yield from bps.rd(pzt_dcm_chi2.pos.value))
-            zp_x_ini = zp.x.position
+            zp_x_ini = zp.x.position    
             zp_y_ini = zp.y.position
             th2_motor_ini = th2_motor.position
             clens_x_ini = clens.x.position
@@ -879,13 +879,13 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
             DetU_y_ini = DetU.y.position
             aper_x_ini = aper.x.position
             aper_y_ini = aper.y.position
-
+        
             if move_flag: # move stages
-                print ('Now moving stages ....')
-                if info_flag:
+                print ('Now moving stages ....')     
+                if info_flag: 
                     print ('Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
                     print ('zone plate position: {0:2.4f} mm --> {1:2.4f} mm'.format(zp_ini, zp_final))
-                    print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final))
+                    print ('CCD position: {0:2.4f} mm --> {1:2.4f} mm'.format(det_ini, det_final)) 
                     print ('move zp_x: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_x_ini, zp_x_target))
                     print ('move zp_y: ({0:2.4f} um --> {1:2.4f} um)'.format(zp_y_ini, zp_y_target))
                     #print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
@@ -901,31 +901,31 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
                     if move_det_flag:
                         print ('move DetU_x: ({0:2.4f} um --> {1:2.4f} um)'.format(DetU_x_ini, DetU_x_target))
                         print ('move DetU_y: ({0:2.4f} um --> {1:2.4f} um)'.format(DetU_y_ini, DetU_y_target))
-
+    
                 yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
-#                yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)
+#                yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)                
                 yield from mv(th2_feedback_enable, 0)
                 yield from mv(th2_feedback, th2_motor_target)
                 yield from mv(th2_feedback_enable, 1)
                 yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
                 yield from mv(aper.x,  aper_x_target, aper.y, aper_y_target)
-                if move_clens_flag:
-                    yield from mv(clens.x, clens_x_target, clens.y1, clens_y1_target, clens.y2, clens_y2_target)
+                if move_clens_flag: 
+                    yield from mv(clens.x, clens_x_target, clens.y1, clens_y1_target, clens.y2, clens_y2_target) 
                     yield from mv(clens.p, clens_p_target)
                 if move_det_flag:
-                    yield from mv(DetU.x, DetU_x_target)
-                    yield from mv(DetU.y, DetU_y_target)
+                    yield from mv(DetU.x, DetU_x_target) 
+                    yield from mv(DetU.y, DetU_y_target)             
                 #yield from mv(pzt_dcm_th2.setpos, pzt_dcm_th2_target, pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
-                #yield from mv(pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)
-
+                #yield from mv(pzt_dcm_chi2.setpos, pzt_dcm_chi2_target)              
+                
                 yield from bps.sleep(0.1)
                 if abs(eng_new - eng_ini) >= 0.005:
                     t = 10 * abs(eng_new - eng_ini)
                     t = min(t, 2)
                     print(f'sleep for {t} sec')
-                    yield from bps.sleep(t)
+                    yield from bps.sleep(t)              
             else:
-                print ('This is calculation. No stages move')
+                print ('This is calculation. No stages move') 
                 print ('Will move Energy: {0:5.2f} keV --> {1:5.2f} keV'.format(eng_ini, eng_new))
                 print ('will move zone plate down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(zp_delta, zp_ini, zp_final))
                 print ('will move CCD down stream by: {0:2.4f} mm ({1:2.4f} mm --> {2:2.4f} mm)'.format(det_delta, det_ini, det_final))
@@ -1341,7 +1341,7 @@ def get_scan_parameter(scan_id=-1, print_flag=0):
     return txt
 
 
-def get_scan_timestamp(scan_id, return_flag=0):
+def get_scan_timestamp(scan_id):
     h = db[scan_id]
     scan_id = h.start["scan_id"]
     timestamp = h.start["time"]
@@ -1357,8 +1357,6 @@ def get_scan_timestamp(scan_id, return_flag=0):
     )
     scan_time = f"scan#{scan_id}: {scan_year-20:04d}-{scan_mon:02d}-{scan_day:02d}   {scan_hour:02d}:{scan_min:02d}:{scan_sec:02d}"
     print(scan_time)
-    if return_flag:
-        return scan_time.split("#")[-1]
 
 
 def get_scan_file_name(scan_id):

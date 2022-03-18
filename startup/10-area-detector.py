@@ -144,7 +144,6 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
     )
 
     ac_period = Cpt(EpicsSignal, "cam1:AcquirePeriod")
-    binning = Cpt(EpicsSignal, "cam1:A3Binning")
 
     def stop(self):
         self.hdf5.capture.put(0)
