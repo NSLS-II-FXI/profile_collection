@@ -83,9 +83,9 @@ def save_pos(print_flag=0, comment=""):
     print("\nsaved to file: {}".format(fn))
 
     if print_flag:
-        shutil.copyfile(fn, "/NSLS2/xf18id1/DATA/Motor_position_log/tmp.log")
+        shutil.copyfile(fn, "/tmp/tmp.log")
         os.system(
-            "lp -o cpi=20 -o lpi=10 -o media='letter' -d HP_Color_LaserJet_M553 /NSLS2/xf18id1/DATA/Motor_position_log/tmp.log"
+            "lp -o cpi=20 -o lpi=10 -o media='letter' -d HP_Color_LaserJet_M553 /tmp/tmp.log"
         )
 
 
@@ -249,7 +249,7 @@ def wh_pos(comment="", print_on_screen=1):
         pass
 
 
-"""    
+"""
 def get_encoder(motor_prefix):
     ENCODER = str(motor_prefix) + '.DRBV'
     COUNTS = str(motor_prefix) + '.RRBV'
@@ -291,7 +291,7 @@ def get_pzt_position(pzt_prefix, flag=''):
         Bender_force = str_convert(Bender_force)
     else:
         Bender_force = 'N/A'
-    
+
     return stat, pos, P_gain, I_gain, D_gain, Bender_force
 
 """
