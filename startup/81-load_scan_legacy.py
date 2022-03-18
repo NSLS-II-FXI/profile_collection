@@ -340,7 +340,7 @@ def fly_scan_repeat_legacy(
             export_pdf(1)
 
 
-def export_multipos_2D_xanes_scan2_lagacy(h, fpath=None):
+def export_multipos_2D_xanes_scan2_legacy(h, fpath=None):
     if fpath is None:
         fpath = "./"
     else:

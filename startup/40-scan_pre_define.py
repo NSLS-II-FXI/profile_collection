@@ -49,7 +49,7 @@ def _take_image(detectors, motor, num, stream_name="primary"):
 def _set_Andor_chunk_size(detectors, chunk_size):
     for detector in detectors:
         yield from unstage(detector)
-    yield from bps.configure(Andor, {"cam.num_images": chunk_size})
+    yield from mv(Andor.cam.num_images, chunk_size)
     for detector in detectors:
         yield from stage(detector)
 
@@ -89,6 +89,8 @@ def _take_bkg_image(
 def _set_andor_param(exposure_time=0.1, period=0.1, chunk_size=1, binning=[1, 1]):
     yield from mv(Andor.cam.acquire, 0)
     yield from mv(Andor.cam.image_mode, 0)
+    if (not binning is None) and len(binning) == 2:
+        yield from mv(Andor.cam.bin_y, binning[0], Andor.cam.bin_x, binning[1])
     yield from mv(Andor.cam.num_images, chunk_size)
     period_cor = period
     yield from mv(Andor.cam.acquire_time, exposure_time)

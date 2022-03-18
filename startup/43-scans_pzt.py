@@ -1,14 +1,3 @@
-@parameter_annotation_decorator(
-    {
-        "parameters": {
-            "detectors": {
-                "annotation": "typing.List[DetectorType1]",
-                "devices": {"DetectorType1": ["Vout2"]},
-                "default": ["Vout2"],
-            }
-        }
-    }
-)
 def pzt_scan(pzt_motor, start, stop, steps, detectors=[Vout2], sleep_time=1, md=None):
     """
     scan the pzt_motor (e.g., pzt_dcm_th2), detectors can be any signal or motor (e.g., Andor, dcm.th2)
@@ -170,17 +159,6 @@ def pzt_scan(pzt_motor, start, stop, steps, detectors=[Vout2], sleep_time=1, md=
 #    return pzt_readout, motor_readout, signal_readout
 
 
-@parameter_annotation_decorator(
-    {
-        "parameters": {
-            "detectors": {
-                "annotation": "typing.List[DetectorType1]",
-                "devices": {"DetectorType1": ["Vout2"]},
-                "default": ["Vout2"],
-            }
-        }
-    }
-)
 def pzt_scan_multiple(
     moving_pzt,
     start,
@@ -294,17 +272,6 @@ def pzt_scan_multiple(
 ######################
 
 
-@parameter_annotation_decorator(
-    {
-        "parameters": {
-            "detectors": {
-                "annotation": "typing.List[DetectorType1]",
-                "devices": {"DetectorType1": ["dcm_th2", "Vout2"]},
-                "default": ["dcm_th2", "Vout2"],
-            }
-        }
-    }
-)
 def pzt_energy_scan(
     moving_pzt,
     start,
@@ -375,17 +342,6 @@ def pzt_energy_scan(
     insert_text(txt_finish)
 
 
-@parameter_annotation_decorator(
-    {
-        "parameters": {
-            "detectors": {
-                "annotation": "typing.List[DetectorType1]",
-                "devices": {"DetectorType1": ["dcm_th2", "Vout2"]},
-                "default": ["dcm_th2", "Vout2"],
-            }
-        }
-    }
-)
 def pzt_overnight_scan(
     moving_pzt,
     start,

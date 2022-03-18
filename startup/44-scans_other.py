@@ -13,7 +13,6 @@ def test_scan(
     num_img=10,
     num_bkg=10,
     note="",
-    simu=False,
     md=None,
 ):
     """
@@ -66,7 +65,7 @@ def test_scan(
         "hints": {},
         "operator": "FXI",
         "note": note if note else "None",
-        # "motor_pos": wh_pos(print_on_screen=0),
+        "motor_pos": wh_pos(print_on_screen=0),
     }
     _md.update(md or {})
     _md["hints"].setdefault("dimensions", [(("time",), "primary")])
@@ -74,13 +73,10 @@ def test_scan(
     @stage_decorator(list(detectors))
     @run_decorator(md=_md)
     def inner_scan():
-        yield from _open_shutter(simu=simu)
-        """
         yield from abs_set(shutter_open, 1, wait=True)
         yield from bps.sleep(2)
         yield from abs_set(shutter_open, 1, wait=True)
         yield from bps.sleep(2)
-        """
         for i in range(num_img):
             yield from trigger_and_read(list(detectors))
         # taking out sample and take background image
@@ -90,13 +86,10 @@ def test_scan(
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         # close shutter, taking dark image
-        yield from _close_shutter(simu=simu)
-        """
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
         yield from abs_set(shutter_close, 1, wait=True)
         yield from bps.sleep(1)
-        """
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         yield from mv(zps.sz, z_ini)
@@ -219,19 +212,19 @@ def z_scan(
         yield from mv(zps.sx, x_out, zps.sy, y_out)
         yield from bps.sleep(0.5)
         yield from trigger_and_read(list(detectors) + [motor])
-        yield from _close_shutter(simu=simu)
-        yield from bps.sleep(0.5)
-        yield from trigger_and_read(list(detectors) + [motor])
         # dark images
         #        yield from abs_set(shutter_close, 1, wait=True)
         #        yield from bps.sleep(1)
         #        yield from abs_set(shutter_close, 1)
         #        yield from bps.sleep(1)
+        yield from _close_shutter(simu=simu)
+        yield from trigger_and_read(list(detectors) + [motor])
         # move back zone_plate and sample y
         yield from mv(zps.sx, x_ini)
         yield from mv(zps.sy, y_ini)
         yield from mv(zp.z, z_ini)
-        # yield from abs_set(shutter_open, 1, wait=True)
+
+        yield from abs_set(shutter_open, 1, wait=True)
         yield from mv(Andor.cam.image_mode, 1)
 
     uid = yield from inner_scan()
@@ -295,7 +288,6 @@ def z_scan2(
     x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
     z_out = z_ini if not (out_z is None) else z_ini
-    period = max(exposure_time + 0.01, 0.05)
 
     yield from _set_andor_param(
         exposure_time=exposure_time, period=period, chunk_size=20
@@ -488,17 +480,6 @@ def z_scan3(
 #####################
 
 
-@parameter_annotation_decorator(
-    {
-        "parameters": {
-            "detectors": {
-                "annotation": "typing.List[DetectorType1]",
-                "devices": {"DetectorType1": ["detA1"]},
-                "default": ["detA1"],
-            }
-        }
-    }
-)
 def cond_scan(detectors=[detA1], *, md=None):
     motor = clens.x
 
@@ -549,113 +530,6 @@ def cond_scan(detectors=[detA1], *, md=None):
     return (yield from cond_inner_scan())
 
 
-from bluesky.callbacks.mpl_plotting import QtAwareCallback
-from bluesky.preprocessors import subs_wrapper
-
-
-class LoadCellScanPlot(QtAwareCallback):
-    """
-    Class for plotting data from 'load_cell_scan' plan.
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(use_teleporter=kwargs.pop("use_teleporter", None))
-
-        self._start_new_figure = False
-        self._show_axes_titles = False
-
-        self._scan_id_start = 0
-        self._scan_id_end = 0
-
-        self._fig = None
-        self._ax1 = None
-        self._ax2 = None
-
-        # Parameters used in 'ax2' title
-        self._load_cell_force = None
-        self._bender_pos = None
-
-    def start_new_figure(self):
-        """
-        Create new figure when the next 'stop' document is received. The next plot
-        will be placed in the new figure. Call before the first scan in the series.
-        """
-        self._start_new_figure = True
-
-    def show_axes_titles(self, *, load_cell_force, bender_pos):
-        """
-        Add subtitles to the current plot once the next stop document is received.
-        Call before the last scan in the series.
-        """
-        self._show_axes_titles = True
-        self._load_cell_force = load_cell_force
-        self._bender_pos = bender_pos
-
-    def stop(self, doc):
-        # Scan UID
-        uid = doc["run_start"]
-
-        h = db[uid]
-        # Scan ID
-        scan_id = h.start["scan_id"]
-
-        plan_args = h.start["plan_args"]
-        # Get values for some parameters used for plotting
-        eng_start = plan_args["start"]
-        eng_end = plan_args["stop"]
-        steps = plan_args["num"]
-
-        if self._start_new_figure:
-            self._fig = plt.figure()
-            self._ax1 = self._fig.add_subplot(211)
-            self._ax2 = self._fig.add_subplot(212)
-
-            # Save ID of the first scan
-            self._scan_id_start = scan_id
-            self._scan_id_end = scan_id
-
-            self._start_new_figure = False
-
-        y0 = np.array(list(h.data(ic3.name)))
-        y1 = np.array(list(h.data(ic4.name)))
-        r = np.log(y0 / y1)
-        x = np.linspace(eng_start, eng_end, steps)
-        self._ax1.plot(x, r, ".-")
-        r_dif = np.array([0] + list(np.diff(r)))
-        self._ax2.plot(x, r_dif, ".-")
-
-        if self._show_axes_titles:
-            self._scan_id_end = scan_id
-
-            self._ax1.title.set_text(
-                "scan_id: {}-{}, ratio of: {}/{}".format(
-                    self._scan_id_start,
-                    self._scan_id_end,
-                    ic3.name,
-                    ic4.name,
-                )
-            )
-            self._ax2.title.set_text(
-                "load_cell: {}, bender_pos: {}".format(
-                    self._load_cell_force
-                    if self._load_cell_force is not None
-                    else "NOT SET",
-                    self._bender_pos if self._bender_pos is not None else "NOT SET",
-                )
-            )
-            self._fig.subplots_adjust(hspace=0.5)
-
-            self._load_cell_force = None
-            self._bender_pos = None
-
-            self._show_axes_titles = False
-
-        super().stop(doc)
-
-
-lcs_plot = LoadCellScanPlot()
-
-
 def load_cell_scan(
     pzt_cm_bender_pos_list,
     pbsl_y_pos_list,
@@ -700,95 +574,6 @@ def load_cell_scan(
 
     check_eng_range([eng_start, eng_end])
     num_pbsl_pos = len(pbsl_y_pos_list)
-    yield from _open_shutter(simu=False)
-
-    for bender_pos in pzt_cm_bender_pos_list:
-        yield from mv(pzt_cm.setpos, bender_pos)
-        yield from bps.sleep(5)
-        load_cell_force = yield from bps.rd(pzt_cm_loadcell)
-
-        # Initiate creating of a new figure
-        lcs_plot.start_new_figure()
-
-        for pbsl_pos in pbsl_y_pos_list:
-            yield from mv(pbsl.y_ctr, pbsl_pos)
-            for i in range(num):
-
-                # If the scan is the last in the series, display axes titles and align the plot
-                if (pbsl_pos == pbsl_y_pos_list[-1]) and (i == num - 1):
-                    lcs_plot.show_axes_titles(
-                        load_cell_force=load_cell_force, bender_pos=bender_pos
-                    )
-
-                eng_scan_with_plot = subs_wrapper(
-                    eng_scan(
-                        eng_start,
-                        stop=eng_end,
-                        num=steps,
-                        detectors=[ic3, ic4],
-                        delay_time=delay_time,
-                    ),
-                    [lcs_plot],
-                )
-
-                yield from eng_scan_with_plot
-
-    yield from _close_shutter(simu=False)
-    yield from mv(pbsl.y_ctr, pbsl_y_ctr_ini)
-    print(f"moving pbsl.y_ctr back to initial position: {pbsl.y_ctr.position} mm")
-    txt_finish = '## "load_cell_scan()" finished'
-    insert_text(txt_finish)
-
-
-# ===============================================================================================
-# The following is the original version of the plan code before the update.
-# DELETE THIS CODE AFTER IT IS VERIFIED THAT THE NEW VERSION OF 'load_cell_scan' works properly
-# ===============================================================================================
-def load_cell_scan_original(
-    pzt_cm_bender_pos_list,
-    pbsl_y_pos_list,
-    num,
-    eng_start,
-    eng_end,
-    steps,
-    delay_time=0.5,
-):
-    """
-    At every position in the pzt_cm_bender_pos_list, scan the pbsl.y_ctr under diffenent energies
-    Use as:
-    load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_end, steps, delay_time=0.5)
-    note: energies are in unit if keV
-
-    Inputs:
-    --------
-    pzt_cm_bender_pos_list: list of "CM_Bender Set Position"
-        PV:    XF:18IDA-OP{Mir:CM-Ax:Bender}SET_POSITION
-
-    pbsl_y_pos_list: list of PBSL_y Center Position
-        PV:    XF:18IDA-OP{PBSL:1-Ax:YCtr}Mtr
-
-    num: number of repeating scans (engergy scan) at each pzt_cm_bender position and each pbsl_y center position
-
-    eng_start: float, start energy in unit of keV
-
-    eng_end: float, end of energy in unit of keV
-
-    steps:  num of steps from eng_start to eng_end
-
-    delay_time: delay_time between each energy step, in unit of sec
-    """
-
-    txt1 = f"load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num={num}, eng_start={eng_start}, eng_end={eng_end}, steps={steps}, delay_time={delay_time})"
-    txt2 = f"pzt_cm_bender_pos_list = {pzt_cm_bender_pos_list}"
-    txt3 = f"pbsl_y_pos_list = {pbsl_y_pos_list}"
-    txt = "##" + txt1 + "\n" + txt2 + "\n" + txt3 + "\n  Consisting of:\n"
-    insert_text(txt)
-
-    pbsl_y_ctr_ini = pbsl.y_ctr.position
-
-    check_eng_range([eng_start, eng_end])
-    num_pbsl_pos = len(pbsl_y_pos_list)
-    yield from _open_shutter(simu=False)
 
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
@@ -829,7 +614,6 @@ def load_cell_scan_original(
         )
         fig.subplots_adjust(hspace=0.5)
         plt.show()
-    yield from _close_shutter(simu=False)
     yield from mv(pbsl.y_ctr, pbsl_y_ctr_ini)
     print(f"moving pbsl.y_ctr back to initial position: {pbsl.y_ctr.position} mm")
     txt_finish = '## "load_cell_scan()" finished'
@@ -1215,27 +999,6 @@ def overnight_count(detectors, num=1, delay=None, *, md=None):
     return uid
 
 
-@parameter_annotation_decorator(
-    {
-        "parameters": {
-            "det": {
-                "annotation": "typing.List[DetectorType1]",
-                "devices": {"DetectorType1": ["detA1"]},
-                "default": ["detA1"],
-            },
-            "mot1": {
-                "annotation": "MotorType1",
-                "devices": {"MotorType1": ["zps_sz"]},
-                "default": "zps_sz",
-            },
-            "mot2": {
-                "annotation": "MotorType2",
-                "devices": {"MotorType2": ["zps_sz"]},
-                "default": "zps_sy",
-            },
-        }
-    }
-)
 def knife_edge_scan_for_condensor(
     det=[detA1],
     mot1=zps.sz,

@@ -4,35 +4,6 @@
 from datetime import datetime
 from ophyd.signal import EpicsSignalBase, EpicsSignal, DEFAULT_CONNECTION_TIMEOUT
 
-try:
-    from bluesky_queueserver import is_re_worker_active, parameter_annotation_decorator
-
-except ImportError:
-    # Remove the try..except once 'bluesky_queueserver' is included in the collection environment
-
-    def is_re_worker_active():
-        return False
-
-    import functools
-
-    def parameter_annotation_decorator(annotation):
-        def function_wrap(func):
-            if inspect.isgeneratorfunction(func):
-
-                @functools.wraps(func)
-                def wrapper(*args, **kwargs):
-                    return (yield from func(*args, **kwargs))
-
-            else:
-
-                @functools.wraps(func)
-                def wrapper(*args, **kwargs):
-                    return func(*args, **kwargs)
-
-            return wrapper
-
-        return function_wrap
-
 
 def print_now():
     return datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S.%f")
@@ -76,10 +47,9 @@ import nslsii
 from datetime import datetime
 
 # Register bluesky IPython magics.
-if not is_re_worker_active():
-    from bluesky.magics import BlueskyMagics
+from bluesky.magics import BlueskyMagics
 
-    get_ipython().register_magics(BlueskyMagics)
+get_ipython().register_magics(BlueskyMagics)
 
 from bluesky.preprocessors import stage_decorator, run_decorator
 from databroker.v0 import Broker
@@ -89,11 +59,6 @@ del Broker
 
 nslsii.configure_base(get_ipython().user_ns, db, bec=True)
 
-# The following plan stubs should not be imported directly in the global namespace.
-#   Otherwise Queue Server will not be able to load the startup files.
-del one_1d_step
-del one_nd_step
-del one_shot
 
 # Make new RE.md storage available in old environments.
 from pathlib import Path
