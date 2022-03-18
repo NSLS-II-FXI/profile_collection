@@ -6,6 +6,7 @@ import time
 import subprocess
 import threading
 from datetime import datetime
+from pathlib import Path
 
 if not is_re_worker_active():
     BlueskyMagics.positioners = motor_txm + motor_optics + motor_pzt + motor_lakeshore
@@ -57,16 +58,10 @@ def save_pos(print_flag=0, comment=""):
     minu = "{:02d}".format(now.minute)
     current_date = year + "-" + mon + "-" + day
 
-    fn = (
-        "/NSLS2/xf18id1/DATA/Motor_position_log/log-"
-        + current_date
-        + "_"
-        + hour
-        + "-"
-        + minu
-        + ".log"
-    )
-    f = open(fn, "w")
+    base_dir = Path("/NSLS2/xf18id1/DATA/Motor_position_log/")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    fn = f"log-{current_date}_{hour}-{minu}.log"
+    f = open(base_dir / fn, "w")
     """
     original = sys.stdout
     sys.stdout = Tee(sys.stdout, f)
