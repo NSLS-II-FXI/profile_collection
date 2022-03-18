@@ -1,4 +1,4 @@
-# from ophyd import (EpicsMotor, Device, Component as Cpt)
+from ophyd import (Device, Component as Cpt)
 
 
 class mirror(Device):

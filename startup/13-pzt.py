@@ -1,3 +1,6 @@
+from ophyd import Device, Component as Cpt, EpicsSignal, EpicsSignalRO
+
+
 class PZT(Device):
     pos = Cpt(EpicsSignalRO, "GET_POSITION", kind="hinted")
     p_gain = Cpt(EpicsSignal, "GET_SERVO_PGAIN", kind="config")

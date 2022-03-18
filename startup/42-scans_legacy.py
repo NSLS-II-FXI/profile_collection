@@ -1,3 +1,8 @@
+from bluesky.plan_stubs import mv, trigger_and_read, unstage, stage, rd, abs_set
+from bluesky.preprocessors import stage_decorator, run_decorator
+import bluesky.plan_stubs as bps
+
+
 def _close_shutter_legacy(simu=False):
     if simu:
         print("testing: close shutter")

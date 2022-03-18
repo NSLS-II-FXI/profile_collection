@@ -2,11 +2,21 @@
 # TODO: remove this block once https://github.com/bluesky/ophyd/pull/959 is
 # merged/released.
 from datetime import datetime
+from pathlib import Path
+
+import appdirs
+import pandas as pd
+
+from bluesky.callbacks.zmq import Publisher
+from databroker.assets.handlers import AreaDetectorHDF5TimestampHandler
+import nslsii
 from ophyd.signal import EpicsSignalBase, EpicsSignal, DEFAULT_CONNECTION_TIMEOUT
+
+import bluesky.plan_stubs as bps
+
 
 try:
     from bluesky_queueserver import is_re_worker_active, parameter_annotation_decorator
-
 except ImportError:
     # Remove the try..except once 'bluesky_queueserver' is included in the collection environment
 
@@ -16,6 +26,8 @@ except ImportError:
     import functools
 
     def parameter_annotation_decorator(annotation):
+        import inspect
+
         def function_wrap(func):
             if inspect.isgeneratorfunction(func):
 
@@ -39,15 +51,17 @@ def print_now():
 
 
 def wait_for_connection_base(self, timeout=DEFAULT_CONNECTION_TIMEOUT):
-    """Wait for the underlying signals to initialize or connect"""
+    """Wait for the underlying signals to initialize or connect."""
     if timeout is DEFAULT_CONNECTION_TIMEOUT:
         timeout = self.connection_timeout
     # print(f'{print_now()}: waiting for {self.name} to connect within {timeout:.4f} s...')
-    start = time.time()
+    # start = time.time()
     try:
         self._ensure_connected(self._read_pv, timeout=timeout)
         # print(f'{print_now()}: waited for {self.name} to connect for {time.time() - start:.4f} s.')
     except TimeoutError:
+        from ophyd.utils.errors import DestroyedError
+
         if self._destroyed:
             raise DestroyedError("Signal has been destroyed")
         raise
@@ -58,22 +72,17 @@ def wait_for_connection(self, timeout=DEFAULT_CONNECTION_TIMEOUT):
     if timeout is DEFAULT_CONNECTION_TIMEOUT:
         timeout = self.connection_timeout
     # print(f'{print_now()}: waiting for {self.name} to connect within {timeout:.4f} s...')
-    start = time.time()
+    # start = time.time()
     self._ensure_connected(self._read_pv, self._write_pv, timeout=timeout)
     # print(f'{print_now()}: waited for {self.name} to connect for {time.time() - start:.4f} s.')
 
 
 EpicsSignalBase.wait_for_connection = wait_for_connection_base
 EpicsSignal.wait_for_connection = wait_for_connection
-###############################################################################
-
-from ophyd.signal import EpicsSignalBase
+# ##############################################################################
 
 # EpicsSignalBase.set_default_timeout(timeout=10, connection_timeout=10)  # old style
 EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)  # new style
-
-import nslsii
-from datetime import datetime
 
 # Register bluesky IPython magics.
 if not is_re_worker_active():
@@ -91,15 +100,12 @@ nslsii.configure_base(get_ipython().user_ns, db, bec=True)
 
 # The following plan stubs should not be imported directly in the global namespace.
 #   Otherwise Queue Server will not be able to load the startup files.
-del one_1d_step
-del one_nd_step
-del one_shot
+del one_1d_step  # noqa
+del one_nd_step  # noqa
+del one_shot  # noqa
+
 
 # Make new RE.md storage available in old environments.
-from pathlib import Path
-
-import appdirs
-
 
 try:
     from bluesky.utils import PersistentDict
@@ -189,9 +195,6 @@ RE.md = PersistentDict(runengine_metadata_dir)
 # disable plotting from best effort callback
 bec.disable_plots()
 
-from databroker.assets.handlers import AreaDetectorHDF5TimestampHandler
-import pandas as pd
-
 
 EPICS_EPOCH = datetime(1990, 1, 1, 0, 0)
 
@@ -203,8 +206,6 @@ def convert_AD_timestamps(ts):
 
 
 # subscribe the zmq plotter
-
-from bluesky.callbacks.zmq import Publisher
 
 publisher = Publisher("xf18id-srv1:5577")
 RE.subscribe(publisher)

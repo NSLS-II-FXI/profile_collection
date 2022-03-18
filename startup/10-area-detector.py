@@ -23,9 +23,7 @@ from nslsii.ad33 import SingleTriggerV33, StatsPluginV33, CamV33Mixin
 
 
 class ExternalFileReference(Signal):
-    """
-    A pure software signal where a Device can stash a datum_id
-    """
+    """A pure software signal where a Device can stash a datum_id."""
 
     def __init__(self, *args, shape, **kwargs):
         super().__init__(*args, **kwargs)

@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Mar 30 16:26:18 2018
 
 Accelerator BPM
 @author: xf18id
 """
+from ophyd import EpicsSignalRO
+
 
 bpm17_1x = EpicsSignalRO("SR:C17-BI{BPM:1}Pos:X-I", name="bpm17_1x")
 bpm17_1y = EpicsSignalRO("SR:C17-BI{BPM:1}Pos:Y-I", name="bpm17_1y")

@@ -1,3 +1,7 @@
+from bluesky.plan_stubs import mv, trigger_and_read, unstage, stage, rd, abs_set
+import bluesky.plan_stubs as bps
+
+
 def _move_sample_out(out_x, out_y, out_z, out_r, repeat=1, rot_first_flag=1):
     """
     move out by relative distance
@@ -116,7 +120,7 @@ def _xanes_per_step(
     yield from trigger_and_read(detectors + motor, name=stream_name)
 
 
-"""        
+"""
 def _close_shutter(simu=False):
     if simu:
         print("testing: close shutter")
@@ -128,7 +132,7 @@ def _open_shutter(simu=False):
     if simu:
         print("testing: open shutter")
     else:
-        yield from mv(shutter, 'Open')      
+        yield from mv(shutter, 'Open')
 """
 
 

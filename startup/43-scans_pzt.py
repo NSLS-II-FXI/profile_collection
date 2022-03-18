@@ -1,3 +1,8 @@
+import matplotlib.pyplot as plt
+
+from bluesky.plan_stubs import mv, trigger_and_read, abs_set
+
+
 @parameter_annotation_decorator(
     {
         "parameters": {

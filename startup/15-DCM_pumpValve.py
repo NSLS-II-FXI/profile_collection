@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+from ophyd import EpicsSignalRO
+
 """
 DCM pump Valve
 """

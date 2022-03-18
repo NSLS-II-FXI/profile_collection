@@ -1,17 +1,12 @@
-from collections import deque
-
 from ophyd import (
-    EpicsMotor,
     PVPositioner,
-    PVPositionerPC,
     EpicsSignal,
     EpicsSignalRO,
     Device,
 )
 from ophyd import Component as Cpt
-from ophyd import FormattedComponent as FmtCpt
 from ophyd import DynamicDeviceComponent as DDC
-from ophyd import DeviceStatus, OrderedDict
+from collections import OrderedDict
 
 
 class Lakeshore336Setpoint(PVPositioner):
