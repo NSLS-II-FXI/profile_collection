@@ -107,7 +107,7 @@ def record_calib_pos_new(n):
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(tmp)
     df = pd.DataFrame.from_dict(CALIBER, orient="index")
-    df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv")
+    df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_new.csv")
     # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
     print(
         f'calib_pos{n} recored: current Magnification = GLOBAL_MAG = {CALIBER[f"mag{n}"]}'
@@ -117,7 +117,7 @@ def record_calib_pos_new(n):
 def remove_caliber_pos(n):
     global CALIBER_FLAG, CURRENT_MAG, CALIBER
     df = pd.DataFrame.from_dict(CALIBER, orient="index")
-    df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_backup.csv")
+    df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_backup.csv")
     CALIBER_backup = CALIBER.copy()
     try:
         for k in CALIBER_backup.keys():
@@ -125,7 +125,7 @@ def remove_caliber_pos(n):
                 del CALIBER[k]
         df = pd.DataFrame.from_dict(CALIBER, orient="index")
         # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
-        df.to_csv("/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv")
+        df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_new.csv")
     except:
         CALIBER = CALIBER.copy()
         print(f"fails to remove CALIBER postion {n}, or it does not exist")
@@ -163,7 +163,7 @@ def print_caliber(print_eng_only=1, pos=-1):
 
 def read_calib_file_new(return_flag=0):
     # fn = "/home/xf18id/.ipython/profile_collection/startup/calib_new.csv"
-    fn = "/NSLS2/xf18id1/DATA/FXI_log/calib_new.csv"
+    fn = "/nsls2/data/fxi-new/legacy/log/calib_new.csv"
     df = pd.read_csv(fn, index_col=0)
     d = df.to_dict("split")
     d = dict(zip(d["index"], d["data"]))

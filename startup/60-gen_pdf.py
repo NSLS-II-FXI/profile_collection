@@ -23,9 +23,9 @@ def reset_pdf():
     _, _, PDF_ARGS["year"], PDF_ARGS["month"], PDF_ARGS["day"] = get_current_date()
     PDF_ARGS[
         "fn_log"
-    ] = f'/NSLS2/xf18id1/DATA/FXI_log/TXM_log_test_{PDF_ARGS["year"]}{PDF_ARGS["month"]}{PDF_ARGS["day"]}.pdf'
+    ] = f'/nsls2/data/fxi-new/legacy/log/TXM_log_test_{PDF_ARGS["year"]}{PDF_ARGS["month"]}{PDF_ARGS["day"]}.pdf'
     # PDF_ARGS["temp_folder"] = "/home/xf18id/.ipython/profile_collection/startup/temp"
-    PDF_ARGS["temp_folder"] = "/NSLS2/xf18id1/DATA/FXI_log/temp"
+    PDF_ARGS["temp_folder"] = "/nsls2/data/fxi-new/legacy/log/temp"
     PDF_ARGS["temp_img_folder"] = PDF_ARGS["temp_folder"] + "/img"
     PDF_ARGS["fn_tmp"] = PDF_ARGS["temp_folder"] + "/tmp.pdf"
     PDF_ARGS["fn_tmp_txt"] = PDF_ARGS["temp_folder"] + "/current_log.txt"
@@ -221,7 +221,7 @@ def export_pdf(merge_flag=0):
 
 def merge_log():
     """
-    merge "current_log.txt" to "/NSLS2/xf18id1/DATA/FXI_log/TXM_log_{year}{month}{day}.pdf"
+    merge "current_log.txt" to "/nsls2/data/fxi-new/legacy/log/TXM_log_{year}{month}{day}.pdf"
     """
     export_pdf()
     reset_pdf()
