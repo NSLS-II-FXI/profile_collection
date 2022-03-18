@@ -569,7 +569,7 @@ def new_user(*, new_pi_name=None, new_proposal_id=None):
     else:
         qut = "Q3"
 
-    pre = f"/NSLS2/xf18id1/users/{year}{qut}/"
+    pre = f"/nsls2/data/fxi-new/legacy/users/{year}{qut}/"
     try:
         os.mkdir(pre)
     except Exception:

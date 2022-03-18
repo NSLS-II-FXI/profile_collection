@@ -189,13 +189,13 @@ def xanes_fit_demo():
     )
 
     Ni = np.loadtxt(
-        "/NSLS2/xf18id1/users/2018Q1/MING_Proposal_000/xanes_ref/Ni_xanes_norm.txt"
+        "/nsls2/data/fxi-new/legacy/users/2018Q1/MING_Proposal_000/xanes_ref/Ni_xanes_norm.txt"
     )
     Ni2 = np.loadtxt(
-        "/NSLS2/xf18id1/users/2018Q1/MING_Proposal_000/xanes_ref/NiO_xanes_norm.txt"
+        "/nsls2/data/fxi-new/legacy/users/2018Q1/MING_Proposal_000/xanes_ref/NiO_xanes_norm.txt"
     )
     Ni3 = np.loadtxt(
-        "/NSLS2/xf18id1/users/2018Q1/MING_Proposal_000/xanes_ref/LiNiO2_xanes_norm.txt"
+        "/nsls2/data/fxi-new/legacy/users/2018Q1/MING_Proposal_000/xanes_ref/LiNiO2_xanes_norm.txt"
     )
 
     spectrum_ref = load_xanes_ref(Ni2, Ni3)
