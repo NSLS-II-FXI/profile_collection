@@ -520,7 +520,7 @@ def multi_pos_3D_xanes(
 def mk_eng_list(elem, bulk=False):
     if bulk:
         eng_list = np.genfromtxt(
-            "/NSLS2/xf18id1/SW/xanes_ref/"
+            "/nsls2/data/fxi-new/shared/config/xanes_ref/"
             + elem.split("_")[0]
             + "/eng_list_"
             + elem.split("_")[0]
@@ -529,7 +529,7 @@ def mk_eng_list(elem, bulk=False):
     else:
         if elem.split("_")[-1] == "wl":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem.split("_")[0]
                 + "/eng_list_"
                 + elem.split("_")[0]
@@ -537,7 +537,7 @@ def mk_eng_list(elem, bulk=False):
             )
         elif elem.split("_")[-1] == "101":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem.split("_")[0]
                 + "/eng_list_"
                 + elem.split("_")[0]
@@ -545,7 +545,7 @@ def mk_eng_list(elem, bulk=False):
             )
         elif elem.split("_")[-1] == "63":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem.split("_")[0]
                 + "/eng_list_"
                 + elem.split("_")[0]
@@ -2100,7 +2100,7 @@ def radiographic_record(
 #
 #    eng_list = []
 #    for ii in elements:
-#        eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
+#        eng_list.append(list(np.genfromtxt('/nsls2/data/fxi-new/shared/config/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
 #
 #    for ii in range(sam_in_pos_list_2D.shape[0]):
 #        for jj in range(len(elements)):
@@ -2155,7 +2155,7 @@ def radiographic_record(
 #
 #    eng_list = []
 #    for ii in elements:
-#        eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
+#        eng_list.append(list(np.genfromtxt('/nsls2/data/fxi-new/shared/config/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard.txt')))
 #
 #    for ii in range(sam_in_pos_list_2D.shape[0]):
 #        for jj in range(len(elements)):
@@ -2226,11 +2226,11 @@ def radiographic_record(
 #        eng_list = []
 #        for ii in elements:
 #            if ii.split('_')[1] == 'wl':
-#                eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii.split('_')[0]+'/eng_list_'+ii.split('_')[0]+'_s_xanes_standard_21pnt.txt')))
+#                eng_list.append(list(np.genfromtxt('/nsls2/data/fxi-new/shared/config/xanes_ref/'+ii.split('_')[0]+'/eng_list_'+ii.split('_')[0]+'_s_xanes_standard_21pnt.txt')))
 #            elif ii.split('_')[1] == '101':
-#                eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard_101pnt.txt')))
+#                eng_list.append(list(np.genfromtxt('/nsls2/data/fxi-new/shared/config/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard_101pnt.txt')))
 #            elif ii.split('_')[1] == '63':
-#                eng_list.append(list(np.genfromtxt('/NSLS2/xf18id1/SW/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard_63pnt.txt')))
+#                eng_list.append(list(np.genfromtxt('/nsls2/data/fxi-new/shared/config/xanes_ref/'+ii+'/eng_list_'+ii+'_xanes_standard_63pnt.txt')))
 #
 #        eng_list = np.array(eng_list)
 #
@@ -2417,7 +2417,7 @@ def multi_pos_2D_and_3D_xanes(
 
         if elem2D["eng"].split("_")[-1] == "wl":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem2D["eng"].split("_")[0]
                 + "/eng_list_"
                 + elem2D["eng"].split("_")[0]
@@ -2425,7 +2425,7 @@ def multi_pos_2D_and_3D_xanes(
             )
         elif elem2D["eng"].split("_")[-1] == "101":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem2D["eng"].split("_")
                 + "/eng_list_"
                 + elem2D["eng"].split("_")
@@ -2433,7 +2433,7 @@ def multi_pos_2D_and_3D_xanes(
             )
         elif elem2D["eng"].split("_")[-1] == "63":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem2D["eng"].split("_")
                 + "/eng_list_"
                 + elem2D["eng"].split("_")
@@ -2487,7 +2487,7 @@ def multi_pos_2D_and_3D_xanes(
 
         if elem3D["eng"].split("_")[-1] == "wl":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem3D["eng"].split("_")[0]
                 + "/eng_list_"
                 + elem3D["eng"].split("_")[0]
@@ -2495,7 +2495,7 @@ def multi_pos_2D_and_3D_xanes(
             )
         elif elem3D["eng"].split("_")[-1] == "101":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem3D["eng"].split("_")
                 + "/eng_list_"
                 + elem3D["eng"].split("_")
@@ -2503,7 +2503,7 @@ def multi_pos_2D_and_3D_xanes(
             )
         elif elem3D["eng"].split("_")[-1] == "63":
             eng_list = np.genfromtxt(
-                "/NSLS2/xf18id1/SW/xanes_ref/"
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                 + elem3D["eng"].split("_")
                 + "/eng_list_"
                 + elem3D["eng"].split("_")
@@ -2604,7 +2604,7 @@ def multi_pos_2D_and_3D_xanes(
 #
 #            if ii.split("_")[1] == "wl":
 #                eng_list = np.genfromtxt(
-#                    "/NSLS2/xf18id1/SW/xanes_ref/"
+#                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
 #                    + ii.split("_")[0]
 #                    + "/eng_list_"
 #                    + ii.split("_")[0]
@@ -2612,7 +2612,7 @@ def multi_pos_2D_and_3D_xanes(
 #                )
 #            elif ii.split("_")[1] == "101":
 #                eng_list = np.genfromtxt(
-#                    "/NSLS2/xf18id1/SW/xanes_ref/"
+#                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
 #                    + ii
 #                    + "/eng_list_"
 #                    + ii
@@ -2620,7 +2620,7 @@ def multi_pos_2D_and_3D_xanes(
 #                )
 #            elif ii.split("_")[1] == "63":
 #                eng_list = np.genfromtxt(
-#                    "/NSLS2/xf18id1/SW/xanes_ref/"
+#                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
 #                    + ii
 #                    + "/eng_list_"
 #                    + ii
@@ -2821,7 +2821,7 @@ def multi_pos_2D_and_3D_xanes(
 #
 #            if ii.split("_")[1] == "wl":
 #                eng_list = np.genfromtxt(
-#                    "/NSLS2/xf18id1/SW/xanes_ref/"
+#                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
 #                    + ii.split("_")[0]
 #                    + "/eng_list_"
 #                    + ii.split("_")[0]
@@ -2829,7 +2829,7 @@ def multi_pos_2D_and_3D_xanes(
 #                )
 #            elif ii.split("_")[1] == "101":
 #                eng_list = np.genfromtxt(
-#                    "/NSLS2/xf18id1/SW/xanes_ref/"
+#                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
 #                    + ii
 #                    + "/eng_list_"
 #                    + ii
@@ -2837,7 +2837,7 @@ def multi_pos_2D_and_3D_xanes(
 #                )
 #            elif ii.split("_")[1] == "63":
 #                eng_list = np.genfromtxt(
-#                    "/NSLS2/xf18id1/SW/xanes_ref/"
+#                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
 #                    + ii
 #                    + "/eng_list_"
 #                    + ii
@@ -3002,7 +3002,7 @@ def multi_pos_2D_xanes_and_3D_tomo(
         eng_list.append(
             list(
                 np.genfromtxt(
-                    "/NSLS2/xf18id1/SW/xanes_ref/"
+                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
                     + ii
                     + "/eng_list_"
                     + ii

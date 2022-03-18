@@ -362,83 +362,83 @@ def fan_scan(
 
 
 Ni_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Ni/eng_list_Ni_xanes_standard_101pnt.txt"
 )
 Ni_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Ni/eng_list_Ni_xanes_standard_63pnt.txt"
 )
 Ni_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Ni/eng_list_Ni_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Ni/eng_list_Ni_s_xanes_standard_21pnt.txt"
 )
 
 Mn_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Mn/eng_list_Mn_xanes_standard_101pnt.txt"
 )
 Mn_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Mn/eng_list_Mn_xanes_standard_63pnt.txt"
 )
 Mn_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Mn/eng_list_Mn_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Mn/eng_list_Mn_s_xanes_standard_21pnt.txt"
 )
 
 Co_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Co/eng_list_Co_xanes_standard_101pnt.txt"
 )
 Co_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Co/eng_list_Co_xanes_standard_63pnt.txt"
 )
 Co_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Co/eng_list_Co_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Co/eng_list_Co_s_xanes_standard_21pnt.txt"
 )
 
 Fe_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Fe/eng_list_Fe_xanes_standard_101pnt.txt"
 )
 Fe_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Fe/eng_list_Fe_xanes_standard_63pnt.txt"
 )
 Fe_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Fe/eng_list_Fe_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Fe/eng_list_Fe_s_xanes_standard_21pnt.txt"
 )
 
 V_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/V/eng_list_V_xanes_standard_101pnt.txt"
 )
 V_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/V/eng_list_V_xanes_standard_63pnt.txt"
 )
 V_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/V/eng_list_V_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/V/eng_list_V_s_xanes_standard_21pnt.txt"
 )
 
 Cr_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Cr/eng_list_Cr_xanes_standard_101pnt.txt"
 )
 Cr_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Cr/eng_list_Cr_xanes_standard_63pnt.txt"
 )
 Cr_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Cr/eng_list_Cr_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Cr/eng_list_Cr_s_xanes_standard_21pnt.txt"
 )
 
 Cu_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Cu/eng_list_Cu_xanes_standard_101pnt.txt"
 )
 Cu_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Cu/eng_list_Cu_xanes_standard_63pnt.txt"
 )
 Cu_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Cu/eng_list_Cu_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Cu/eng_list_Cu_s_xanes_standard_21pnt.txt"
 )
 
 Zn_eng_list_101pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Zn/eng_list_Zn_xanes_standard_101pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Zn/eng_list_Zn_xanes_standard_101pnt.txt"
 )
 Zn_eng_list_63pnt = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Zn/eng_list_Zn_xanes_standard_63pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Zn/eng_list_Zn_xanes_standard_63pnt.txt"
 )
 Zn_eng_list_wl = np.genfromtxt(
-    "/NSLS2/xf18id1/SW/xanes_ref/Zn/eng_list_Zn_s_xanes_standard_21pnt.txt"
+    "/nsls2/data/fxi-new/shared/config/xanes_ref/Zn/eng_list_Zn_s_xanes_standard_21pnt.txt"
 )
 
 
