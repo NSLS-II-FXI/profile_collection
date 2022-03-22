@@ -72,6 +72,7 @@ def check_page_is_full():
 
 
 def get_current_date():
+    from datetime import datetime
     now = datetime.now()
     year = np.str(now.year)
     mon = "{:02d}".format(now.month)
