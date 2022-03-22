@@ -181,7 +181,7 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
                 return super().stage()
             except TimeoutError:
                 N_try = 20
-                if j < 20:
+                if j < N_try:
                     print(f"failed to stage on try{j}/{N_try}, may try again")
                     continue
                 else:
