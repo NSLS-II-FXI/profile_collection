@@ -563,7 +563,7 @@ def new_user(*, new_pi_name=None, new_proposal_id=None):
     ``new_proposal_id`` are ``None``, the function asks the user to type PI name and/or
     Proposal ID.
     """
-    now = datetime.now()
+    now = datetime.datetime.now()
     year = np.str(now.year)
 
     # this is really cycle not quarter
@@ -1320,7 +1320,7 @@ def get_scan_parameter(scan_id=-1, print_flag=0):
     except:
         X_eng = "n/a"
     scan_type = h.start["plan_name"]
-    scan_time = datetime.fromtimestamp(h.start["time"]).strftime("%D %H:%M")
+    scan_time = datetime.datetime.fromtimestamp(h.start["time"]).strftime("%D %H:%M")
 
     txt = ""
     for key, val in h.start["plan_args"].items():
