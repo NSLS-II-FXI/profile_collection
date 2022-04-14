@@ -533,7 +533,7 @@ def mk_eng_list(elem, bulk=False):
                 + elem.split("_")[0]
                 + "/eng_list_"
                 + elem.split("_")[0]
-                + "_s_xanes_standard_21pnt.txt"
+                + "_xanes_standard_21pnt.txt"
             )
         elif elem.split("_")[-1] == "101":
             eng_list = np.genfromtxt(
@@ -604,6 +604,7 @@ def multi_edge_xanes(
     rs=1,
     in_pos_list=[[None, None, None, None]],
     out_pos=[None, None, None, None],
+    chunk_size=5,
     note="",
     relative_move_flag=0,
     binning=None,
@@ -631,11 +632,11 @@ def multi_edge_xanes(
         if scan_type == "2D":
             if binning is None:
                 binning = 0
-            ans = input(
-                f"You are going to conduct 2D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
-            )
-            if ans.upper() == "N":
-                return
+            # ans = input(
+            #     f"You are going to conduct 2D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
+            # )
+            # if ans.upper() == "N":
+            #     return
             if int(binning) not in [0, 1, 2, 3, 4]:
                 raise ValueError("binnng must be in [0, 1, 2, 3, 4]")
             yield from mv(Andor.binning, binning)
@@ -651,7 +652,7 @@ def multi_edge_xanes(
                 out_z=out_pos[2],
                 out_r=out_pos[3],
                 exposure_time=exposure,
-                chunk_size=5,
+                chunk_size=chunk_size,
                 simu=simu,
                 relative_move_flag=relative_move_flag,
                 note=note,
@@ -662,11 +663,11 @@ def multi_edge_xanes(
         elif scan_type == "3D":
             if binning is None:
                 binning = 1
-            ans = input(
-                f"You are going to conduct 3D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
-            )
-            if ans.upper() == "N":
-                return
+            # ans = input(
+            #     f"You are going to conduct 3D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
+            # )
+            # if ans.upper() == "N":
+            #     return
             if int(binning) not in [0, 1, 2, 3, 4]:
                 raise ValueError("binnng must be in [0, 1, 2, 3, 4]")
             yield from mv(Andor.binning, binning)
@@ -739,11 +740,11 @@ def multi_edge_xanes2(
             if scan_type == "2D":
                 if binning is None:
                     binning = 0
-                ans = input(
-                    f"You are going to conduct 2D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
-                )
-                if ans.upper() == "N":
-                    return
+                # ans = input(
+                #     f"You are going to conduct 2D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
+                # )
+                # if ans.upper() == "N":
+                #     return
                 if int(binning) not in [0, 1, 2, 3, 4]:
                     raise ValueError("binnng must be in [0, 1, 2, 3, 4]")
                 yield from mv(Andor.binning, binning)
@@ -770,11 +771,11 @@ def multi_edge_xanes2(
             elif scan_type == "3D":
                 if binning is None:
                     binning = 1
-                ans = input(
-                    f"You are going to conduct 3D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
-                )
-                if ans.upper() == "N":
-                    return
+                # ans = input(
+                #     f"You are going to conduct 3D XANES with camera binning of {cam_bin[binning]}. Proceed? (Y/n)"
+                # )
+                # if ans.upper() == "N":
+                #     return
                 if int(binning) not in [0, 1, 2, 3, 4]:
                     raise ValueError("binnng must be in [0, 1, 2, 3, 4]")
                 yield from mv(Andor.binning, binning)

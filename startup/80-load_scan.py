@@ -7,6 +7,9 @@
 #        db.reg.clear_process_cache()
 
 
+from datetime import datetime
+
+
 def timestamp_to_float(t):
     tf = []
     for ts in t:
@@ -58,25 +61,14 @@ def export_scan(scan_id, scan_id_end=None, binning=4, date_end_by=None, fpath=No
         if isinstance(scan_id, int):
             scan_id = [scan_id]
         for item in scan_id:
-            try:
-                # export_single_scan(int(item), binning)
-                custom_export(int(item), binning, date_end_by=date_end_by, fpath=fpath)
-            except Exception as ex:
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print(message)
-                continue
+            
+            # export_single_scan(int(item), binning)
+            custom_export(int(item), binning, date_end_by=date_end_by, fpath=fpath)
             db.reg.clear_process_cache()
     else:
         for i in range(scan_id, scan_id_end + 1):
-            try:
-                # export_single_scan(int(i), binning)
-                custom_export(int(i), binning, date_end_by=date_end_by, fpath=fpath)
-            except Exception as ex:
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print(message)
-                continue
+            # export_single_scan(int(i), binning)
+            custom_export(int(i), binning, date_end_by=date_end_by, fpath=fpath)
             db.reg.clear_process_cache()
 
 
@@ -100,13 +92,14 @@ def custom_export(scan_id, binning=4, date_end_by=None, fpath=None):
 
 
 def export_single_scan(scan_id=-1, binning=4, fpath=None):
+    import datetime
     h = db[scan_id]
     scan_id = h.start["scan_id"]
     scan_type = h.start["plan_name"]
     #    x_eng = h.start['XEng']
-    t_new = datetime(2021, 5, 1)
+    t_new = datetime.datetime(2021, 5, 1)
     t = h.start["time"] - 3600 * 60 * 4  # there are 4hour offset
-    t = datetime.utcfromtimestamp(t)
+    t = datetime.datetime.utcfromtimestamp(t)
     if t < t_new:
         scan = "old"
     else:
