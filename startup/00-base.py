@@ -88,7 +88,12 @@ from databroker.v0 import Broker
 db = Broker.named("fxi")
 del Broker
 
-nslsii.configure_base(get_ipython().user_ns, db, bec=True)
+nslsii.configure_base(get_ipython().user_ns,
+                      db,
+                      bec=True)
+
+nslsii.configure_kafka_publisher(RE, "fxi")
+
 
 # The following plan stubs should not be imported directly in the global namespace.
 #   Otherwise Queue Server will not be able to load the startup files.
