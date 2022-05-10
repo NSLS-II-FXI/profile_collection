@@ -570,6 +570,7 @@ def new_user(*, new_pi_name=None, new_proposal_id=None):
     qut = f"Q{1 + (now.month - 1) // 4}"
 
     pre = Path(f"/nsls2/data/fxi-new/legacy/users/{year}{qut}/")
+    #pre = Path(f"/nsls2/data/fxi-new/shared/config/proposals/{year}{qut}/")
     pre.mkdir(parents=True, exist_ok=True)
 
     print("\n")

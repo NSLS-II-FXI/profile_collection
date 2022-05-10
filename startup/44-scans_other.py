@@ -1,3 +1,9 @@
+try:
+    print(detA1)
+except:
+    detA1 = None
+
+
 def test_test():
     yield from count([Andor], 2)
     h = db[-1]
@@ -549,8 +555,8 @@ def cond_scan(detectors=[detA1], *, md=None):
     return (yield from cond_inner_scan())
 
 
-from bluesky.callbacks.mpl_plotting import QtAwareCallback
-from bluesky.preprocessors import subs_wrapper
+#from bluesky.callbacks.mpl_plotting import QtAwareCallback
+#from bluesky.preprocessors import subs_wrapper
 
 
 class LoadCellScanPlot(QtAwareCallback):
@@ -721,7 +727,7 @@ def load_cell_scan(
                     )
 
                 eng_scan_with_plot = subs_wrapper(
-                    eng_scan(
+                    eng_scan_basic(
                         eng_start,
                         stop=eng_end,
                         num=steps,

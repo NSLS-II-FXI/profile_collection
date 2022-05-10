@@ -39,7 +39,17 @@ dcm = DCM("XF:18IDA-OP{Mono:DCM", name="dcm")
 pbsl = PBSL("XF:18IDA-OP{PBSL:1", name="pbsl")
 
 dcm_th2 = dcm.th2  # Required by the Queue Server
+dcm_chi2 = dcm.chi2
 
+dcm_th2.feedback = EpicsSignal("XF:18IDA-OP{Mono:DCM-Ax:Th2}PID", name="th2_feedback")
+dcm_th2.feedback_enable = EpicsSignal(
+    "XF:18IDA-OP{Mono:DCM-Ax:Th2}PID.FBON", name="th2_feedback_enable"
+)
+
+dcm_chi2.feedback = EpicsSignal("XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID", name="chi2_feedback")
+dcm_chi2.feedback_enable = EpicsSignal(
+    "XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID.FBON", name="chi2_feedback_enable"
+)
 motor_optics = [
     cm.x,
     cm.yaw,

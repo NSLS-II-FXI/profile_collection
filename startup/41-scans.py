@@ -9,6 +9,8 @@ import subprocess
 import pandas as pd
 import numpy as np
 import warnings
+from bluesky.callbacks.mpl_plotting import QtAwareCallback
+from bluesky.preprocessors import subs_wrapper
 
 
 try:
@@ -702,6 +704,10 @@ def xanes_scan(
     @stage_decorator(list(detectors) + motor)
     @run_decorator(md=_md)
     def xanes_inner_scan():
+        if len(filters):
+            for filt in filters:
+                yield from mv(filt, 1)
+                yield from bps.sleep(0.5)
         print("\ntake {} dark images...".format(chunk_size))
         yield from _set_rotation_speed(rs=30)
         yield from _take_dark_image(
@@ -753,6 +759,10 @@ def xanes_scan(
 
         print("closing shutter")
         yield from _close_shutter(simu)
+        if len(filters):
+            for filt in filters:
+                yield from mv(filt, 0)
+                yield from bps.sleep(0.5)
 
     yield from xanes_inner_scan()
     txt1 = get_scan_parameter()
@@ -845,6 +855,10 @@ def xanes_scan_img_only(
     @stage_decorator(list(detectors) + motor)
     @run_decorator(md=_md)
     def xanes_inner_scan():
+        if len(filters):
+            for filt in filters:
+                yield from mv(filt, 1)
+                yield from bps.sleep(0.5)
         print("\ntake {} dark images...".format(chunk_size))
         yield from _set_rotation_speed(rs=30)
         yield from _take_dark_image(
@@ -878,6 +892,10 @@ def xanes_scan_img_only(
 
         print("closing shutter")
         yield from _close_shutter(simu)
+        if len(filters):
+            for filt in filters:
+                yield from mv(filt, 0)
+                yield from bps.sleep(0.5)
 
     yield from xanes_inner_scan()
     txt1 = get_scan_parameter()
@@ -898,6 +916,9 @@ def mv_stage(motor, pos):
     yield Msg("wait", None, group=grp)
 
 
+
+
+
 @parameter_annotation_decorator(
     {
         "parameters": {
@@ -909,7 +930,7 @@ def mv_stage(motor, pos):
         }
     }
 )
-def eng_scan(
+def eng_scan_basic(
     start, stop=None, num=1, detectors=[ic3, ic4], delay_time=1, note="", md=None
 ):
     """
@@ -957,11 +978,12 @@ def eng_scan(
         # "motors": [motor_x.name],
         "motors": [motor_x.name, motor_y.name],
         "XEng": XEng.position,
-        "plan_name": "eng_scan_delay",
+        "plan_name": "eng_scan_basic",
         "plan_args": {
             "start": start,
             "stop": stop,
             "num": num,
+            "eng_list": steps,
             "detectors": "detectors",
             "delay_time": delay_time,
             "note": note if note else "None",
@@ -1001,6 +1023,132 @@ def eng_scan(
         yield from mv(motor_x, motor_x_ini)
 
     yield from eng_inner_scan()
+    '''
+    h = db[-1]
+    scan_id = h.start["scan_id"]
+    det = [det.name for det in detectors]
+    det_name = ""
+    for i in range(len(det)):
+        det_name += det[i]
+        det_name += ", "
+    det_name = "[" + det_name[:-2] + "]"
+    txt1 = get_scan_parameter()
+    txt2 = f"detectors = {det_name}"
+    txt = txt1 + "\n" + txt2
+    insert_text(txt)
+    print(txt)
+    '''
+
+
+class EngScanPlot(QtAwareCallback):
+    """
+    Class for plotting data from 'load_cell_scan' plan.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(use_teleporter=kwargs.pop("use_teleporter", None))
+
+        self._start_new_figure = False
+        self._show_axes_titles = False
+
+        self._scan_id = 0
+
+        self._fig = None
+        self._ax1 = None
+        self._ax2 = None
+        self._ax3 = None
+
+        # Parameters used in 'ax2' title
+        self._load_cell_force = None
+
+    def start_new_figure(self):
+        """
+        Create new figure when the next 'stop' document is received. The next plot
+        will be placed in the new figure. Call before the first scan in the series.
+        """
+        self._start_new_figure = True
+
+    def show_axes_titles(self, *, load_cell_force, bender_pos):
+        """
+        Add subtitles to the current plot once the next stop document is received.
+        Call before the last scan in the series.
+        """
+        self._show_axes_titles = True
+        self._load_cell_force = load_cell_force
+
+    def stop(self, doc):
+        # Scan UID
+        uid = doc["run_start"]
+
+        h = db[uid]
+        # Scan ID
+        scan_id = h.start["scan_id"]
+
+        plan_args = h.start["plan_args"]
+        # Get values for some parameters used for plotting
+        eng_start = plan_args["start"]
+        eng_end = plan_args["stop"]
+        steps = plan_args["num"]
+        try: 
+            x = plan_args['eng_list']
+        except:
+            x = np.linspace(eng_start, eng_end, steps)
+
+        if self._start_new_figure:
+            self._fig = plt.figure(figsize=[10,12])
+            self._ax1 = self._fig.add_subplot(311)
+            self._ax2 = self._fig.add_subplot(312)
+            self._ax3 = self._fig.add_subplot(313)
+
+            # Save ID of the first scan
+            self._scan_id = scan_id
+
+            self._start_new_figure = False
+
+        y0 = np.array(list(h.data(ic3.name)))
+        y1 = np.array(list(h.data(ic4.name)))
+        r = np.log(y0 / y1)
+        
+        self._ax1.plot(x, y0, ".-", label=f'{ic3.name}')
+        self._ax1.plot(x, y1, ".-", label=f'{ic4.name}')
+        self._ax1.legend()
+
+        self._ax2.plot(x, r, ".-", label=f'log({ic3.name}/{ic4.name})')
+        self._ax2.legend()
+
+        r_dif = np.array([0] + list(np.diff(r)))
+        self._ax3.plot(x, r_dif, ".-", label='differential')
+        self._ax3.legend()
+
+        self._fig.suptitle(f'Energy scan: scan id = {scan_id}')
+
+        super().stop(doc)
+
+
+
+def eng_scan(
+    start, stop=None, num=1, detectors=[], delay_time=1, note="", md=None
+):
+    if len(detectors) < 2:
+        detectors = [ic3, ic4]
+    load_cell_force = yield from bps.rd(pzt_cm_loadcell)
+
+    engscan_plot = EngScanPlot()
+    engscan_plot.start_new_figure()
+    engscan_plot.show_axes_titles(
+                        load_cell_force=load_cell_force, bender_pos=None
+                    )
+    eng_scan_with_plot = subs_wrapper(
+                    eng_scan_basic(
+                        start,
+                        stop,
+                        num,
+                        detectors=[ic3, ic4],
+                        delay_time=delay_time,
+                    ),
+                    [engscan_plot],
+                )
+    yield from eng_scan_with_plot
     h = db[-1]
     scan_id = h.start["scan_id"]
     det = [det.name for det in detectors]

@@ -4,8 +4,8 @@ from ophyd import EpicsSignal
 
 class TwoButtonShutter(Device):
     # vendored from nslsii.devices to extend timeouts/retries
-    RETRY_PERIOD = 0.5  # seconds
-    MAX_ATTEMPTS = 120
+    RETRY_PERIOD = 1  # seconds
+    MAX_ATTEMPTS = 10
     # TODO: this needs to be fixed in EPICS as these names make no sense
     # the value coming out of the PV does not match what is shown in CSS
     open_cmd = Cpt(EpicsSignal, "Cmd:Opn-Cmd", string=True)
@@ -94,6 +94,10 @@ class MyBaseMotor(EpicsMotor):
     motor_res = Cpt(EpicsSignalRO, ".MRES")
     encoder_res = Cpt(EpicsSignalRO, ".ERES")
     motor_stat = Cpt(EpicsSignalRO, ".STAT")
+    motor_calib = Cpt(EpicsSignal, ".SET")
+    low_limit = Cpt(EpicsSignal, ".LLM")
+    high_limit = Cpt(EpicsSignal, ".HLM")
+    step_size = Cpt(EpicsSignal, ".TWV")
 
 
 class MyEpicsMotor(MyBaseMotor):
@@ -183,6 +187,7 @@ XEng = MyEpicsMotor("XF:18IDA-OP{Mono:DCM-Ax:En}Mtr", name="XEng")
 zps_sy = zps.sy  # Required by the Queue Server
 zps_sz = zps.sz  # Required by the Queue Server
 
+'''
 th2_motor = MyEpicsMotor("XF:18IDA-OP{Mono:DCM-Ax:Th2}Mtr", name="th2_motor")
 th2_feedback = EpicsSignal("XF:18IDA-OP{Mono:DCM-Ax:Th2}PID", name="th2_feedback")
 th2_feedback_enable = EpicsSignal(
@@ -194,6 +199,7 @@ chi2_feedback = EpicsSignal("XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID", name="chi2_feedb
 chi2_feedback_enable = EpicsSignal(
     "XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID.FBON", name="chi2_feedback_enable"
 )
+'''
 
 shutter_open = EpicsSignal("XF:18IDA-PPS{PSh}Cmd:Opn-Cmd", name="shutter_open")
 shutter_close = EpicsSignal("XF:18IDA-PPS{PSh}Cmd:Cls-Cmd", name="shutter_close")

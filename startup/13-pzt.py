@@ -5,6 +5,7 @@ class PZT(Device):
     d_gain = Cpt(EpicsSignal, "GET_SERVO_DGAIN", kind="config")
     setpos = Cpt(EpicsSignal, "SET_POSITION.A", kind="normal")
     status = Cpt(EpicsSignal, "GET_SERVO_STATE", kind="normal")
+    step_size = Cpt(EpicsSignal, "TWV", kind="normal")
 
     @property
     def bender(self):
@@ -59,6 +60,15 @@ class pzt:
 
 pzt_dcm_chi2 = PZT("XF:18IDA-OP{Mono:DCM-Ax:Chi2Fine}", name="pzt_dcm_chi2")
 pzt_dcm_th2 = PZT("XF:18IDA-OP{Mono:DCM-Ax:Th2Fine}", name="pzt_dcm_th2")
+
+# duplicate those signals
+pzt_dcm_th2.feedback = dcm_th2.feedback
+pzt_dcm_th2.feedback_enable = dcm_th2.feedback_enable
+
+pzt_dcm_chi2.feedback = dcm_chi2.feedback
+pzt_dcm_chi2.feedback_enable = dcm_chi2.feedback_enable
+
+
 pzt_tm = PZTwForce("XF:18IDA-OP{Mir:TM-Ax:Bender}", name="pzt_tm")
 pzt_cm = PZTwForce("XF:18IDA-OP{Mir:CM-Ax:Bender}", name="pzt_cm")
 
