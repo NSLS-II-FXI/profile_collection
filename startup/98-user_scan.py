@@ -2018,11 +2018,11 @@ def radiographic_record(
         "plan_args": {
             "exposure_time": exp_t,
             "period": period,
+            "time_span": t_span,
             "out_x": out_x,
             "out_y": out_y,
             "out_z": out_z,
             "out_r": out_r,
-            "time_span": t_span,
             "filters": [filt.name for filt in filters] if filters else "None",
             "note": note if note else "None",
             "zone_plate": ZONE_PLATE,

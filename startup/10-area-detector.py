@@ -22,6 +22,9 @@ from ophyd.areadetector.detectors import DetectorBase
 from nslsii.ad33 import SingleTriggerV33, StatsPluginV33, CamV33Mixin
 
 
+global TimeStampRecord
+TimeStampRecord = []
+
 class ExternalFileReference(Signal):
     """
     A pure software signal where a Device can stash a datum_id
@@ -113,6 +116,22 @@ class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
         return ret
 
 
+
+def timing(f):
+    from functools import wraps
+    from time import asctime, localtime, time
+    global TimeStampRecord
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        TimeStampRecord.append(te-ts)
+        print(f"{asctime(localtime())} {f.__name__} {(te-ts):2.4f} sec")
+        return result
+    return wrap
+
+
 class AndorKlass(SingleTriggerV33, DetectorBase):
     cam = Cpt(AndorCam, "cam1:")
     image = Cpt(ImagePlugin, "image1:")
@@ -173,11 +192,13 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
         self.hdf5._generate_resource(res_kwargs)
         return super().resume()
 
+    @timing
     def stage(self):
         import itertools
 
         for j in itertools.count():
             try:
+                print(f"stage attempt {j}")
                 return super().stage()
             except TimeoutError:
                 N_try = 20
@@ -187,11 +208,13 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
                 else:
                     raise
 
+    @timing
     def unstage(self, *args, **kwargs):
         import itertools
 
         for j in itertools.count():
             try:
+                print(f"unstage attempt {j}")
                 ret = super().unstage()
             except TimeoutError:
                 N_try = 20

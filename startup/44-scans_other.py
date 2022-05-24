@@ -609,7 +609,10 @@ class LoadCellScanPlot(QtAwareCallback):
         # Get values for some parameters used for plotting
         eng_start = plan_args["start"]
         eng_end = plan_args["stop"]
-        steps = plan_args["num"]
+        if h.start["plan_name"] == "delay_scan":
+            steps = plan_args["steps"]
+        else:
+            steps = plan_args["num"]
 
         if self._start_new_figure:
             self._fig = plt.figure()
@@ -622,9 +625,14 @@ class LoadCellScanPlot(QtAwareCallback):
 
             self._start_new_figure = False
 
-        y0 = np.array(list(h.data(ic3.name)))
-        y1 = np.array(list(h.data(ic4.name)))
-        r = np.log(y0 / y1)
+        y0 = np.abs(np.array(list(h.data(ic3.name))))
+        y1 = np.abs(np.array(list(h.data(ic4.name))))
+        if h.start["plan_name"] == "delay_scan":
+            y0 = np.array(list(h.data(Vout1.name)))
+            #r = -np.log(np.abs(y0))
+            r = np.abs(y0)
+        else:
+            r = np.log(y0 / y1)
         x = np.linspace(eng_start, eng_end, steps)
         self._ax1.plot(x, r, ".-")
         r_dif = np.array([0] + list(np.diff(r)))
@@ -842,6 +850,79 @@ def load_cell_scan_original(
     insert_text(txt_finish)
 
 
+
+
+def beam_profile_scan(
+    dir, start, end, steps, delay_time=0.1,
+):
+    """
+    At every position in the pzt_cm_bender_pos_list, scan the pbsl.y_ctr under diffenent energies
+    Use as:
+    load_cell_scan(pzt_cm_bender_pos_list, pbsl_y_pos_list, num, eng_start, eng_end, steps, delay_time=0.5)
+    note: energies are in unit if keV
+
+    Inputs:
+    --------
+    pzt_cm_bender_pos_list: list of "CM_Bender Set Position"
+        PV:    XF:18IDA-OP{Mir:CM-Ax:Bender}SET_POSITION
+
+    pbsl_y_pos_list: list of PBSL_y Center Position
+        PV:    XF:18IDA-OP{PBSL:1-Ax:YCtr}Mtr
+
+    num: number of repeating scans (engergy scan) at each pzt_cm_bender position and each pbsl_y center position
+
+    eng_start: float, start energy in unit of keV
+
+    eng_end: float, end of energy in unit of keV
+
+    steps:  num of steps from eng_start to eng_end
+
+    delay_time: delay_time between each energy step, in unit of sec
+    """
+
+    txt = f"## beam profile scan, dir={dir}, start={start}, end={end}, steps={steps}, delay_time={delay_time})"
+    insert_text(txt)
+
+    if dir == 'y':
+        pbsl_ctr_ini = pbsl.y_ctr.position
+        mot = pbsl.y_ctr
+    elif dir == 'x':
+        pbsl_ctr_ini = pbsl.x_ctr.position
+        mot = pbsl.x_ctr   
+
+    pbsl_pos_list = np.linspace(start, end, steps, endpoint=True)
+    num_pbsl_pos = steps
+    yield from _open_shutter(simu=False)
+
+    # Initiate creating of a new figure
+    lcs_plot.start_new_figure()
+
+    # If the scan is the last in the series, display axes titles and align the plot
+    lcs_plot.show_axes_titles(
+        load_cell_force=f"beam profile scan on {dir}", bender_pos=''
+    )
+
+    profile_scan_with_plot = subs_wrapper(
+        delay_scan(
+        [ic3, ic4, Vout1],
+        mot,
+        start,
+        end,
+        steps,
+        sleep_time=delay_time,
+        md=None,
+    ),
+        [lcs_plot],
+    )
+
+    yield from profile_scan_with_plot
+
+    yield from _close_shutter(simu=False)
+    yield from mv(mot, pbsl_ctr_ini)
+    txt_finish = '## "beam_profile_scan()" finished'
+    insert_text(txt_finish)
+
+
 def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
     """
     At every position in the tm_pitch_list, scan the ssa_h_ctr_list
@@ -952,8 +1033,8 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
             md=None,
         )
         h = db[-1]
-        y0 = np.array(list(h.data(ic3.name)))
-        y1 = np.array(list(h.data(ic4.name)))
+        y0 = np.abs(np.array(list(h.data(ic3.name))))
+        y1 = np.abs(np.array(list(h.data(ic4.name))))
         y2 = np.array(list(h.data(Vout2.name)))
         ax1.plot(x, y0, ".-")
         #            r_dif = np.array([0] + list(np.diff(r)))
@@ -965,7 +1046,7 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
         )
         ax3.title.set_text("Vout2")
         fig.subplots_adjust(hspace=0.5)
-        plt.show()
+        #plt.show()
     txt_finish = '## "ssa_scan_tm_bender()" finished'
     insert_text(txt_finish)
 

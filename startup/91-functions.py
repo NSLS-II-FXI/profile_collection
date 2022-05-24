@@ -85,7 +85,8 @@ def record_calib_pos_new(n):
     CALIBER[f"XEng_pos{n}"] = XEng.position
     CALIBER[f"zp_x_pos{n}"] = zp.x.position
     CALIBER[f"zp_y_pos{n}"] = zp.y.position
-    CALIBER[f"th2_motor_pos{n}"] = th2_motor.position
+    #CALIBER[f"th2_motor_pos{n}"] = th2_motor.position
+    CALIBER[f"th2_motor_pos{n}"] = dcm.th2.position
     CALIBER[f"clens_x_pos{n}"] = clens.x.position
     CALIBER[f"clens_y1_pos{n}"] = clens.y1.position
     CALIBER[f"clens_y2_pos{n}"] = clens.y2.position
@@ -200,6 +201,10 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
           0: Do calculation without moving real stages
           1: Will move stages
     """
+    def find_nearest(data, value):
+        data = np.array(data)
+        return np.abs(data - value).argmin()
+
     eng_new = float(eng_new)  # eV, e.g. 9.0
     det = DetU  # upstream detector
     eng_ini = XEng.position
@@ -208,9 +213,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
         eng_new, eng_ini, print_flag=0
     )
 
-    assert (det_final) > det.z.low_limit and (det_final) < det.z.high_limit, print(
+    assert (det_final) > det.z.low_limit.value and (det_final) < det.z.high_limit.value, print(
         "Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.".format(
-            det_final, det.z.low_limit, det.z.high_limit
+            det_final, det.z.low_limit.value, det.z.high_limit.value
         )
     )
 
@@ -326,7 +331,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
             dcm_chi2_ini = dcm.chi2.position
             zp_x_ini = zp.x.position
             zp_y_ini = zp.y.position
-            th2_motor_ini = th2_motor.position
+            th2_motor_ini = dcm.th2.position
             clens_x_ini = clens.x.position
             clens_y1_ini = clens.y1.position
             clens_y2_ini = clens.y2.position
@@ -417,13 +422,13 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
                         )
 
                 yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
-                yield from mv(th2_feedback_enable, 0)
-                yield from mv(th2_feedback, th2_motor_target)
-                yield from mv(th2_feedback_enable, 1)
+                yield from mv(dcm_th2.feedback_enable, 0)
+                yield from mv(dcm_th2.feedback, th2_motor_target)
+                yield from mv(dcm_th2.feedback_enable, 1)
 
-                yield from mv(chi2_feedback_enable, 0)
-                yield from mv(chi2_feedback, chi2_motor_target)
-                yield from mv(chi2_feedback_enable, 1)
+                yield from mv(dcm_chi2.feedback_enable, 0)
+                yield from mv(dcm_chi2.feedback, chi2_motor_target)
+                yield from mv(dcm_chi2.feedback_enable, 1)
 
                 yield from mv(zp.z, zp_final, det.z, det_final, XEng, eng_new)
                 yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)
@@ -570,7 +575,6 @@ def new_user(*, new_pi_name=None, new_proposal_id=None):
     qut = f"Q{1 + (now.month - 1) // 4}"
 
     pre = Path(f"/nsls2/data/fxi-new/legacy/users/{year}{qut}/")
-    #pre = Path(f"/nsls2/data/fxi-new/shared/config/proposals/{year}{qut}/")
     pre.mkdir(parents=True, exist_ok=True)
 
     print("\n")
@@ -905,9 +909,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
 
                 yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
 #                yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)
-                yield from mv(th2_feedback_enable, 0)
-                yield from mv(th2_feedback, th2_motor_target)
-                yield from mv(th2_feedback_enable, 1)
+                yield from mv(dcm_th2.feedback_enable, 0)
+                yield from mv(dcm_th2.feedback, th2_motor_target)
+                yield from mv(dcm_th2.feedback_enable, 1)
                 yield from mv(zp.z, zp_final,det.z, det_final, XEng, eng_new)
                 yield from mv(aper.x,  aper_x_target, aper.y, aper_y_target)
                 if move_clens_flag:
