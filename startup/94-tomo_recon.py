@@ -260,7 +260,7 @@ def rotcen_test2(
             print("{}: rotcen {}".format(i + 1, cen[i]))
             if algorithm == 'gridrec':
                 img[i] = tomopy.recon(
-                prj_norm[:, addition_slice : addition_slice + 1],
+                prj_norm[:, addition_slice//2 : addition_slice//2 + 1],
                 theta,
                 center=cen[i],
                 algorithm="gridrec",
@@ -268,7 +268,7 @@ def rotcen_test2(
                 )
             elif 'astra' in algorithm:
             	img[i] = tomopy.recon(
-                prj_norm[:, addition_slice : addition_slice + 1],
+                prj_norm[:, addition_slice//2 : addition_slice//2 + 1],
                 theta,
                 center=cen[i],
                 algorithm=tomopy.astra,
@@ -276,7 +276,7 @@ def rotcen_test2(
                 )
             else:
                 img[i] = tomopy.recon(
-                prj_norm[:, addition_slice : addition_slice + 1],
+                prj_norm[:, addition_slice//2 : addition_slice//2 + 1],
                 theta,
                 center=cen[i],
                 algorithm=algorithm,
@@ -290,7 +290,7 @@ def rotcen_test2(
             hf.create_dataset("rot_cen", data=cen)
     img = tomopy.circ_mask(img, axis=0, ratio=circ_mask_ratio)
     if plot_flag:
-        tracker = image_scrubber(img, clim=clim)
+        tracker = image_scrubber(img)
     if return_flag:
         return img, cen
         
@@ -625,8 +625,8 @@ def recon2(
             fw_level=fw_level,
             denoise_flag=denoise_flag,
             dark_scale=dark_scale,
-            atten=atten,
-            norm_empty_sli=norm_empty_sli
+            #atten=atten,
+            #norm_empty_sli=norm_empty_sli
         )
         prj_norm = prj_norm[:, :, col[0]//binning:col[1]//binning]
         if i != 0 and i != n_steps - 1:
@@ -724,6 +724,7 @@ def proj_normalize(
     bkg_level=0,
     fw_level=9,
     denoise_flag=0,
+    dark_scale=1,
 ):
     f = h5py.File(fn, "r")
     img_tomo = np.array(f["img_tomo"][:, sli[0] : sli[1], :])
@@ -732,7 +733,7 @@ def proj_normalize(
     except:
         img_bkg = []
     try:
-        img_dark = np.array(f["img_dark_avg"][:, sli[0] : sli[1]])
+        img_dark = np.array(f["img_dark_avg"][:, sli[0] : sli[1]])/dark_scale
     except:
         img_dark = []
     if len(img_dark) == 0 or len(img_bkg) == 0 or txm_normed_flag == 1:

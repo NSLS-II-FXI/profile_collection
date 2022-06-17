@@ -627,37 +627,54 @@ class LoadCellScanPlot(QtAwareCallback):
 
         y0 = np.abs(np.array(list(h.data(ic3.name))))
         y1 = np.abs(np.array(list(h.data(ic4.name))))
+        x = np.linspace(eng_start, eng_end, steps)
         if h.start["plan_name"] == "delay_scan":
-            y0 = np.array(list(h.data(Vout1.name)))
-            #r = -np.log(np.abs(y0))
-            r = np.abs(y0)
+            y0 = np.abs(np.array(list(h.data(Vout1.name))))
+            y1 = np.abs(np.array(list(h.data(ic3.name))))
+            self._ax1.plot(x, y0, ".-")
+            self._ax2.plot(x, y1, ".-")
         else:
             r = np.log(y0 / y1)
-        x = np.linspace(eng_start, eng_end, steps)
-        self._ax1.plot(x, r, ".-")
-        r_dif = np.array([0] + list(np.diff(r)))
-        self._ax2.plot(x, r_dif, ".-")
+            self._ax1.plot(x, r, ".-")
+            r_dif = np.array([0] + list(np.diff(r)))
+            self._ax2.plot(x, r_dif, ".-")
 
         if self._show_axes_titles:
             self._scan_id_end = scan_id
-
-            self._ax1.title.set_text(
-                "scan_id: {}-{}, ratio of: {}/{}".format(
-                    self._scan_id_start,
-                    self._scan_id_end,
-                    ic3.name,
-                    ic4.name,
+            if h.start["plan_name"] == "delay_scan":
+                self._ax1.title.set_text(
+                    "scan_id: {}-{}, {}".format(
+                        self._scan_id_start,
+                        self._scan_id_end,
+                        Vout1.name
+                    )
                 )
-            )
-            self._ax2.title.set_text(
-                "load_cell: {}, bender_pos: {}".format(
-                    self._load_cell_force
-                    if self._load_cell_force is not None
-                    else "NOT SET",
-                    self._bender_pos if self._bender_pos is not None else "NOT SET",
+                self._ax2.title.set_text(
+                    "scan_id: {}-{}, {}".format(
+                        self._scan_id_start,
+                        self._scan_id_end,
+                        ic3.name
+                    )
                 )
-            )
-            self._fig.subplots_adjust(hspace=0.5)
+                self._fig.subplots_adjust(hspace=0.5)
+            else:
+                self._ax1.title.set_text(
+                    "scan_id: {}-{}, ratio of: {}/{}".format(
+                        self._scan_id_start,
+                        self._scan_id_end,
+                        ic3.name,
+                        ic4.name,
+                    )
+                )
+                self._ax2.title.set_text(
+                    "load_cell: {}, bender_pos: {}".format(
+                        self._load_cell_force
+                        if self._load_cell_force is not None
+                        else "NOT SET",
+                        self._bender_pos if self._bender_pos is not None else "NOT SET",
+                    )
+                )
+                self._fig.subplots_adjust(hspace=0.5)
 
             self._load_cell_force = None
             self._bender_pos = None
@@ -853,7 +870,7 @@ def load_cell_scan_original(
 
 
 def beam_profile_scan(
-    dir, start, end, steps, delay_time=0.1,
+    dir, start, end, steps, delay_time=0.1, mv_back=False
 ):
     """
     At every position in the pzt_cm_bender_pos_list, scan the pbsl.y_ctr under diffenent energies
@@ -911,6 +928,7 @@ def beam_profile_scan(
         steps,
         sleep_time=delay_time,
         md=None,
+        mv_back=mv_back
     ),
         [lcs_plot],
     )
@@ -918,7 +936,7 @@ def beam_profile_scan(
     yield from profile_scan_with_plot
 
     yield from _close_shutter(simu=False)
-    yield from mv(mot, pbsl_ctr_ini)
+    #yield from mv(mot, pbsl_ctr_ini)
     txt_finish = '## "beam_profile_scan()" finished'
     insert_text(txt_finish)
 
@@ -989,7 +1007,7 @@ def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
 
 
 ###########################
-def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
+def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps, mv_back=False):
     """
     scanning ssa, with different pzt_tm_bender position
 
@@ -1031,6 +1049,7 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
             ssa_steps,
             sleep_time=0.2,
             md=None,
+            mv_back=mv_back
         )
         h = db[-1]
         y0 = np.abs(np.array(list(h.data(ic3.name))))

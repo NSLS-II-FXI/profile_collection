@@ -1167,7 +1167,7 @@ def plot2dsum(scan_id=-1, fn="Det_Image", save_flag=0):
         print("AreaDetector is not used in the scan")
 
 
-def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0):
+def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0, return_flag=0):
     h = db[scan_id]
     scan_id = h.start["scan_id"]
     n = len(detectors)
@@ -1200,13 +1200,15 @@ def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0):
     else:
         x = np.linspace(st, en, num)
     fig = plt.figure()
+    y_sig = {}
     for i in range(n):
         det_name = detectors[i]
         if det_name == "detA1" or det_name == "Andor":
             det_name = det_name + "_stats1_total"
-        y = list(h.data(det_name))
+        y = np.abs(np.array(list(h.data(det_name))))
         title_txt = f"scan#{scan_id}:   {det_name}"
         ax = fig.add_subplot(n, 1, i + 1)
+        y_sig[i] = y
         ax.plot(x, y)
         ax.title.set_text(title_txt)
     if flag:
@@ -1215,6 +1217,8 @@ def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0):
         plt.xlabel(f'{h.start["plan_args"]["motor"]} position')
     fig.subplots_adjust(hspace=1)
     plt.show()
+    if return_flag:
+        return x, y_sig
 
 
 ################################################################

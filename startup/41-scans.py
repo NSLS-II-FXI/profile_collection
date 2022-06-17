@@ -582,13 +582,14 @@ def xanes_scan2(
 def xanes_scan(
     eng_list,
     exposure_time=0.1,
-    chunk_size=5,
+    chunk_size=2,
     out_x=0,
     out_y=0,
     out_z=0,
     out_r=0,
     simu=False,
     relative_move_flag=1,
+    filters=[],
     note="",
     rot_first_flag=1,
     md=None,
@@ -1335,6 +1336,7 @@ def delay_scan(
     note="",
     md=None,
     simu=False,
+    mv_back=True
 ):
     """
     add sleep_time to regular 'scan' for each scan_step
@@ -1408,7 +1410,8 @@ def delay_scan(
             yield from mv(motor, x)
             yield from bps.sleep(sleep_time)
             yield from trigger_and_read(list(detectors + [motor]))
-        yield from mv(motor, motor_ini)
+        if mv_back:
+            yield from mv(motor, motor_ini)
 
     if simu:
         uid = yield from delay_inner_scan()
