@@ -358,6 +358,7 @@ def z_scan2(
                 out_r=0,
                 detectors=detectors,
                 motor=motor,
+                chunk_size=chunk_size,
             )
 
         # move back zone_plate and sample y
@@ -635,9 +636,11 @@ class LoadCellScanPlot(QtAwareCallback):
             self._ax2.plot(x, y1, ".-")
         else:
             r = np.log(y0 / y1)
-            self._ax1.plot(x, r, ".-")
+            self._ax1.plot(x, r, ".-", label=str(np.round(pbsl.y_ctr.position, 2)))
             r_dif = np.array([0] + list(np.diff(r)))
-            self._ax2.plot(x, r_dif, ".-")
+            self._ax2.plot(x, r_dif, ".-", label=str(np.round(pbsl.y_ctr.position, 2)))
+            self._ax1.legend()
+            self._ax2.legend()
 
         if self._show_axes_titles:
             self._scan_id_end = scan_id

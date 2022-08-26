@@ -10,7 +10,7 @@ import pprint
 from operator import attrgetter
 from PIL import Image
 from scipy.signal import medfilt2d
-
+from datetime import datetime  
 
 def check_latest_scan_id(init_guess=60000, search_size=100):
     sid_from_md = RE.md["scan_id"]
@@ -1350,7 +1350,7 @@ def get_scan_parameter(scan_id=-1, print_flag=0):
     return txt
 
 
-def get_scan_timestamp(scan_id, return_flag=0):
+def get_scan_timestamp_legacy(scan_id, return_flag=0):
     h = db[scan_id]
     scan_id = h.start["scan_id"]
     timestamp = h.start["time"]
@@ -1368,6 +1368,17 @@ def get_scan_timestamp(scan_id, return_flag=0):
     print(scan_time)
     if return_flag:
         return scan_time.split("#")[-1]
+
+
+def get_scan_timestamp(scan_id, return_flag=0):      
+    h = db[scan_id]
+    scan_id = h.start["scan_id"]
+    timestamp = h.start["time"]
+    dt = datetime.fromtimestamp(timestamp)
+    t = dt.strftime('%Y-%m-%d %H:%M:%S')
+    print(t)
+    if return_flag:
+        return t
 
 
 def get_scan_file_name(scan_id):
