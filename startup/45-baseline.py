@@ -9,7 +9,7 @@ sd.baseline = [
     DetU,
     XEng,
     dcm,
-    cm,
+    #cm,
     tm,
     pbsl,
     # pzt_dcm_chi2.pos,

@@ -530,14 +530,14 @@ def _open_shutter_xhx(simu=False):
         i = 0
         reading = yield from bps.rd(shutter_status)
         while reading:  # if 1:  closed; if 0: open
-            if i > 3:
-                yield from abs_set(shutter_close, 1, wait=False)
+            if i > 5:
+                yield from abs_set(shutter_close, 1, wait=True)
                 yield from bps.sleep(1)
-            elif i > 6:
+            elif i > 10:
                 print("fails to open shutter")
                 raise Exception("fails to open shutter")
                 break
-            yield from abs_set(shutter_open, 1, wait=False)
+            yield from abs_set(shutter_open, 1, wait=True)
             print(f"try opening {i} time(s) ...")
             yield from bps.sleep(1)
             i += 1
@@ -552,14 +552,14 @@ def _close_shutter_xhx(simu=False):
         i = 0
         reading = yield from bps.rd(shutter_status)
         while not reading:  # if 1:  closed; if 0: open
-            if i > 3:
-                yield from abs_set(shutter_open, 1, wait=False)
+            if i > 5:
+                yield from abs_set(shutter_open, 1, wait=True)
                 yield from bps.sleep(1)
-            elif i > 6:
+            elif i > 10:
                 print("fails to close shutter")
                 raise Exception("fails to close shutter")
                 break
-            yield from abs_set(shutter_close, 1, wait=False)
+            yield from abs_set(shutter_close, 1, wait=True)
             yield from bps.sleep(1)
             i += 1
             print(f"try closing {i} time(s) ...")
@@ -1012,6 +1012,14 @@ def _mk_eng_list(elem, bulk=False):
                 + elem.split("_")[0]
                 + "_xanes_standard_63pnt.txt"
             )
+        elif elem.split("_")[-1] == "diff":
+            eng_list = np.genfromtxt(
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
+                + elem.split("_")[0]
+                + "/eng_list_"
+                + elem.split("_")[0]
+                + "_xanes_standard_diff.txt"
+            )    
     return eng_list
 
 
@@ -1187,7 +1195,7 @@ def multi_edge_xanes(
     flts={"Ni_filters": [1, 2, 3]},
     exposure_time={"Ni_exp": 0.05},
     rel_rot_ang=185,
-    rs=1,
+    rs=6,
     in_pos_list=[[None, None, None, None]],
     out_pos=[None, None, None, None],
     chunk_size=5,
@@ -1332,7 +1340,7 @@ def multi_edge_xanes2(
     period_time={"Ni_period":0.05},
     rel_rot_ang=185,
     start_angle=None,
-    rs=1,
+    rs=6,
     in_pos_list=[[None, None, None, None]],
     out_pos=[None, None, None, None],
     note="",
@@ -1354,30 +1362,36 @@ def multi_edge_xanes2(
     if scan_type == "2D":
         if binning is None:
             binning = 0
-        binning = yield from bin_cam(binning)
+        binning = yield from _bin_cam(binning)
 
         x_list, y_list, z_list, r_list = _sort_in_pos(in_pos_list)
         for elem in elements:
             for key in flts.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
                     flt = flts[key]
+                    break
                 else:
                     flt = []
             for key in exposure_time.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
+                    print(f'{exposure_time[key]=}')
                     exposure = exposure_time[key]
                     print(elem, exposure)
+                    break
                 else:
                     exposure = 0.05
                     print("use default exposure time 0.05s")
             for key in period_time.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
                     yield from mv(Andor.cam.acquire_time, exposure)
-                    Andor.cam.acquire_period.put(period_time[key])
-                    period = yield from rd(Andor.cam.acquire_period)
-                    period = yield from _exp_t_sanity_check(period, binning=binning)
-                    print(elem, f"{period=}")
+                    yield from bps.sleep(2)
+                    # yield from mv(Andor.cam.acquire_period, period_time[key])
+                    # period = yield from rd(Andor.cam.acquire_period)
+                    #period = yield from _exp_t_sanity_check(period, binning=binning)
+                    # print(elem, f"{period=}")
+                    break
             eng_list = _mk_eng_list(elem, bulk=False)
+            print(f'{out_pos=}')
             yield from _multi_pos_xanes_2D_xh(
                     eng_list,
                     x_list,
@@ -1403,29 +1417,36 @@ def multi_edge_xanes2(
     elif scan_type == "3D":
         if binning is None:
             binning = 1
-        binning = yield from bin_cam(binning)
+        binning = yield from _bin_cam(binning)
 
         x_list, y_list, z_list, r_list = _sort_in_pos(in_pos_list)
         for elem in elements:
             for key in flts.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
                     flt = flts[key]
+                    break
                 else:
                     flt = []
             for key in exposure_time.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
                     exposure = exposure_time[key]
                     print(elem, exposure)
+                    break
                 else:
                     exposure = 0.05
                     print("use default exposure time 0.05s")
             for key in period_time.keys():
+                print(f"{period_time=}\n{key=}")
                 if elem.split("_")[0] == key.split("_")[0]:
+                    print(f'{exposure=}')
                     yield from mv(Andor.cam.acquire_time, exposure)
-                    Andor.cam.acquire_period.put(period_time[key])
-                    period = yield from rd(Andor.cam.acquire_period)
-                    period = _exp_t_sanity_check(period, binning)
-                    print(elem, f"{period=}")
+                    yield from bps.sleep(2)
+                    print(f'{period_time[key]=}')
+                    # yield from mv(Andor.cam.acquire_period, period_time[key])
+                    # period = yield from rd(Andor.cam.acquire_period)
+                    # period = _exp_t_sanity_check(period, binning)
+                    # print(elem, f"{period=}")
+                    break
             eng_list = _mk_eng_list(elem, bulk=False)
       
             yield from _multi_pos_xanes_3D_xh(
@@ -1437,7 +1458,8 @@ def multi_edge_xanes2(
                     exposure_time=exposure,
                     start_angle=start_angle,
                     relative_rot_angle=rel_rot_ang,
-                    period=period,
+                    # period=period,
+                    period=exposure,
                     rs=rs,
                     out_x=out_pos[0],
                     out_y=out_pos[1],
@@ -1590,7 +1612,7 @@ def fly_scan2(
             "relative_move_flag": relative_move_flag,
             "rot_first_flag": rot_first_flag,
             "enable_z": "True" if enable_z else "False",
-            "filters": [t.name for t in flts] if flts else "None",
+            "filters": ["filter{}".format(t) for t in flts] if flts else "None",
             "binning": "None" if binning is None else binning,
             "note": note if note else "None",
             "zone_plate": ZONE_PLATE,
@@ -2147,7 +2169,7 @@ def mosaic_fly_scan_xh(
     out_r=None,
     start_angle=None,
     rel_rot_ang=180,
-    binning=0,
+    binning=None,
     flts=[],
     relative_move_flag=True,
     simu=False,
@@ -2259,7 +2281,7 @@ def grid_z_scan(
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exposure_time)
     period_cor = max(exposure_time + 0.01, 0.05)
-    yield from mv(Andor.cam.acquire_period, period_cor)
+    # yield from mv(Andor.cam.acquire_period, period_cor)
 
     _md = {
         "detectors": [det.name for det in dets],
@@ -2539,7 +2561,7 @@ def mosaic_2D_rel_grid_xh(
     yield from mv(Andor.cam.num_images, chunk_size)
     yield from mv(Andor.cam.acquire_time, exp_time)
     period_cor = max(exp_time + 0.01, 0.05)
-    yield from mv(Andor.cam.acquire_period, period_cor)
+    # yield from mv(Andor.cam.acquire_period, period_cor)
 
     _md = {
         "detectors": [det.name for det in dets],
@@ -2611,6 +2633,7 @@ def mosaic_2D_xh(
     out_r=None,
     img_sizeX=2560,
     img_sizeY=2160,
+    binning=2,
     simu=False,
     relative_move_flag=1,
     rot_first_flag=1,
@@ -2981,7 +3004,7 @@ def multi_pos_2D_and_3D_xanes(
     exposure_time_2D={"Ni_2D_exp": 0.05},
     exposure_time_3D={"Ni_3D_exp": 0.05},
     rel_rot_ang=185,
-    rs=1,
+    rs=6,
     sleep_time=0,
     repeat_num=1,
     chunk_size=5,
@@ -3038,7 +3061,7 @@ def multi_pos_2D_xanes_and_3D_tomo(
     exposure_time_2D=[0.05],
     exposure_time_3D=[0.05],
     rel_rot_ang=0,
-    rs=1,
+    rs=6,
     eng_3D=[10, 60],
     note="",
     relative_move_flag=0,
@@ -3188,7 +3211,7 @@ def zps_motor_scan_with_Andor(
         yield from mv(Andor.cam.image_mode, 0)
         yield from mv(Andor.cam.num_images, chunk_size)
         yield from mv(Andor.cam.acquire_time, exposure_time)
-        yield from mv(Andor.cam.acquire_period, exposure_time)
+        # yield from mv(Andor.cam.acquire_period, exposure_time)
 
     if exposure_time is not None:
         yield from _set_andor_param()

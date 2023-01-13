@@ -1329,7 +1329,7 @@ def get_scan_parameter(scan_id=-1, print_flag=0):
     except:
         X_eng = "n/a"
     scan_type = h.start["plan_name"]
-    scan_time = datetime.datetime.fromtimestamp(h.start["time"]).strftime("%D %H:%M")
+    scan_time = datetime.fromtimestamp(h.start["time"]).strftime("%D %H:%M")
 
     txt = ""
     for key, val in h.start["plan_args"].items():
@@ -1451,14 +1451,16 @@ def get_lakeshore_param(scan_id, print_flag=0, return_flag=0):
 
 
 class IndexTracker(object):
-    def __init__(self, ax, X):
+    def __init__(self, ax, X, clim):
         self.ax = ax
         self._indx_txt = ax.set_title(" ", loc="center")
         self.X = X
         self.slices, rows, cols = X.shape
         self.ind = self.slices // 2
-
-        self.im = ax.imshow(self.X[self.ind, :, :], cmap="gray")
+        if len(clim)==2:
+            self.im = ax.imshow(self.X[self.ind, :, :], cmap="gray", clim=clim)
+        else:
+            self.im = ax.imshow(self.X[self.ind, :, :], cmap="gray")
         self.update()
 
     def onscroll(self, event):
@@ -1475,12 +1477,12 @@ class IndexTracker(object):
         self.im.axes.figure.canvas.draw()
 
 
-def image_scrubber(data, *, ax=None):
+def image_scrubber(data, clim, *, ax=None):
     if ax is None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10,10))
     else:
         fig = ax.figure
-    tracker = IndexTracker(ax, data)
+    tracker = IndexTracker(ax, data, clim)
     # monkey patch the tracker onto the figure to keep it alive
     fig._tracker = tracker
     fig.canvas.mpl_connect("scroll_event", tracker.onscroll)

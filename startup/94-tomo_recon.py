@@ -290,7 +290,7 @@ def rotcen_test2(
             hf.create_dataset("rot_cen", data=cen)
     img = tomopy.circ_mask(img, axis=0, ratio=circ_mask_ratio)
     if plot_flag:
-        tracker = image_scrubber(img)
+        tracker = image_scrubber(img, clim)
     if return_flag:
         return img, cen
         
@@ -640,6 +640,9 @@ def recon2(
             rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm=tomopy.astra, options=options, ncore=ncore)
         else:
             rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm=algorithm, num_iter=num_iter, ncore=ncore,filter_name=filter_name)
+        s_rec_sub = rec_sub.shape
+        if np.mod(s_rec_sub[1], 2) == 1:
+            rec_sub = rec_sub[:, :-1, :-1]
         rec[i * sli_step // binning : i * sli_step // binning + rec_sub.shape[0]] = rec_sub
         time_e = time.time()
         print(f'takeing {time_e-time_s:3.1f} sec')

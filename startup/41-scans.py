@@ -1489,7 +1489,8 @@ def raster_2D_scan(
     """
     scanning large area by moving samples at different 2D block position, defined by x_range and y_range, only work for Andor camera at full resolution (2160 x 2560)
     for example, set x_range=[-1,1] and y_range=[-2, 2] will totally take 3 x 5 = 15 images and stitch them together
-
+    
+    
     Inputs:
     -------
 
@@ -1609,10 +1610,12 @@ def raster_2D_scan(
     @stage_decorator(list(detectors) + motor)
     @run_decorator(md=_md)
     def raster_2D_inner():
+        
         if len(filters):
             for filt in filters:
                 yield from mv(filt, 1)
                 yield from bps.sleep(0.5)
+        
         # take dark image
         print("take 5 dark image")
         yield from _take_dark_image(
@@ -1674,7 +1677,7 @@ def raster_2D_scan(
     print(txt)
 
 
-def raster_2D_scan_test(
+def raster_2D_scan_filter_bkg(
     x_range=[-1, 1],
     y_range=[-1, 1],
     exposure_time=0.1,
@@ -3071,7 +3074,7 @@ def multi_pos_xanes_3D(
         yield from bps.sleep(sleep_time)
 
 
-def tomo_mosaic(
+def tomo_mosaic_scan(
     x_ini,
     y_ini,
     z_ini,

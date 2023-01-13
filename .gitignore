@@ -6,7 +6,7 @@ tomo_ctrl/
 *.h5
 *.tif
 *.tiff
-history.sqlite
+history*.sqlite
 static/
 startup/Tomo_test/
 startup/temp/

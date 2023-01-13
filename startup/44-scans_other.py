@@ -736,6 +736,7 @@ def load_cell_scan(
     num_pbsl_pos = len(pbsl_y_pos_list)
     yield from _open_shutter(simu=False)
 
+    idx = 0
     for bender_pos in pzt_cm_bender_pos_list:
         yield from mv(pzt_cm.setpos, bender_pos)
         yield from bps.sleep(5)
@@ -743,8 +744,12 @@ def load_cell_scan(
 
         # Initiate creating of a new figure
         lcs_plot.start_new_figure()
-
-        for pbsl_pos in pbsl_y_pos_list:
+        if idx % 2:
+            pos_list = pbsl_y_pos_list[::-1]
+        else:
+            pos_list = pbsl_y_pos_list.copy()
+        idx += 1 
+        for pbsl_pos in pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
 
