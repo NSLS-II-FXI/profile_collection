@@ -173,6 +173,7 @@ def rotcen_test2(
     atten=None,
     clim=[],
     dark_scale=1,
+    snr=3,
     filter_name='None',
     plot_flag=1,
     save_flag=1,
@@ -223,9 +224,12 @@ def rotcen_test2(
 
     prj_norm -= bkg_level
 
+    '''
     prj_norm = tomopy.prep.stripe.remove_stripe_fw(
         prj_norm, level=fw_level, wname="db5", sigma=1, pad=True
     )
+    '''
+    #prj_norm = tomopy.prep.stripe.remove_all_stripe(prj_norm, snr=snr)
     """    
     if denoise_flag == 1: # denoise using wiener filter
         ss = prj_norm.shape
@@ -249,6 +253,9 @@ def rotcen_test2(
         allow_list = list(set(np.arange(len(prj_norm))) - set(block_list))
         prj_norm = prj_norm[allow_list]
         theta = theta[allow_list]
+
+    prj_norm = tomopy.prep.stripe.remove_all_stripe(prj_norm, snr=snr)
+
     if start == None or stop == None or steps == None:
         start = int(s[2] / 2 - 50)
         stop = int(s[2] / 2 + 50)
@@ -281,7 +288,7 @@ def rotcen_test2(
                 center=cen[i],
                 algorithm=algorithm,
                 num_iter=n_iter,
-                filter_name=filter_name
+                #filter_name=filter_name
                 )
     if save_flag:
         fout = "center_test.h5"
@@ -484,6 +491,7 @@ def recon2(
     dark_scale=1,
     atten=[],
     norm_empty_sli=[],
+    snr=1,
     options={'proj_type':'cuda',
              'method':'SIRT_CUDA',
              'num_iter':200,
@@ -625,6 +633,7 @@ def recon2(
             fw_level=fw_level,
             denoise_flag=denoise_flag,
             dark_scale=dark_scale,
+            snr=snr,
             #atten=atten,
             #norm_empty_sli=norm_empty_sli
         )
@@ -647,7 +656,8 @@ def recon2(
         time_e = time.time()
         print(f'takeing {time_e-time_s:3.1f} sec')
     bin_info = f"_bin{int(binning)}"
-    fout = f"recon_scan_{str(scan_id)}{str(slice_info)}{str(col_info)}{str(bin_info)}"
+    #fout = f"recon_scan_{str(scan_id)}{str(slice_info)}{str(col_info)}{str(bin_info)}"
+    fout = f"recon_{fn[4:-3]}{str(slice_info)}{str(bin_info)}"
     if zero_flag:
         rec[rec < 0] = 0
     
@@ -681,7 +691,7 @@ def recon2(
         row_e, col_e = s[1], s[2]
     roi[2] = row_e
     roi[3] = col_e
-    
+    rec[np.isnan(rec)] = 0
  
     fout_h5 = f"{fout}.h5"
     with h5py.File(fout_h5, "w") as hf:
@@ -728,6 +738,7 @@ def proj_normalize(
     fw_level=9,
     denoise_flag=0,
     dark_scale=1,
+    snr=1,
 ):
     f = h5py.File(fn, "r")
     img_tomo = np.array(f["img_tomo"][:, sli[0] : sli[1], :])
@@ -751,9 +762,12 @@ def proj_normalize(
     prj_norm[np.isinf(prj_norm)] = 0
     prj_norm[prj_norm < 0] = 0
     prj_norm = prj_norm[allow_list]
+    '''
     prj_norm = tomopy.prep.stripe.remove_stripe_fw(
         prj_norm, level=fw_level, wname="db5", sigma=1, pad=True
     )
+    '''
+    prj_norm = tomopy.prep.stripe.remove_all_stripe(prj_norm, snr=snr)
     prj_norm -= bkg_level
     f.close()
     del img_tomo

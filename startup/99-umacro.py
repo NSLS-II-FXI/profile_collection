@@ -506,13 +506,15 @@ def mono_scan_repeatibility_test(
 
 def test_Andor_stage_unstage():
     from bluesky import RunEngine
-    RE_test = RunEngine()
+    from bluesky.utils import ts_msg_hook
+    RE.msg_hook = ts_msg_hook
+    #RE_test = RunEngine()
     TimeStampRecord = []
-    fsave_root = '/nsls2/data/fxi-new/legacy/users/2023Q1/commission/20230106'
+    #fsave_root = '/nsls2/data/fxi-new/legacy/users/2023Q1/commission/20230106'
     # set andor exposure time = 0.02
     # set andor acquire period = 0.05
     # set andor num image = 1000
-    
+    fsave_root = '/tmp'
     fsave_ts = fsave_root + '/ts.txt'
     fsave_sid = fsave_root + '/scan_id_list.txt'
     uid_list = []
@@ -520,11 +522,12 @@ def test_Andor_stage_unstage():
         print(f'i = {i}')
         #Andor.stage()
         #Andor.unstage()
-        uid = RE_test(count([Andor], 1))[0]
-        #sid = db[-1].start['scan_id']
-        uid_list.append(uid)
+        #uid = RE_test(count([Andor], 1))[0]
+        uid = RE(count([Andor], 1))[0]
+        sid = db[-1].start['scan_id']
+        uid_list.append(sid)
         np.savetxt(fsave_ts, TimeStampRecord)
-        #np.savetxt(fsave_sid, uid_list)#, fmt='%5d')
+        np.savetxt(fsave_sid, uid_list)#, fmt='%5d')
 
 
 def Read_timestampRecord(return_flag=0):
@@ -537,9 +540,9 @@ def Read_timestampRecord(return_flag=0):
     ts_unstage = ts[1::2]
     #n_scan = len(sid)
     fig, ax = plt.subplots(1,2)
-    ax[0].plot(ts_stage[:n_scan], '.', label='Andor stage')
+    ax[0].plot(ts_stage[:], '.', label='Andor stage')
     ax[0].legend()
-    ax[1].plot(ts_unstage[:n_scan], '+', label='Andor unstage')
+    ax[1].plot(ts_unstage[:], '+', label='Andor unstage')
     ax[1].legend()
     if return_flag:
         return ts_stage, ts_unstage

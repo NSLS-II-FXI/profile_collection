@@ -996,6 +996,22 @@ def _mk_eng_list(elem, bulk=False):
                 + elem.split("_")[0]
                 + "_xanes_standard_21pnt.txt"
             )
+        if elem.split("_")[-1] == "41":
+            eng_list = np.genfromtxt(
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
+                + elem.split("_")[0]
+                + "/eng_list_"
+                + elem.split("_")[0]
+                + "_xanes_standard_41pnt.txt"
+            )
+        if elem.split("_")[-1] == "83":
+            eng_list = np.genfromtxt(
+                "/nsls2/data/fxi-new/shared/config/xanes_ref/"
+                + elem.split("_")[0]
+                + "/eng_list_"
+                + elem.split("_")[0]
+                + "_xanes_standard_83pnt.txt"
+            )    
         elif elem.split("_")[-1] == "101":
             eng_list = np.genfromtxt(
                 "/nsls2/data/fxi-new/shared/config/xanes_ref/"
@@ -1363,6 +1379,10 @@ def multi_edge_xanes2(
         if binning is None:
             binning = 0
         binning = yield from _bin_cam(binning)
+        
+        yield from mv(Andor.cam.image_mode, 0)
+        yield from mv(Andor.cam.num_images, 5)
+        yield from mv(Andor.cam.acquire, 1)
 
         x_list, y_list, z_list, r_list = _sort_in_pos(in_pos_list)
         for elem in elements:
@@ -1418,6 +1438,10 @@ def multi_edge_xanes2(
         if binning is None:
             binning = 1
         binning = yield from _bin_cam(binning)
+
+        yield from mv(Andor.cam.image_mode, 0)
+        yield from mv(Andor.cam.num_images, 5)
+        yield from mv(Andor.cam.acquire, 1)
 
         x_list, y_list, z_list, r_list = _sort_in_pos(in_pos_list)
         for elem in elements:
@@ -1658,7 +1682,7 @@ def fly_scan2(
         # open shutter, tomo_images
         true_period = yield from rd(Andor.cam.acquire_period)
         rot_time = np.abs(rel_rot_ang) / np.abs(rs)
-        num_img = int(rot_time / true_period) + 2
+        num_img = int(rot_time / true_period) + int(10 * rs)
 
         yield from _open_shutter_xhx(simu=simu)
         print("\nshutter opened, taking tomo images...")

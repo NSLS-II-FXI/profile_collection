@@ -1450,6 +1450,58 @@ def get_lakeshore_param(scan_id, print_flag=0, return_flag=0):
         return mot_info
 
 
+def split_fly_scan(fn, num=1):
+    f = h5py.File(fn, 'r')
+    img_bkg = np.array(f['img_bkg'])
+    img_bkg_avg = np.array(f['img_bkg_avg'])
+    img_dark = np.array(f['img_dark'])
+    img_dark_avg = np.array(f['img_dark_avg'])
+    x_eng = np.float32(f['X_eng'])
+    sid = np.int32(f['scan_id'])
+    uid = str(f['uid'])
+    pix = f['Pixel Size']
+
+    ang = np.array(f['angle'])
+    n_ang = len(ang)
+    ang_max = np.max(np.abs(ang))
+    ang_min = np.min(np.abs(ang))
+    if ang[-1] > ang[0]:
+        direction = 1
+    else:
+        direction = -1
+    t = ang_max - ang_min - 180
+    if t <= 0:
+        print('angle spans less than 180 degrees, will not do anything')
+        return 0
+    ang_start = np.linspace(0, t, num, endpoint=True)
+    for i in range(num):
+        id_s = find_nearest(ang, ang[0] + ang_start[i] * direction)
+        id_e = find_nearest(ang, ang[0] + (ang_start[i] + 180) * direction)
+        id_e = np.min([id_e, n_ang])
+        img_t = np.array(f['img_tomo'][id_s:id_e])
+        ang_t = ang[id_s:id_e]
+        fsave = f'fly_scan_id_{sid:d}_sub_{i:d}.h5'
+        print(f'angle: {ang_t[0]:4.2f} - {ang_t[-1]:4.2f}: saved to {fsave}')
+        with h5py.File(fsave, 'w') as hf:
+            hf.create_dataset('Pixel Size', data=pix)
+            hf.create_dataset('scan_id', data=sid)
+            hf.create_dataset('uid', data=uid)
+            hf.create_dataset('img_tomo', data=img_t.astype(np.float32))
+            hf.create_dataset('img_bkg', data=img_bkg.astype(np.float32))
+            hf.create_dataset('img_bkg_avg', data=img_bkg_avg.astype(np.float32))
+            hf.create_dataset('img_dark', data=img_dark.astype(np.float32))
+            hf.create_dataset('img_dark_avg', data=img_dark_avg.astype(np.float32))
+            hf.create_dataset('angle', data=ang_t.astype(np.float32))
+            hf.create_dataset('X_eng', data=x_eng)
+            
+    f.close()
+    del img_t
+            
+            
+            
+        
+
+
 class IndexTracker(object):
     def __init__(self, ax, X, clim):
         self.ax = ax

@@ -19,8 +19,10 @@ from ophyd.areadetector.trigger_mixins import SingleTrigger
 
 from ophyd.areadetector.cam import AreaDetectorCam
 from ophyd.areadetector.detectors import DetectorBase
-from nslsii.ad33 import SingleTriggerV33, StatsPluginV33, CamV33Mixin
-
+from nslsii.ad33 import StatsPluginV33, CamV33Mixin
+from nslsii.ad33 import SingleTriggerV33
+from ophyd.areadetector.trigger_mixins import TriggerBase, ADTriggerStatus
+from ophyd.device import Staged
 
 global TimeStampRecord
 TimeStampRecord = []
@@ -40,6 +42,39 @@ class ExternalFileReference(Signal):
             dict(external="FILESTORE:", dtype="array", shape=self.shape)
         )
         return res
+
+
+#class SingleTriggerV33(TriggerBase):
+#    _status_type = ADTriggerStatus
+#
+#    def __init__(self, *args, image_name=None, **kwargs):
+#        super().__init__(*args, **kwargs)
+#        if image_name is None:
+#            image_name = '_'.join([self.name, 'image'])
+#        self._image_name = image_name
+#        self._acquire_status = self._acquisition_signal.get()
+#        self._acquisition_signal.subscribe(self._acquire_callback)
+#
+#    def _acquire_callback(self, *args, obj, **kwargs):
+#        self._acquire_status = obj.value
+#
+#    def trigger(self):
+#        "Trigger one acquisition."
+#        if self._staged != Staged.yes:
+#            raise RuntimeError("This detector is not ready to trigger."
+#                               "Call the stage() method before triggering.")
+#
+#        self._status = self._status_type(self)
+#
+#        def _acq_done(*args, **kwargs):
+#            # TODO sort out if anything useful in here
+#            if self._acquire_status:
+#               raise RuntimeError("Tried to mark status finished while still acquiring.")
+#            self._status._finished()
+#
+#        self._acquisition_signal.put(1, use_complete=True, callback=_acq_done)
+#        self.dispatch(self._image_name, ttime.time())
+#        return self._status
 
 
 class AndorCam(CamV33Mixin, AreaDetectorCam):
@@ -131,7 +166,7 @@ def timing(f):
         return result
     return wrap
 
-
+#
 class AndorKlass(SingleTriggerV33, DetectorBase):
     cam = Cpt(AndorCam, "cam1:")
     image = Cpt(ImagePlugin, "image1:")
@@ -211,7 +246,7 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
     @timing
     def unstage(self, *args, **kwargs):
         import itertools
-
+        #self._acquisition_signal.put(0, wait=True)
         for j in itertools.count():
             try:
                 print(f"unstage attempt {j}")

@@ -171,7 +171,9 @@ def _open_shutter(simu=False):
             reading = yield from bps.rd(shutter_status)
 
 
-def _set_rotation_speed(rs=1):
+def _set_rotation_speed(rs=30):
+    yield from abs_set(zps.pi_r.velocity, rs)
+    yield from bps.sleep(0.5)
     yield from abs_set(zps.pi_r.velocity, rs)
 
 

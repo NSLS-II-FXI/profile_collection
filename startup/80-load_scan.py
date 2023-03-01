@@ -21,8 +21,8 @@ def get_fly_scan_angle(scan_id):
     h = db[scan_id]
     with db.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
         timestamp_tomo = list(h.data("Andor_image", stream_name="primary"))[0]
-        timestamp_dark = list(h.data("Andor_image", stream_name="dark"))[0]
-        timestamp_bkg = list(h.data("Andor_image", stream_name="flat"))[0]
+        #timestamp_dark = list(h.data("Andor_image", stream_name="dark"))[0]
+        #timestamp_bkg = list(h.data("Andor_image", stream_name="flat"))[0]
     assert "zps_pi_r_monitor" in h.stream_names
     pos = h.table("zps_pi_r_monitor")
     timestamp_mot = timestamp_to_float(pos["time"])
@@ -150,6 +150,9 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None):
     elif scan_type == "test_scan":
         print("exporting test_scan: #{}".format(scan_id))
         export_test_scan(h, fpath)
+    elif scan_type == "test_scan2":
+        print("exporting test_scan2: #{}".format(scan_id))
+        export_test_scan2(h, fpath)
     elif scan_type == "multipos_count":
         print(f"exporting multipos_count: #{scan_id}")
         export_multipos_count(h, fpath)
@@ -253,8 +256,15 @@ def export_fly_scan(h, fpath=None):
     img_angle = get_fly_scan_angle(uid)
 
     img_tomo = np.array(list(h.data("Andor_image", stream_name="primary")))[0]
-    img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0]
-    img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0]
+    s = img_tomo.shape
+    try:
+        img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0]
+    except:
+        img_dark = np.zeros((1, s[1], s[2]))
+    try:
+        img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0]
+    except:
+        img_bkg = np.ones((1, s[1], s[2]))
 
     img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
     img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
@@ -278,7 +288,7 @@ def export_fly_scan(h, fpath=None):
         hf.create_dataset("z_ini", data=z_pos)
         hf.create_dataset("r_ini", data=r_pos)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
+        hf.create_dataset("Pixel Size", data=pxl_sz)
     """
     try:
         write_lakeshore_to_file(h, fname)
@@ -310,77 +320,113 @@ def export_fly_scan2(h, fpath=None):
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
     pxl_sz = 6500.0 / M
 
-    try:
-        x_eng = h.start["XEng"]
-    except:
-        x_eng = h.start["x_ray_energy"]
-    chunk_size = h.start["chunk_size"]
-    # sanity check: make sure we remembered the right stream name
-    assert "zps_pi_r_monitor" in h.stream_names
-    pos = h.table("zps_pi_r_monitor")
-    #    imgs = list(h.data("Andor_image"))
-    img_dark = np.array(list(h.data("Andor_image"))[-1][:])
-    img_bkg = np.array(list(h.data("Andor_image"))[-2][:])
-    s = img_dark.shape
-    img_dark_avg = np.mean(img_dark, axis=0).reshape(1, s[1], s[2])
-    img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
+    # try:
+    #     x_eng = h.start["XEng"]
+    # except:
+    #     x_eng = h.start["x_ray_energy"]
+    # # chunk_size = h.start["chunk_size"]
+    # # sanity check: make sure we remembered the right stream name
+    # assert "zps_pi_r_monitor" in h.stream_names
+    # pos = h.table("zps_pi_r_monitor")
+    # #    imgs = list(h.data("Andor_image"))
+    # img_dark = np.array(list(h.data("Andor_image"))[-1][:])
+    # img_bkg = np.array(list(h.data("Andor_image"))[-2][:])
+    # s = img_dark.shape
+    # img_dark_avg = np.mean(img_dark, axis=0).reshape(1, s[1], s[2])
+    # img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
 
-    imgs = np.array(list(h.data("Andor_image"))[:-2])
-    s1 = imgs.shape
-    imgs = imgs.reshape([s1[0] * s1[1], s1[2], s1[3]])
+    # imgs = np.array(list(h.data("Andor_image"))[:-2])
+    # s1 = imgs.shape
+    # imgs = imgs.reshape([s1[0] * s1[1], s1[2], s1[3]])
 
-    with db.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
-        chunked_timestamps = list(h.data("Andor_image"))
+    # with db.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
+    #     chunked_timestamps = list(h.data("Andor_image"))
 
-    chunked_timestamps = chunked_timestamps[:-2]
-    raw_timestamps = []
-    for chunk in chunked_timestamps:
-        raw_timestamps.extend(chunk.tolist())
+    # chunked_timestamps = chunked_timestamps[:-2]
+    # raw_timestamps = []
+    # for chunk in chunked_timestamps:
+    #     raw_timestamps.extend(chunk.tolist())
 
-    timestamps = convert_AD_timestamps(pd.Series(raw_timestamps))
-    pos["time"] = pos["time"].dt.tz_localize("US/Eastern")
+    # timestamps = convert_AD_timestamps(pd.Series(raw_timestamps))
+    # pos["time"] = pos["time"].dt.tz_localize("US/Eastern")
 
-    img_day, img_hour = (
-        timestamps.dt.day,
-        timestamps.dt.hour,
-    )
-    img_min, img_sec, img_msec = (
-        timestamps.dt.minute,
-        timestamps.dt.second,
-        timestamps.dt.microsecond,
-    )
-    img_time = (
-        img_day * 86400 + img_hour * 3600 + img_min * 60 + img_sec + img_msec * 1e-6
-    )
-    img_time = np.array(img_time)
+    # img_day, img_hour = (
+    #     timestamps.dt.day,
+    #     timestamps.dt.hour,
+    # )
+    # img_min, img_sec, img_msec = (
+    #     timestamps.dt.minute,
+    #     timestamps.dt.second,
+    #     timestamps.dt.microsecond,
+    # )
+    # img_time = (
+    #     img_day * 86400 + img_hour * 3600 + img_min * 60 + img_sec + img_msec * 1e-6
+    # )
+    # img_time = np.array(img_time)
 
-    mot_day, mot_hour = (
-        pos["time"].dt.day,
-        pos["time"].dt.hour,
-    )
-    mot_min, mot_sec, mot_msec = (
-        pos["time"].dt.minute,
-        pos["time"].dt.second,
-        pos["time"].dt.microsecond,
-    )
-    mot_time = (
-        mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
-    )
-    mot_time = np.array(mot_time)
+    # mot_day, mot_hour = (
+    #     pos["time"].dt.day,
+    #     pos["time"].dt.hour,
+    # )
+    # mot_min, mot_sec, mot_msec = (
+    #     pos["time"].dt.minute,
+    #     pos["time"].dt.second,
+    #     pos["time"].dt.microsecond,
+    # )
+    # mot_time = (
+    #     mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
+    # )
+    # mot_time = np.array(mot_time)
 
-    mot_pos = np.array(pos["zps_pi_r"])
-    offset = np.min([np.min(img_time), np.min(mot_time)])
-    img_time -= offset
-    mot_time -= offset
-    mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
+    # mot_pos = np.array(pos["zps_pi_r"])
+    # offset = np.min([np.min(img_time), np.min(mot_time)])
+    # img_time -= offset
+    # mot_time -= offset
+    # mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
 
-    pos2 = mot_pos_interp.argmax() + 1
-    # img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
-    img_angle = mot_pos_interp[:pos2]
-    # img_tomo = imgs[: pos2 - chunk_size]  # tomo images
-    img_tomo = imgs[:pos2]
+    # pos2 = mot_pos_interp.argmax() + 1
+    # # img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
+    # img_angle = mot_pos_interp[:pos2]
+    # # img_tomo = imgs[: pos2 - chunk_size]  # tomo images
+    # img_tomo = imgs[:pos2]
 
-    fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
+    # fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
+
+    # with h5py.File(fname, "w") as hf:
+    #     hf.create_dataset("note", data=str(note))
+    #     hf.create_dataset("uid", data=uid)
+    #     hf.create_dataset("scan_id", data=int(scan_id))
+    #     hf.create_dataset("scan_time", data=scan_time)
+    #     hf.create_dataset("X_eng", data=x_eng)
+    #     hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.uint16))
+    #     hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.uint16))
+    #     hf.create_dataset("img_bkg_avg", data=np.array(img_bkg_avg, dtype=np.float32))
+    #     hf.create_dataset("img_dark_avg", data=np.array(img_dark_avg, dtype=np.float32))
+    #     hf.create_dataset("img_tomo", data=np.array(img_tomo, dtype=np.uint16))
+    #     hf.create_dataset("angle", data=img_angle)
+    #     hf.create_dataset("x_ini", data=x_pos)
+    #     hf.create_dataset("y_ini", data=y_pos)
+    #     hf.create_dataset("z_ini", data=z_pos)
+    #     hf.create_dataset("r_ini", data=r_pos)
+    #     hf.create_dataset("Magnification", data=M)
+    #     hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
+
+    # try:
+    #     write_lakeshore_to_file(h, fname)
+    # except:
+    #     print("fails to write lakeshore info into {fname}")
+
+    x_eng = h.start["XEng"]
+    img_angle = get_fly_scan_angle(uid)
+
+    img_tomo = np.array(list(h.data("Andor_image", stream_name="primary")))[0]
+    img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0]
+    img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0]
+
+    img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
+    img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
+
+    fname = fpath + "fly_scan_id_" + str(scan_id) + ".h5"
 
     with h5py.File(fname, "w") as hf:
         hf.create_dataset("note", data=str(note))
@@ -401,15 +447,10 @@ def export_fly_scan2(h, fpath=None):
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
 
-    try:
-        write_lakeshore_to_file(h, fname)
-    except:
-        print("fails to write lakeshore info into {fname}")
-
     del img_tomo
     del img_dark
     del img_bkg
-    del imgs
+    # del imgs
 
 
 def export_xanes_scan(h, fpath=None):
@@ -699,6 +740,76 @@ def export_test_scan(h, fpath=None):
         print("fails to write lakeshore info into {fname}")
 
     del img, img_test, img_bkg, img_dark, img_norm
+
+
+def export_test_scan2(h, fpath=None):
+    if fpath is None:
+        fpath = "./"
+    else:
+        if not fpath[-1] == "/":
+            fpath += "/"
+    zp_z_pos = h.table("baseline")["zp_z"][1]
+    DetU_z_pos = h.table("baseline")["DetU_z"][1]
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
+    scan_type = h.start["plan_name"]
+    uid = h.start["uid"]
+    note = h.start["note"]
+    scan_id = h.start["scan_id"]
+    scan_time = h.start["time"]
+    try:
+        x_eng = h.start["XEng"]
+    except:
+        x_eng = h.start["x_ray_energy"]
+    num = h.start["plan_args"]["num_img"]
+
+    img = np.array(list(h.data("Andor_image", stream_name="primary")))[0]
+    try:
+        img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0]
+        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True)
+    except:
+        img_dark = np.zeros((1, img.shape[1], img.shape[2]))
+        img_dark_avg = img_dark
+    img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0]
+    img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True)
+
+    img_norm = (img - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg) 
+    img_norm[np.isnan(img_norm)] = 0
+    img_norm[np.isinf(img_norm)] = 0
+    fname = fpath + scan_type + "_id_" + str(scan_id) + ".h5"
+    with h5py.File(fname, "w") as hf:
+        hf.create_dataset("uid", data=uid)
+        hf.create_dataset("scan_id", data=scan_id)
+        hf.create_dataset("note", data=str(note))
+        hf.create_dataset("scan_time", data=scan_time)
+        hf.create_dataset("X_eng", data=x_eng)
+        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+        hf.create_dataset("img", data=np.array(img, dtype=np.float32))
+        hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
+        hf.create_dataset("Magnification", data=M)
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+
+    try:
+        write_lakeshore_to_file(h, fname)
+    except:
+        print("fails to write lakeshore info into {fname}")
+
+    del (
+        img_dark,
+        img_dark_avg,
+        img_bkg,
+        img_bkg_avg,
+        #img_xanes,
+        #img_xanes_avg,
+        img_norm,
+        img
+    )
+
+
+
+
+
 
 
 def export_count_img(h, fpath=None):
@@ -1152,8 +1263,9 @@ def export_multipos_2D_xanes_scan2(h, fpath=None):
                 except:
                     print("fails to write lakeshore info into {fname}")
                 """
-        except:
+        except Exception as err:
             print(f"fails in export repeat# {repeat}")
+            print(err)
     del img_xanes
     del img_bkg
     del img_dark

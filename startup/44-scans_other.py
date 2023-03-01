@@ -121,6 +121,133 @@ def test_scan(
     #    load_test_scan(db[-1])
     return uid
 
+def test_scan2(
+    exposure_time=0.1,
+    out_x=-100,
+    out_y=-100,
+    out_z=0,
+    out_r=0,
+    num_img=10,
+    take_dark_img=True,
+    relative_move_flag=1,
+    rot_first_flag=1, 
+    note="",
+    simu=False,
+    md=None,
+):
+    """
+    Take multiple images (Andor camera)
+
+    Input:
+    ------------
+    exposure_time: float, exposure time for each image
+
+    out_x: float(int), relative sample out position for zps.sx
+
+    out_y: float(int), relative sampel out position for zps.sy
+
+    out_z: float(int), relative sampel out position for zps.sz
+
+    out_r: float(int), relative sampel out position for zps.pi_r
+
+    num_img: int, number of images to take
+    """
+
+    yield from _set_andor_param(exposure_time, exposure_time, 1)
+
+    detectors = [Andor]
+    motor_x_ini = zps.sx.position
+    motor_y_ini = zps.sy.position
+    motor_z_ini = zps.sz.position
+    motor_r_ini = zps.pi_r.position
+
+    if relative_move_flag:
+        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
+    else:
+        motor_x_out = out_x if not (out_x is None) else motor_x_ini
+        motor_y_out = out_y if not (out_y is None) else motor_y_ini
+        motor_z_out = out_z if not (out_z is None) else motor_z_ini
+        motor_r_out = out_r if not (out_r is None) else motor_r_ini
+
+
+    motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
+
+    _md = {
+        "detectors": ["Andor"],
+        "motors": [mot.name for mot in motors],
+        "XEng": XEng.position,
+        "plan_args": {
+            "exposure_time": exposure_time,
+            "out_x": out_x,
+            "out_y": out_y,
+            "out_z": out_z,
+            "out_r": out_r,
+            "num_img": num_img,
+            "num_bkg": 20,
+            "note": note if note else "None",
+        },
+        "plan_name": "test_scan2",
+        "plan_pattern": "linspace",
+        "plan_pattern_module": "numpy",
+        "hints": {},
+        "operator": "FXI",
+        "note": note if note else "None",
+        # "motor_pos": wh_pos(print_on_screen=0),
+    }
+    _md.update(md or {})
+    _md["hints"].setdefault("dimensions", [(("time",), "primary")])
+
+    @stage_decorator(list(detectors) + motors)
+    @run_decorator(md=_md)
+    def inner_scan():
+
+        # close shutter, dark images: numer=chunk_size (e.g.20)
+        if take_dark_img:
+            print("\nshutter closed, taking dark images...")
+            yield from _take_dark_image(detectors, motors, num=1, chunk_size=20, stream_name="dark", simu=simu)
+
+        yield from _open_shutter(simu=simu)
+        yield from _set_Andor_chunk_size(detectors, chunk_size=num_img)
+        yield from _take_image(detectors, motors, num=1, stream_name="primary")
+
+
+        # taking out sample and take background image
+        print("\nTaking background images...")
+        yield from _take_bkg_image(
+            motor_x_out,
+            motor_y_out,
+            motor_z_out,
+            motor_r_out,
+            detectors,
+            [],
+            num=1,
+            chunk_size=20,
+            rot_first_flag=rot_first_flag,
+            stream_name="flat",
+            simu=simu,
+        )
+        if take_dark_img:
+            yield from _close_shutter(simu=simu)
+        yield from _move_sample_in(
+            motor_x_ini,
+            motor_y_ini,
+            motor_z_ini,
+            motor_r_ini,
+            trans_first_flag=rot_first_flag,
+            repeat=3,
+        )
+
+    uid = yield from inner_scan()
+    yield from mv(Andor.cam.image_mode, 1)
+    #yield from _close_shutter(simu=simu)
+    txt = get_scan_parameter()
+    insert_text(txt)
+    print(txt)
+    return uid
+
 
 def z_scan(
     start=-0.03,
