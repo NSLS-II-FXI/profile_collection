@@ -11,7 +11,7 @@ static/
 startup/Tomo_test/
 startup/temp/
 93-load_scan_corrupted_0912_2019.py
-startup/backup/
+startup_backup/
 startup/calib_copy_Feb10_2019.csv
 startup/hs_err_pid7527.log
 startup/existing_plans_and_devices.yaml

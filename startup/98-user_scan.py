@@ -3197,6 +3197,25 @@ def multi_pos_2D_xanes_and_3D_tomo(
                 )
 
 
+def cal_ccd_zp_xh(eng, mag, zp_cfg=None):
+    """
+    INPUT:
+        eng: X-ray energy in keV
+        mag: zone plate magnification
+    """
+    if zp_cfg is None:
+        zp_cfg={'D': 244, 'dr': 30} # 'D': zp diameter in um; 'dr': outmost zone width in nm
+    #wl = 12.39847/eng/10  # in nm
+    wl = 6.6261e-34 * 299792458/(1.602176565e-19 * eng) * 1e6  # in nm
+    na = wl/2/zp_cfg['dr'] # numberical apeture in rad
+    dof = wl/(na**2)/1000 # depth of focus in um
+    f = zp_cfg['dr'] * zp_cfg['D'] / wl / 1000 # focal length in mm
+    p = f * (mag + 1) / mag # object distance from zone plate in mm
+    q = p * mag # detector distance from zone plate in mm
+    det_pos = p + q # ccd detector distance from the sample in mm
+    return p, det_pos, wl, na, f
+
+
 def zps_motor_scan_with_Andor(
     motors,
     starts,

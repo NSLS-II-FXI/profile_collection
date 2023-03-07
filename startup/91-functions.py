@@ -693,24 +693,26 @@ def cal_parameter(eng, print_flag=1):
     global ZONE_DIAMETER
 
     h = 6.6261e-34
-    c = 3e8
-    ec = 1.602e-19
+    # c = 3e8
+    c = 299792458 # changed by xh
+    # ec = 1.602e-19
+    ec = 1.602176565e-19 # changed by xh
 
     #    if eng < 4000:    eng = XEng.position * 1000 # current beam energy
     check_eng_range([eng])
 
     wave_length = h * c / (ec * eng * 1000) * 1e9  # nm
     focal_length = OUT_ZONE_WIDTH * ZONE_DIAMETER / (wave_length) / 1000  # mm
-    NA = wave_length / (2 * OUT_ZONE_WIDTH)
-    DOF = wave_length / NA**2 / 1000  # um
+    na = wave_length / (2 * OUT_ZONE_WIDTH)
+    dof = wave_length / na**2 / 1000  # um
     if print_flag:
         print(
             "Wave length: {0:2.2f} nm\nFocal_length: {1:2.2f} mm\nNA: {2:2.2f} mrad\nDepth of focus: {3:2.2f} um".format(
-                wave_length, focal_length, NA * 1e3, DOF
+                wave_length, focal_length, na * 1e3, dof
             )
         )
     else:
-        return wave_length, focal_length, NA, DOF
+        return wave_length, focal_length, na, dof
 
 
 def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1):
@@ -1320,7 +1322,7 @@ def get_img(h, det="Andor", sli=[]):
     return np.squeeze(img)
 
 
-def get_scan_parameter(scan_id=-1, print_flag=0):
+def get_scan_parameter(scan_id=-1, print_flag=1):
     h = db[scan_id]
     scan_id = h.start["scan_id"]
     uid = h.start["uid"]
@@ -1345,8 +1347,6 @@ def get_scan_parameter(scan_id=-1, print_flag=0):
         txt = txt + "Zone Plate info:  " + txt_tmp
     except:
         pass
-    if print_flag:
-        print(txt)
     return txt
 
 

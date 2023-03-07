@@ -316,11 +316,12 @@ def fly_scan(
     @bpp.monitor_during_decorator([zps.pi_r])
     @run_decorator(md=_md)
     def fly_inner_scan():
+        '''
         for flt in filters:
             yield from mv(flt, 1)
             yield from mv(flt, 1)
         yield from bps.sleep(1)
-
+        '''
         # close shutter, dark images: numer=chunk_size (e.g.20)
         print("\nshutter closed, taking dark images...")
         yield from _take_dark_image(
@@ -347,6 +348,11 @@ def fly_scan(
         print("\nTaking background images...")
         yield from _set_rotation_speed(rs=rot_back_velo)
         #        yield from abs_set(zps.pi_r.velocity, rs)
+        
+        for flt in filters:
+            yield from mv(flt, 1)
+            yield from mv(flt, 1)
+        yield from bps.sleep(1)
 
         yield from _take_bkg_image(
             motor_x_out,
