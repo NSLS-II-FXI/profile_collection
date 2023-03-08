@@ -504,21 +504,23 @@ def mono_scan_repeatibility_test(
 
 
 
-def test_Andor_stage_unstage():
+def test_Andor_stage_unstage(n=500):
+    global TimeStampRecord
     from bluesky import RunEngine
     from bluesky.utils import ts_msg_hook
     RE.msg_hook = ts_msg_hook
     #RE_test = RunEngine()
+    
     TimeStampRecord = []
     #fsave_root = '/nsls2/data/fxi-new/legacy/users/2023Q1/commission/20230106'
     # set andor exposure time = 0.02
     # set andor acquire period = 0.05
     # set andor num image = 1000
-    fsave_root = '/tmp'
-    fsave_ts = fsave_root + '/ts.txt'
-    fsave_sid = fsave_root + '/scan_id_list.txt'
+    fsave_root = '/tmp/Andor_test'
+    fsave_ts = fsave_root + '/ts_20230308.txt'
+    fsave_sid = fsave_root + '/scan_id_list_20230308.txt'
     uid_list = []
-    for i in range(500):
+    for i in range(n):
         print(f'i = {i}')
         #Andor.stage()
         #Andor.unstage()
@@ -526,23 +528,24 @@ def test_Andor_stage_unstage():
         uid = RE(count([Andor], 5))[0]
         sid = db[-1].start['scan_id']
         uid_list.append(sid)
+        print(f'save {fsave_ts}')
         np.savetxt(fsave_ts, TimeStampRecord)
-        np.savetxt(fsave_sid, uid_list)#, fmt='%5d')
+        np.savetxt(fsave_sid, uid_list, fmt='%5d')
 
 
 def Read_timestampRecord(return_flag=0):
-    fsave_root = '/nsls2/data/fxi-new/legacy/users/2023Q1/commission/20230106'
+    fsave_root = '/tmp/Andor_test'
     fn_ts = fsave_root + '/ts.txt'
-    #fn_sid = fsave_root + 'scan_id_list.txt'
+    fn_sid = fsave_root + '/scan_id_list.txt'
     ts = np.loadtxt(fn_ts)
-    #sid = np.loadtxt(fn_sid)
+    sid = np.loadtxt(fn_sid)
     ts_stage = ts[::2]
     ts_unstage = ts[1::2]
     #n_scan = len(sid)
     fig, ax = plt.subplots(1,2)
-    ax[0].plot(ts_stage[:], '.', label='Andor stage')
+    ax[0].plot(sid, ts_stage[:], '.', label='Andor stage')
     ax[0].legend()
-    ax[1].plot(ts_unstage[:], '+', label='Andor unstage')
+    ax[1].plot(sid, ts_unstage[:], '+', label='Andor unstage')
     ax[1].legend()
     if return_flag:
         return ts_stage, ts_unstage

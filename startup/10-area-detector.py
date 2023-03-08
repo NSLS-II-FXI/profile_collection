@@ -162,7 +162,7 @@ def timing(f):
 class AndorKlass(SingleTriggerV33, DetectorBase):
     cam = Cpt(AndorCam, "cam1:")
     image = Cpt(ImagePlugin, "image1:")
-    stats1 = Cpt(StatsPluginV33, "Stats1:")
+    #    stats1 = Cpt(StatsPluginV33, "Stats1:")
     #    stats2 = Cpt(StatsPluginV33, 'Stats2:')
     #    stats3 = Cpt(StatsPluginV33, 'Stats3:')
     #    stats4 = Cpt(StatsPluginV33, 'Stats4:')
@@ -222,7 +222,9 @@ class AndorKlass(SingleTriggerV33, DetectorBase):
     @timing
     def stage(self):
         import itertools
-
+        if self.cam.detector_state.get() != 0:
+            raise RuntimeError("Andor must be in the Idle state to stage.")
+        
         for j in itertools.count():
             try:
                 print(f"stage attempt {j}")
@@ -327,7 +329,7 @@ MFS.hdf5.read_attrs = []
 
 detA1 = Manta("XF:18IDB-BI{Det:A1}", name="detA1")
 detA1.read_attrs = ["hdf5", "stats1"]
-# detA1.read_attrs = ['hdf5']
+#detA1.read_attrs = ['hdf5']
 detA1.read_attrs = ["hdf5", "stats1"]
 detA1.stats1.read_attrs = ["total"]
 # detA1.stats5.read_attrs = ['total']
@@ -348,13 +350,15 @@ Andor.hdf5.read_attrs = []
 Andor = AndorKlass("XF:18IDB-BI{Det:Neo2}", name="Andor")
 Andor.cam.ensure_nonblocking()
 # Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
-# Andor.read_attrs = ['hdf5']
-Andor.read_attrs = ["hdf5", "stats1"]
-Andor.stats1.read_attrs = ["total"]
+Andor.read_attrs = ['hdf5']
+#Andor.read_attrs = ["hdf5", "stats1"]
+#Andor.stats1.read_attrs = ["total"]
 # Andor.stats5.read_attrs = ['total']
 Andor.hdf5.read_attrs = ["time_stamp"]
 Andor.stage_sigs["cam.image_mode"] = 0
-for k in ("image", "stats1", "trans1", "roi1", "proc1"):
+#for k in ("image", "stats1", "trans1", "roi1", "proc1"):
+#    getattr(Andor, k).ensure_nonblocking()
+for k in ("image", "trans1", "roi1", "proc1"):
     getattr(Andor, k).ensure_nonblocking()
 Andor.hdf5.time_stamp.name = "Andor_timestamps"
 
@@ -368,7 +372,9 @@ Andor.hdf5.time_stamp.name = "Andor_timestamps"
 # vlm.hdf5.read_attrs = []
 
 
-for det in [detA1, Andor]:
+#for det in [detA1, Andor]:
+for det in [detA1]:
     det.stats1.total.kind = "hinted"
     # It does not work since it's not defined in the class, commenting out:
     # det.stats5.total.kind = 'hinted'
+
