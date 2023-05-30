@@ -49,7 +49,7 @@ def _take_image(detectors, motor, num, stream_name="primary"):
 def _set_Andor_chunk_size(detectors, chunk_size):
     for detector in detectors:
         yield from unstage(detector)
-    yield from bps.configure(Andor, {"cam.num_images": chunk_size})
+    yield from abs_set(Andor.cam.num_images, chunk_size, wait=True)
     for detector in detectors:
         yield from stage(detector)
 
@@ -177,4 +177,36 @@ def _set_rotation_speed(rs=30):
     yield from abs_set(zps.pi_r.velocity, rs)
 
 
-#
+def _move_sample(x_pos, y_pos, z_pos, r_pos, repeat=1):
+    """_summary_
+
+    Args:
+        x_pos (float): absolute position x-stage moving to
+        y_pos (float): absolute position y-stage moving to
+        z_pos (float): absolute position z-stage moving to
+        r_pos (float): absolute position r-stage moving to
+        repeat (int, optional): number of trials. Defaults to 1.
+    """
+    for i in range(repeat):
+        yield from mv(zps.pi_r, r_pos)
+        yield from mv(zps.sx, x_pos, zps.sy, y_pos, zps.sz, z_pos)
+
+
+def _take_ref_image(
+    cams,
+    mots_pos = {},
+    num=1,
+    chunk_size=1,
+    stream_name="flat",
+    simu=False,
+):
+    if stream_name == "flat":
+        yield from _move_sample(
+            mots_pos["x"], mots_pos["y"], mots_pos["z"], mots_pos["r"], repeat=2
+        )
+        yield from _open_shutter_xhx(simu)
+    elif stream_name == "dark":
+        yield from _close_shutter_xhx(simu)
+    yield from _set_Andor_chunk_size(cams, chunk_size)
+    yield from _take_image(cams, [], num, stream_name=stream_name)
+

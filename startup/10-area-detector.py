@@ -362,6 +362,21 @@ for k in ("image", "trans1", "roi1", "proc1"):
     getattr(Andor, k).ensure_nonblocking()
 Andor.hdf5.time_stamp.name = "Andor_timestamps"
 
+# added by XH
+Marana = AndorKlass("XF:18IDB-ES{Det:Marana1}", name="Andor")
+Marana.cam.ensure_nonblocking()
+# Andor.read_attrs = ['hdf5', 'stats1', 'stats5']
+Marana.read_attrs = ['hdf5']
+#Andor.read_attrs = ["hdf5", "stats1"]
+#Andor.stats1.read_attrs = ["total"]
+# Andor.stats5.read_attrs = ['total']
+Marana.hdf5.read_attrs = ["time_stamp"]
+Marana.stage_sigs["cam.image_mode"] = 0
+#for k in ("image", "stats1", "trans1", "roi1", "proc1"):
+#    getattr(Andor, k).ensure_nonblocking()
+for k in ("image", "trans1", "roi1", "proc1"):
+    getattr(Marana, k).ensure_nonblocking()
+Marana.hdf5.time_stamp.name = "Andor_timestamps"
 
 # vlm = Manta("XF:18IDB-BI{VLM:1}", name="vlm")
 # detA1.read_attrs = ['hdf5', 'stats1', 'stats5']

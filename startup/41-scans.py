@@ -262,7 +262,8 @@ def fly_scan(
     motor = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     detectors = [Andor, ic3]
-    offset_angle = -1 * rs
+    #offset_angle = -1 * rs
+    offset_angle = 0
     current_rot_angle = zps.pi_r.position
     target_rot_angle = current_rot_angle + relative_rot_angle
     _md = {

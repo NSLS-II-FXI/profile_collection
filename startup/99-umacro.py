@@ -535,8 +535,8 @@ def test_Andor_stage_unstage(n=500):
 
 def Read_timestampRecord(return_flag=0):
     fsave_root = '/tmp/Andor_test'
-    fn_ts = fsave_root + '/ts.txt'
-    fn_sid = fsave_root + '/scan_id_list.txt'
+    fn_ts = fsave_root + '/ts_20230308.txt'
+    fn_sid = fsave_root + '/scan_id_list_20230308.txt'
     ts = np.loadtxt(fn_ts)
     sid = np.loadtxt(fn_sid)
     ts_stage = ts[::2]

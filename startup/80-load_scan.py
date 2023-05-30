@@ -28,9 +28,20 @@ def get_fly_scan_angle(scan_id):
     timestamp_mot = timestamp_to_float(pos["time"])
 
     img_ini_timestamp = timestamp_tomo[0]
-    mot_ini_timestamp = timestamp_mot[
-        1
-    ]  # timestamp_mot[1] is the time when taking dark image
+
+    # something not correct in rotary stage. 
+    # we do following correction on 2023_5_16
+    # mot_ini_timestamp = timestamp_mot[1]  # timestamp_mot[1] is the time when taking dark image
+
+    n = len(timestamp_mot)
+    for idx in range(1, n):
+        ts1 = timestamp_mot[idx] - timestamp_mot[idx-1]
+        ts2 = timestamp_mot[idx+1] - timestamp_mot[idx]
+        if ts1 < 0.25 and ts2 < 0.25:
+            break
+    mot_ini_timestamp = timestamp_mot[idx]
+    ## end modifing
+
 
     tomo_time = timestamp_tomo - img_ini_timestamp
     mot_time = timestamp_mot - mot_ini_timestamp

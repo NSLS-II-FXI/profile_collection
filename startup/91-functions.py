@@ -1428,6 +1428,40 @@ def get_scan_motor_pos(scan_id):
     except:
         pass
 
+def get_scan_motor_xyz(scan_id):
+    df = db[scan_id].table("baseline").T
+    mot = BlueskyMagics.positioners
+    for i in mot:
+        try:
+            mot_name = i.name
+            if mot_name == 'zps_sx' or mot_name == 'zps_sy' or mot_name == 'zps_sz' or mot_name == 'zps_pi_r':
+                if mot_name[:3] == "pzt":
+                    print(f"{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} ")
+                else:
+                    mot_parent_name = i.parent.name
+                    offset_name = f"{mot_name}_user_offset"
+                    offset_dir = f"{mot_name}_user_offset_dir"
+                    offset_val = db[scan_id].config_data(mot_parent_name)["baseline"][0][
+                        offset_name
+                    ]
+                    offset_dir_val = db[scan_id].config_data(mot_parent_name)["baseline"][
+                        0
+                    ][offset_dir]
+                    print(
+                        f"{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} {i.motor_egu.value:>4s}  --->  {df[2][mot_name]: 14.6f} {i.motor_egu.value:>4s}      offset = {offset_val: 14.6f}    {offset_dir_val: 1d}"
+                    )
+        except:
+            pass
+    try:
+        for tmp in db[
+            scan_id
+        ].start.keys():  # if 'T_enabled' has been assigned in md in scan()'
+            if "T_" in tmp:
+                get_lakeshore_param(scan_id, print_flag=1)
+                break
+    except:
+        pass
+
 
 def reprint_scan(scan_id):
     from bluesky.callbacks.best_effort import BestEffortCallback

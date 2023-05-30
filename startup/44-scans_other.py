@@ -1,7 +1,7 @@
-try:
-    print(detA1)
-except:
-    detA1 = None
+# try:
+#     print(detA1)
+# except:
+#     detA1 = None
 
 
 def test_test():
@@ -123,6 +123,7 @@ def test_scan(
 
 def test_scan2(
     exposure_time=0.1,
+    period_time=0.1,
     out_x=-100,
     out_y=-100,
     out_z=0,
@@ -153,7 +154,7 @@ def test_scan2(
     num_img: int, number of images to take
     """
 
-    yield from _set_andor_param(exposure_time, exposure_time, 1)
+    yield from _set_andor_param(exposure_time, period_time, 1)
 
     detectors = [Andor]
     motor_x_ini = zps.sx.position
@@ -260,6 +261,7 @@ def z_scan(
     note="",
     md=None,
     simu=False,
+    cam=Andor
 ):
     """
     scan the zone-plate to find best focus
@@ -286,24 +288,24 @@ def z_scan(
 
     """
 
-    detectors = [Andor]
+    detectors = [cam]
     motor = zp.z
     z_ini = motor.position  # zp.z intial position
     z_start = z_ini + start
     z_stop = z_ini + stop
-    #    detectors = [Andor]
+    #    detectors = [cam]
     y_ini = zps.sy.position  # sample y position (initial)
     y_out = (
         y_ini + out_y if not (out_y is None) else y_ini
     )  # sample y position (out-position)
     x_ini = zps.sx.position
     x_out = x_ini + out_x if not (out_x is None) else x_ini
-    yield from mv(Andor.cam.acquire, 0)
-    yield from mv(Andor.cam.image_mode, 0)
-    yield from mv(Andor.cam.num_images, chunk_size)
-    yield from mv(Andor.cam.acquire_time, exposure_time)
+    yield from mv(cam.cam.acquire, 0)
+    yield from mv(cam.cam.image_mode, 0)
+    yield from mv(cam.cam.num_images, chunk_size)
+    yield from mv(cam.cam.acquire_time, exposure_time)
     period_cor = max(exposure_time + 0.01, 0.05)
-    yield from mv(Andor.cam.acquire_period, period_cor)
+    yield from mv(cam.cam.acquire_period, period_cor)
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -365,10 +367,10 @@ def z_scan(
         yield from mv(zps.sy, y_ini)
         yield from mv(zp.z, z_ini)
         # yield from abs_set(shutter_open, 1, wait=True)
-        yield from mv(Andor.cam.image_mode, 1)
+        yield from mv(cam.cam.image_mode, 1)
 
     uid = yield from inner_scan()
-    yield from mv(Andor.cam.image_mode, 1)
+    yield from mv(cam.cam.image_mode, 1)
     yield from _close_shutter(simu=simu)
     txt = get_scan_parameter()
     insert_text(txt)

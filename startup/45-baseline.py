@@ -3,7 +3,7 @@ sd.baseline = [
     zp,
     aper,
     clens,
-    phase_ring,
+    #phase_ring,
     betr,
     zps,
     DetU,

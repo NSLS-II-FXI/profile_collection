@@ -94,10 +94,12 @@ class MyBaseMotor(EpicsMotor):
     motor_res = Cpt(EpicsSignalRO, ".MRES")
     encoder_res = Cpt(EpicsSignalRO, ".ERES")
     motor_stat = Cpt(EpicsSignalRO, ".STAT")
+    base_velo = Cpt(EpicsSignalRO, ".VBAS")
+    max_velo = Cpt(EpicsSignalRO, ".VMAX")
     motor_calib = Cpt(EpicsSignal, ".SET")
     low_limit = Cpt(EpicsSignal, ".LLM")
     high_limit = Cpt(EpicsSignal, ".HLM")
-    step_size = Cpt(EpicsSignal, ".TWV")
+    step_size = Cpt(EpicsSignal, ".TWV")    
 
 
 class MyEpicsMotor(MyBaseMotor):
@@ -117,7 +119,8 @@ class Condenser(Device):
 
 class Zoneplate(Device):
     x = Cpt(MyEpicsMotor, "{ZP:1-Ax:X}Mtr")
-    y = Cpt(MyEpicsMotor, "{ZP:1-Ax:Y}Mtr")
+    #y = Cpt(MyEpicsMotor, "{ZP:1-Ax:Y}Mtr")
+    y = Cpt(MyEpicsMotor, "{BLens:1-Ax:Y}Mtr")
     z = Cpt(MyBaseMotor, "{TXM-ZP:1-Ax:Z}Mtr")
 
 
@@ -135,7 +138,8 @@ class PhaseRing(Device):
 
 class BetrandLens(Device):
     x = Cpt(MyEpicsMotor, "{BLens:1-Ax:X}Mtr")
-    y = Cpt(MyEpicsMotor, "{BLens:1-Ax:Y}Mtr")
+    #y = Cpt(MyEpicsMotor, "{BLens:1-Ax:Y}Mtr")
+    y = Cpt(MyEpicsMotor, "{ZP:1-Ax:Y}Mtr")
     z = Cpt(MyBaseMotor, "{BLens:1-Ax:Z}Mtr")
 
 
@@ -144,7 +148,7 @@ class TXMSampleStage(Device):
     sy = Cpt(MyEpicsMotor, "{Env:1-Ax:Yl}Mtr")
     sz = Cpt(MyEpicsMotor, "{Env:1-Ax:Zl}Mtr")
     pi_x = Cpt(MyBaseMotor, "{TXM:1-Ax:X}Mtr")
-    pi_r = Cpt(MyEpicsMotor, "{TXM:1-Ax:R}Mtr")
+    pi_r = Cpt(MyEpicsMotor, "{TXM:2-Ax:R}Mtr")
 
 
 class DetSupport(Device):
@@ -232,11 +236,11 @@ motor_txm = [
     aper.y,
     aper.z,
     zp.x,
-    zp.y,
+    #zp.y,
     zp.z,
-    phase_ring.x,
-    phase_ring.y,
-    phase_ring.z,
+    #phase_ring.x,
+    #phase_ring.y,
+    #phase_ring.z,
     betr.x,
     betr.y,
     betr.z,
