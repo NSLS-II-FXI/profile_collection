@@ -650,7 +650,7 @@ class FXITomoFlyer(Device):
         up to the caller to ensure that the motion is actually complete.
         """
 
-        amk_debug_flag = False
+        print("\nin complet: complete starts")
 
         # Our acquisition complete PV is: XF:05IDD-ES:1{Dev:Zebra1}:ARRAY_ACQ
         t0 = ttime.monotonic()
@@ -727,6 +727,7 @@ class FXITomoFlyer(Device):
                 {k: v["timestamp"] for k, v in reading.items()}
             )
         print(f"\nin complete: {type(self._last_bulk)=}\n{type(self._document_cache)=}\n")
+        print(f"\nin complete: {(self._last_bulk)=}\n{(self._document_cache)=}\n")
 
         return NullStatus()
 
@@ -769,7 +770,7 @@ class FXITomoFlyer(Device):
 
     def collect(self):
         # Create records in the FileStore database.
-        # move this to stage because I thinkt hat describe_collect needs the
+        # move this to stage because I think that describe_collect needs the
         # resource id
         # TODO use ophyd.areadectector.filestoer_mixins.resllource_factory here
         if self._last_bulk is None:
@@ -1110,7 +1111,7 @@ class FXITomoFlyer(Device):
         FXITomoFlyer.set_wait(det.hdf5.num_capture, scn_cfg["num_images"])
         FXITomoFlyer.set_wait(det.cam.num_images, scn_cfg["num_images"])
         # FXITomoFlyer.set_wait(det.cam.acquire, 1, wait=0.2)
-        yield from abs_set(det.cam.acquire, 1, wait=True)
+        # yield from abs_set(det.cam.acquire, 1, wait=True)
             
     @staticmethod
     def set_mot_r_step_for_scan(scn_cfg):

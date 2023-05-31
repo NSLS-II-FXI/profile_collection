@@ -1,4 +1,5 @@
 from bluesky.plan_stubs import kickoff, collect, complete
+from bluesky.utils import short_uid
 
 
 def tomo_zfly(
@@ -115,8 +116,12 @@ def tomo_zfly(
             st.wait(timeout=10)
 
             yield from abs_set(flyer.encoder.pc.gate_start, scn_cfg["ang_s"], wait=True)
-            yield from FXITomoFlyer.set_cam_step_for_scan(cam, scn_cfg)
+            FXITomoFlyer.set_cam_step_for_scan(cam, scn_cfg)
             FXITomoFlyer.set_mot_r_step_for_scan(scn_cfg)
+
+            det_stream = short_uid('dets')
+            for d in flyer.detectors:
+                yield from bps.trigger(d, group=det_stream)
 
             yield from abs_set(flyer.encoder.pc.arm, 1, wait=True)
             t0 = ttime.monotonic()
