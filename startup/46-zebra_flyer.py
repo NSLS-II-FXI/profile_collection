@@ -140,7 +140,6 @@ def tomo_zfly(
                     d.stage()
             st = yield from kickoff(flyer, wait=True, scn_cfg=scn_cfg)
             st.wait(timeout=10)
-            # yield from abs_set(flyer.encoder.pc.gate_start, scn_cfg["ang_s"], wait=True)
 
             det_stream = short_uid("dets")
             for d in flyer.detectors:
@@ -234,7 +233,6 @@ def tomo_zfly(
                         scn_cfg["ang_s"],
                     )
                     scn_cfg["rot_dir"] *= -1
-                    # breakpoint()
                     pc_cfg[flyer.scn_mode]["gate_start"] = scn_cfg["ang_s"]
                     pc_cfg[flyer.scn_mode]["dir"] = flyer.pc_trig_dir[
                         int(scn_cfg["rot_dir"])
@@ -242,6 +240,7 @@ def tomo_zfly(
                     yield from flyer.set_pc_step_for_scan(flyer.scn_mode, pc_cfg)
                 
                 if ii < scn_cfg["num_swing"] - 1:
+                    print(f"Sleeping {sleep_plan[ii]} seconds before {ii}th scan ...")
                     bps.sleep(sleep_plan[ii])
 
         scn_cfg["ang_s"] = r_ini
@@ -284,116 +283,6 @@ def tomo_zfly(
         )
         yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")
         yield from select_filters([])
-
-    # def inner_fly_plan():
-    #     yield from select_filters(flts)
-    #     for ii in range(scn_cfg["num_swing"]):
-    #         yield from FXITomoFlyer.set_cam_step_for_scan(cam, scn_cfg)
-    #         print(5)
-    #         yield from FXITomoFlyer.set_mot_r_step_for_scan(scn_cfg)
-    #         print(6)
-    #         yield from _open_shutter_xhx(simu)
-    #         print(7)
-    #         for d in flyer.detectors:
-    #             try:
-    #                 d.stage()
-    #             except:
-    #                 d.unstage()
-    #                 d.stage()
-    #         st = yield from kickoff(flyer, wait=True, scn_cfg=scn_cfg)
-    #         st.wait(timeout=10)
-    #         yield from abs_set(flyer.encoder.pc.gate_start, scn_cfg["ang_s"], wait=True)
-
-    #         det_stream = short_uid("dets")
-    #         for d in flyer.detectors:
-    #             yield from bps.trigger(d, group=det_stream)
-    #         wait(det_stream)
-
-    #         yield from abs_set(flyer.encoder.pc.arm, 1, wait=True)
-    #         t0 = ttime.monotonic()
-    #         yield from abs_set(
-    #             zps.pi_r,
-    #             scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"],
-    #             wait=True,
-    #         )
-
-    #         t1 = ttime.monotonic()
-    #         while int(flyer.encoder.pc.gated.get()):
-    #             if ttime.monotonic() - t1 > 60:
-    #                 print("Scan finished abnormally. Quit!")
-    #                 return
-    #             yield from bps.sleep(flyer._staging_delay)
-    #             print(ttime.time())
-    #         print(f"Scan # {ii} takes {ttime.monotonic() - t0} seconds.")
-    #         st = yield from complete(flyer, wait=True)
-    #         st.wait(timeout=10)
-    #         yield from collect(flyer)
-    #         for d in flyer.detectors:
-    #             try:
-    #                 d.unstage()
-    #             except:
-    #                 print(f"Cannot unstage detector {d.name}")
-    #                 return None
-
-    #         if flyer.scn_mode == "snaked: single file":
-    #             (scn_cfg["ang_s"], scn_cfg["ang_e"]) = (
-    #                 scn_cfg["ang_e"],
-    #                 scn_cfg["ang_s"],
-    #             )
-    #             scn_cfg["rot_dir"] *= -1
-    #         elif scn_cfg["num_swing"] > 1:
-    #             (scn_cfg["ang_s"], scn_cfg["ang_e"]) = (
-    #                 scn_cfg["ang_e"],
-    #                 scn_cfg["ang_s"],
-    #             )
-    #             scn_cfg["rot_dir"] *= -1
-    #             # breakpoint()
-    #             pc_cfg[flyer.scn_mode]["gate_start"] = scn_cfg["ang_s"]
-    #             pc_cfg[flyer.scn_mode]["dir"] = flyer.pc_trig_dir[
-    #                 int(scn_cfg["rot_dir"])
-    #             ]
-    #             yield from flyer.set_pc_step_for_scan(flyer.scn_mode, pc_cfg)
-
-    #     scn_cfg["ang_s"] = r_ini
-    #     yield from FXITomoFlyer.init_mot_r(scn_cfg)
-
-    #     yield from FXITomoFlyer.set_cam_mode(cam, stage="ref-scan")
-    #     yield from _take_ref_image(
-    #         [cam],
-    #         mots_pos={
-    #             "x": mot_x_out,
-    #             "y": mot_y_out,
-    #             "z": mot_z_out,
-    #             "r": mot_r_out,
-    #         },
-    #         num=1,
-    #         chunk_size=10,
-    #         stream_name="flat",
-    #         simu=simu,
-    #     )
-    #     yield from _take_ref_image(
-    #         [cam],
-    #         mots_pos={},
-    #         num=1,
-    #         chunk_size=10,
-    #         stream_name="dark",
-    #         simu=simu,
-    #     )
-    #     for d in flyer.detectors:
-    #         try:
-    #             d.unstage()
-    #         except:
-    #             print(f"Cannot unstage detector {d.name}")
-    #             return None
-    #     yield from _move_sample(
-    #         x_ini,
-    #         y_ini,
-    #         z_ini,
-    #         r_ini,
-    #         repeat=2,
-    #     )
-    #     yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")
-    #     yield from select_filters([])
 
     uid = yield from inner_fly_plan()
     print("scan finished")
@@ -534,81 +423,15 @@ def tomo_grid_zfly(
         all_mots = list(list(mots))
     print("preset done")
 
-    # @stage_decorator(list(mots))
     @run_decorator(md=_md)
     def inner_fly_plan():
         yield from select_filters(flts)
         for jj in grid_nodes["pos"] if grid_nodes else range(1):
-            print(1)
             if grid_nodes:
                 yield from mv(*zip(grid_nodes["mots"], jj))
             for mot in all_mots:
                 mot.stage()
-            print(2)
 
-            # for ii in range(scn_cfg["num_swing"]):
-            #     if (ii == 0) or (scn_mode == 1):
-            #         yield from FXITomoFlyer.set_cam_step_for_scan(cam, scn_cfg)
-            #         yield from FXITomoFlyer.set_mot_r_step_for_scan(scn_cfg)
-            #         for d in flyer.detectors:
-            #             try:
-            #                 d.stage()
-            #             except:
-            #                 d.unstage()
-            #                 d.stage()
-
-            #     yield from _open_shutter_xhx(simu)
-            #     st = yield from kickoff(flyer, wait=True, scn_cfg=scn_cfg)
-            #     st.wait(timeout=10)
-            #     yield from abs_set(
-            #         flyer.encoder.pc.gate_start, scn_cfg["ang_s"], wait=True
-            #     )
-
-            #     det_stream = short_uid("dets")
-            #     for d in flyer.detectors:
-            #         yield from bps.trigger(d, group=det_stream)
-            #     wait(det_stream)
-
-            #     yield from abs_set(flyer.encoder.pc.arm, 1, wait=True)
-            #     t0 = ttime.monotonic()
-            #     yield from abs_set(
-            #         zps.pi_r,
-            #         scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"],
-            #         wait=True,
-            #     )
-
-            #     t1 = ttime.monotonic()
-            #     while int(flyer.encoder.pc.gated.get()):
-            #         if ttime.monotonic() - t1 > 60:
-            #             print("Scan finished abnormally. Quit!")
-            #             return
-            #         yield from bps.sleep(flyer._staging_delay)
-            #         print(ttime.time())
-            #     print(f"Scan # {ii} takes {ttime.monotonic() - t0} seconds.")
-            #     st = yield from complete(flyer, wait=True)
-            #     st.wait(timeout=10)
-            #     yield from collect(flyer)
-            #     for d in flyer.detectors:
-            #         try:
-            #             d.unstage()
-            #         except:
-            #             print(f"Cannot unstage detector {d.name}")
-            #             return None
-            #     if (scn_cfg["num_swing"] > 1) and (
-            #         flyer.scn_mode != "snaked: single file"
-            #     ):
-            #         (scn_cfg["ang_s"], scn_cfg["ang_e"]) = (
-            #             scn_cfg["ang_e"],
-            #             scn_cfg["ang_s"],
-            #         )
-            #         scn_cfg["rot_dir"] *= -1
-            #         pc_cfg[flyer.scn_mode]["gate_start"] = scn_cfg["ang_s"]
-            #         pc_cfg[scn_cfg["scn_mode"]]["dir"] = flyer.pc_trig_dir[
-            #             int(scn_cfg["rot_dir"])
-            #         ]
-            #         yield from flyer.set_pc_step_for_scan(flyer.scn_mode, pc_cfg)
-            #     else:
-            #         yield from FXITomoFlyer.init_mot_r(scn_cfg)
             if flyer.scn_mode == "snaked: single file":
                 print(
                     "Scan mode 'snaked: single file' is not currently supported. Quit!"
@@ -676,7 +499,6 @@ def tomo_grid_zfly(
                             scn_cfg["ang_s"],
                         )
                         scn_cfg["rot_dir"] *= -1
-                        # breakpoint()
                         pc_cfg[flyer.scn_mode]["gate_start"] = scn_cfg["ang_s"]
                         pc_cfg[flyer.scn_mode]["dir"] = flyer.pc_trig_dir[
                             int(scn_cfg["rot_dir"])
@@ -684,6 +506,7 @@ def tomo_grid_zfly(
                         yield from flyer.set_pc_step_for_scan(flyer.scn_mode, pc_cfg)
 
                     if ii < scn_cfg["num_swing"] - 1:
+                        print(f"Sleeping {sleep_plan[ii]} seconds before {ii}th scan ...")
                         bps.sleep(sleep_plan[ii])
 
             for mot in all_mots:

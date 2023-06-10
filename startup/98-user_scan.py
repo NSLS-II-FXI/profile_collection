@@ -779,7 +779,6 @@ def _xanes_3D_zebra_xh(
 ):
     for eng in eng_list:
         yield from move_zp_ccd(eng, move_flag=1)
-        print(121)
         my_note = f"{note}@energy={eng}"
         yield from bps.sleep(1)
         print(f"current energy: {eng}")
@@ -837,7 +836,6 @@ def _multi_pos_xanes_3D_zebra_xh(
     flyer=tomo_flyer,
 ):
     yield from select_filters(flts)
-    print(11)
     n = len(x_list)
     for rep in range(repeat):
         for i in range(n):
@@ -858,7 +856,6 @@ def _multi_pos_xanes_3D_zebra_xh(
                 trans_first_flag=1,
                 enable_z=True,
             )
-            print(12)
             yield from _xanes_3D_zebra_xh(
                 eng_list,
                 exp_t=exp_t,
@@ -1483,12 +1480,10 @@ def multi_edge_xanes_zebra(
     cam=Andor,
     flyer=tomo_flyer
 ):
-    print(-2)
     yield from mv(cam.cam.acquire, 0)
     if repeat is None:
         repeat = 1
     repeat = int(repeat)
-    print(-1)
     
     if scan_type == "2D":
         if bin_fac is None:
@@ -1546,21 +1541,15 @@ def multi_edge_xanes_zebra(
                 enable_z=True,
             )
     elif scan_type == "3D":
-        print(-0.9)
         if bin_fac is None:
             bin_fac = 1
         bin_fac = yield from _bin_cam(bin_fac)
-        print(-0.8)
 
-        set_and_wait(Andor.cam.image_mode, 0)
-        print(-0.89)
-        set_and_wait(Andor.cam.num_images, 5)
-        print(-0.88)
+        yield from abs_set(Andor.cam.image_mode, 0, wait=True)
+        yield from abs_set(Andor.cam.num_images, 5, wait=True)
         yield from abs_set(Andor.cam.acquire, 1, wait=False)
-        print(-0.7)
 
         x_list, y_list, z_list, r_list = _sort_in_pos(in_pos_list)
-        print(0)
         for elem in elems:
             for key in flts.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
@@ -1568,7 +1557,6 @@ def multi_edge_xanes_zebra(
                     break
                 else:
                     flt = []
-            print(0.1)
             for key in exp_t.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
                     exposure = exp_t[key]
@@ -1577,15 +1565,12 @@ def multi_edge_xanes_zebra(
                 else:
                     exposure = 0.05
                     print("use default exposure time 0.05s")
-            print(0.2)
             for key in acq_p.keys():
                 if elem.split("_")[0] == key.split("_")[0]:
                     acquire_period = acq_p[key]
                     break
-            print(0.3)
             eng_list = _mk_eng_list(elem, bulk=False)
 
-            print(1)
             yield from _multi_pos_xanes_3D_zebra_xh(
                 eng_list,
                 x_list,

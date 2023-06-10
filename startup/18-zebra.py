@@ -403,8 +403,6 @@ class FXITomoFlyer(Device):
         yield from abs_set(
             self._encoder.pc.trig_source, 0, wait=True
         )  # 0 = Soft, 1 = External
-        ############### PC Pulse
-        # yield from abs_set(self._encoder.pc.pulse_width, self.dft_pulse_wid[self.tspre], wait=True)
 
         ############### PULSE -- set unibliz trigger to 'external exposure'
         if self.use_shutter:
@@ -492,7 +490,6 @@ class FXITomoFlyer(Device):
         return filename, read_path, write_path
 
     def stage(self):
-        # self.set_stage_sigs()
         self._stage_with_delay()
         super.stage()
 
@@ -845,14 +842,6 @@ class FXITomoFlyer(Device):
             self.encoder.pc.gate_start, pc_cfg[scn_mode]["gate_start"], wait=True
         )
 
-    # @staticmethod
-    # def set_wait(field, val, wait=0.01):
-    #     set_and_wait(field, val, poll_time=wait)
-    #     # while field.get() != val:
-    #     #     field.put(val, timeout=10)
-    #     #     ttime.sleep(0.01)
-    #     # ttime.sleep(wait)
-
     @classmethod
     def cal_cam_rot_params(cls, det, scn_cfg):
         """_summary_
@@ -1032,7 +1021,6 @@ class FXITomoFlyer(Device):
                     + 1
                 )
             )
-            # pc_cfg["snaked: multiple files"]["gate_start"] = scn_cfg["ang_s"]
             pc_cfg["snaked: multiple files"]["gate_width"] = (
                 abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
                 + pc_cfg["snaked: multiple files"]["pulse_step"]
@@ -1052,8 +1040,6 @@ class FXITomoFlyer(Device):
                 )
                 * scn_cfg["num_swing"]
             )
-            # pc_cfg["snaked: single file"]["gate_start"] = scn_cfg["ang_s"]
-            # pc_cfg["snaked: single file"]["gate_width"] =
         else:
             print("Unrecognized scan mode. Quit")
             return None
