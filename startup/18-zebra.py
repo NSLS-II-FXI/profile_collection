@@ -1064,7 +1064,7 @@ class FXITomoFlyer(Device):
 
     @staticmethod
     def compose_scn_cfg(
-        scn_mode, exp_t, acq_p, bin_fac, ang_s, ang_e, vel, tacc, num_swing
+        scn_mode, exp_t, acq_p, bin_fac, ang_s, ang_e, vel, tacc, mb_vel, num_swing
     ):
         scn_cfg = {}
         scn_cfg["scn_mode"] = scn_mode
@@ -1075,6 +1075,7 @@ class FXITomoFlyer(Device):
         scn_cfg["ang_e"] = ang_e
         scn_cfg["vel"] = vel
         scn_cfg["tacc"] = tacc
+        scn_cfg["mb_vel"] = mb_vel
         scn_cfg["num_swing"] = num_swing
         return scn_cfg
 
@@ -1086,11 +1087,11 @@ class FXITomoFlyer(Device):
             if det.cam.image_mode.get() != 0:
                 yield from abs_set(det.cam.image_mode, 0, wait=True)
             yield from abs_set(det.cam.num_images, 5, wait=True)
-            yield from abs_set(det.cam.acquire, 1, wait=True)
+            yield from abs_set(det.cam.acquire, 1, wait=False)
 
     @staticmethod
     def bin_det(det, bin_fac):
-        yield from abs_set(det.cam.acquire, 0, wait=True)
+        yield from abs_set(det.cam.acquire, 0, wait=False)
         if bin_fac is None:
             bin_fac = 0
         if int(bin_fac) not in [0, 1, 2, 3, 4]:
@@ -1140,7 +1141,7 @@ class FXITomoFlyer(Device):
             cur_pos = scn_cfg["ang_s"] // 360 * 360 + cur_pos % 360
             zps.pi_r.set_current_position(cur_pos)
         yield from abs_set(zps.pi_r.acceleration, 1, wait=True)
-        yield from abs_set(zps.pi_r.velocity, 30, wait=True)
+        yield from abs_set(zps.pi_r.velocity, scn_cfg["mb_vel"], wait=True)
         yield from abs_set(zps.pi_r, scn_cfg["ang_s"], wait=True)
 
     @staticmethod
