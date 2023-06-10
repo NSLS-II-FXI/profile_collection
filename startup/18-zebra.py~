@@ -8,7 +8,10 @@ from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FC
 from ophyd.utils import set_and_wait
-from ophyd.areadetector.filestore_mixins import new_short_uid, resource_factory
+from ophyd.areadetector.filestore_mixins import (
+    new_short_uid,
+    resource_factory
+)
 from ophyd.sim import NullStatus
 from databroker.assets.handlers import HandlerBase
 from nslsii.detectors.zebra import Zebra, EpicsSignalWithRBV
@@ -24,8 +27,7 @@ DET_MIN_AP = {"Andor": 0.05, "Marana": 0.01, "Oryx": 0.005}
 # will move this definition to motors.py
 ROT_BACK_VEL = 30
 
-BIN_FACS = {"Andor": {0: 1, 1: 2, 2: 3, 3: 4, 4: 8}, "Marana": {}, "Oryx": {}}
-
+BIN_FACS = {"Andor": {0: 1, 1: 2, 2: 3, 3: 4, 4:8}, "Marana": {}, "Oryx": {}}
 
 class ZebraPositionCaptureData(Device):
 
@@ -269,7 +271,6 @@ class FXITomoFlyer(Device):
     This is the flyer object for the Zebra.
     This is the position based flyer.
     """
-
     root_path = "/nsls2/data/fxi-new/legacy/"
     write_path_template = f"zebra/%Y/%m/%d/"
     read_path_template = f"zebra/%Y/%m/%d/"
@@ -285,12 +286,12 @@ class FXITomoFlyer(Device):
         2: "snaked: single file",  # back-forth rocking scan being saved into a single file
     }
 
-    dft_pulse_wid = {"ms": 0.002, "s": 0.0005, "10s": 0.003}  # 0: ms  # 1: s  # 2: 10s
-    pc_trig_dir = {1: 0, -1: 1}  # 1: positive, -1: negative
+    dft_pulse_wid = {'ms': 0.002, 's': 0.0005, '10s': 0.003}  # 0: ms  # 1: s  # 2: 10s
+    pc_trig_dir = {1: 0, -1: 1} # 1: positive, -1: negative
     scan_cfg = {}
     pc_cfg = {}
     _staging_delay = 0.010
-    tspre = "s"  ## ['ms', 's', '10s']
+    tspre = 's'  ## ['ms', 's', '10s']
 
     def __init__(self, dets, zebra, *, reg=db.reg, scn_mode=0, **kwargs):
         super().__init__("", parent=None, **kwargs)
@@ -298,11 +299,9 @@ class FXITomoFlyer(Device):
         self._dets = dets
         self._filestore_resource = None
         self._encoder = zebra
-        self._document_cache = (
-            []
-        )  # self._document_cache defines resource and datum documents
+        self._document_cache = []  # self._document_cache defines resource and datum documents
         self._stage_sigs = {}
-        self._last_bulk = None  # self._last_bulk defines event document
+        self._last_bulk = None     # self._last_bulk defines event document
 
         self.reg = reg
         self.scn_mode = self.scn_modes[scn_mode]
@@ -373,9 +372,7 @@ class FXITomoFlyer(Device):
 
         ## SYS tab
         set_and_wait(self._encoder.output1.ttl.addr, 53)  # PC_PULSE --> TTL1 --> Camera
-        set_and_wait(
-            self._encoder.output2.ttl.addr, 52
-        )  # PC_PULSE --> TTL2 --> fast shutter
+        set_and_wait(self._encoder.output2.ttl.addr, 52)  # PC_PULSE --> TTL2 --> fast shutter
         set_and_wait(self._encoder.output3.ttl.addr, 0)
         set_and_wait(self._encoder.output4.ttl.addr, 0)
 
@@ -400,76 +397,58 @@ class FXITomoFlyer(Device):
 
     def preset_zebra(self, pc_cfg={}):
         ############### PC Arm
-        yield from abs_set(
-            self._encoder.pc.trig_source, 0, wait=True
-        )  # 0 = Soft, 1 = External
+        set_and_wait(self._encoder.pc.trig_source, 0)  # 0 = Soft, 1 = External
         ############### PC Pulse
         # yield from abs_set(self._encoder.pc.pulse_width, self.dft_pulse_wid[self.tspre], wait=True)
 
         ############### PULSE -- set unibliz trigger to 'external exposure'
         if self.use_shutter:
-            yield from abs_set(self._encoder.pulse1.time_units, self.tspre, wait=True)
-            yield from abs_set(
-                self._encoder.pulse1.width, self.dft_pulse_wid[self.tspre], wait=True
-            )
-            yield from abs_set(self._encoder.pulse2.time_units, self.tspre, wait=True)
-            yield from abs_set(
-                self._encoder.pulse2.width, self.dft_pulse_wid[self.tspre], wait=True
-            )
-            yield from abs_set(self._encoder.output2.ttl.addr, 52, wait=True)
+            set_and_wait(self._encoder.pulse1.time_units, self.tspre)
+            self._encoder.pulse1.width.put(self.dft_pulse_wid[self.tspre], timeout=10)
+            ttime.sleep(0.01)
+            set_and_wait(self._encoder.pulse2.time_units, self.tspre)
+            self._encoder.pulse2.width.put(self.dft_pulse_wid[self.tspre], timeout=10)
+            ttime.sleep(0.01)
+            set_and_wait(self._encoder.output2.ttl.addr, 52)
         else:
-            yield from abs_set(self._encoder.output2.ttl.addr, 29, wait=True)
+            set_and_wait(self._encoder.output2.ttl.addr, 29)
         if self.scn_mode == "standard":
             ############### PC Tab ###############
             ## PC Gate
-            yield from abs_set(
-                self._encoder.pc.gate_source, 0, wait=True
-            )  # 0 = Position, 1 = Time, 2 = External
-            yield from abs_set(self._encoder.pc.gate_step, 0, wait=True)
-            yield from abs_set(self._encoder.pc.gate_num, 1, wait=True)
+            set_and_wait(self._encoder.pc.gate_source, 0)  # 0 = Position, 1 = Time, 2 = External
+            set_and_wait(self._encoder.pc.gate_step, 0)
+            set_and_wait(self._encoder.pc.gate_num, 1)
 
             ## PC Pulse
-            yield from abs_set(
-                self._encoder.pc.pulse_source, 0, wait=True
-            )  # 0 = Position, 1 = Time, 2 = External
-            yield from abs_set(
-                self._encoder.pc.pulse_width, self.dft_pulse_wid[self.tspre], wait=True
-            )
+            set_and_wait(self._encoder.pc.pulse_source, 0)  # 0 = Position, 1 = Time, 2 = External
+            self._encoder.pc.pulse_width.put(self.dft_pulse_wid[self.tspre], timeout=10)
+            ttime.sleep(0.01)
         elif self.scn_mode == "snaked: multiple files":
             ############### PC Tab ###############
             ## PC Gate
-            yield from abs_set(
-                self._encoder.pc.gate_source, 0, wait=True
-            )  # 0 = Position, 1 = Time, 2 = External
-            yield from abs_set(self._encoder.pc.gate_step, 0, wait=True)
-            yield from abs_set(self._encoder.pc.gate_num, 1, wait=True)
+            set_and_wait(self._encoder.pc.gate_source, 0)  # 0 = Position, 1 = Time, 2 = External
+            set_and_wait(self._encoder.pc.gate_step, 0)
+            set_and_wait(self._encoder.pc.gate_num, 1)
 
             ## PC Pulse
-            yield from abs_set(
-                self._encoder.pc.pulse_source, 0, wait=True
-            )  # 0 = Position, 1 = Time, 2 = External
-            set_and_wait(
-                self._encoder.pc.pulse_width, self.dft_pulse_wid[self.tspre], rtol=0.1
-            )
+            set_and_wait(self._encoder.pc.pulse_source, 0)  # 0 = Position, 1 = Time, 2 = External
+            self._encoder.pc.pulse_width.put(self.dft_pulse_wid[self.tspre], timeout=10)
+            ttime.sleep(0.01)
         elif self.scn_mode == "snaked: single file":
             ############### PC Tab ###############
             ## PC Gate
-            yield from abs_set(
-                self._encoder.pc.gate_source, 2, wait=True
-            )  # 0 = Position, 1 = Time, 2 = External
-            yield from abs_set(self._encoder.pc.gate_ext, 29, wait=True)
-            yield from abs_set(self._encoder.pc.gate_num, 0, wait=True)
+            set_and_wait(self._encoder.pc.gate_source, 2)  # 0 = Position, 1 = Time, 2 = External
+            set_and_wait(self._encoder.pc.gate_ext, 29)
+            set_and_wait(self._encoder.pc.gate_num, 0)
 
             ## PC Pulse
-            yield from abs_set(
-                self._encoder.pc.pulse_source, 1, wait=True
-            )  # 0 = Position, 1 = Time, 2 = External
-            set_and_wait(
-                self._encoder.pc.pulse_width, self.dft_pulse_wid[self.tspre], rtol=0.1
-            )
+            set_and_wait(self._encoder.pc.pulse_source, 1)  # 0 = Position, 1 = Time, 2 = External
+            self._encoder.pc.pulse_width.put(self.dft_pulse_wid[self.tspre], timeout=10)
+            ttime.sleep(0.01)
 
         for key, val in pc_cfg[self.scn_mode].items():
-            set_and_wait(getattr(self._encoder.pc, key), val, rtol=0.1)
+            getattr(self._encoder.pc, key).put(val, timeout=10)
+            ttime.sleep(0.01)
 
     def make_filename(self):
         """Make a filename.
@@ -723,7 +702,6 @@ class FXITomoFlyer(Device):
         # @timer_wrapper
         def get_zebra_data():
             export_zebra_data(self._encoder, self.__write_filepath)
-
         get_zebra_data()
 
         # Yield a (partial) Event document. The RunEngine will put this
@@ -747,9 +725,7 @@ class FXITomoFlyer(Device):
             self._last_bulk["timestamps"].update(
                 {k: v["timestamp"] for k, v in reading.items()}
             )
-        print(
-            f"\nin complete: {type(self._last_bulk)=}\n{type(self._document_cache)=}\n"
-        )
+        print(f"\nin complete: {type(self._last_bulk)=}\n{type(self._document_cache)=}\n")
         print(f"\nin complete: {(self._last_bulk)=}\n{(self._document_cache)=}\n")
 
         return NullStatus()
@@ -765,12 +741,12 @@ class FXITomoFlyer(Device):
             "source": "",  # make this the PV of the array the det is writing
         }
 
-        desc = OrderedDict()  # desc defines data_keys
-
-        desc["zebra_time"] = spec
-        desc["zebra_time"]["source"] = getattr(self._encoder.pc.data, "enc1").pvname
-        desc["enc1_pi_r"] = spec
-        desc["enc1_pi_r"]["source"] = getattr(self._encoder.pc.data, "enc1").pvname
+        desc = OrderedDict() # desc defines data_keys
+        
+        desc['zebra_time'] = spec
+        desc['zebra_time']["source"] = getattr(self._encoder.pc.data, 'enc1').pvname
+        desc['enc1_pi_r'] = spec
+        desc['enc1_pi_r']["source"] = getattr(self._encoder.pc.data, 'enc1').pvname
 
         # Handle the detectors we are going to get
         for d in self.detectors:
@@ -835,23 +811,21 @@ class FXITomoFlyer(Device):
         yield from FXITomoFlyer.set_cam_mode(self.detectors[0], stage="pre-scan")
         scn_cfg = FXITomoFlyer.cal_cam_rot_params(self.detectors[0], scn_cfg)
         pc_cfg = FXITomoFlyer.cal_zebra_pc_params(scn_cfg)
-        yield from self.preset_zebra(pc_cfg)
+        self.preset_zebra(pc_cfg)
         print("preset_flyer is done")
         return scn_cfg, pc_cfg
 
-    def set_pc_step_for_scan(self, scn_mode, pc_cfg):
-        yield from abs_set(self.encoder.pc.dir, pc_cfg[scn_mode]["dir"], wait=True)
-        yield from abs_set(
-            self.encoder.pc.gate_start, pc_cfg[scn_mode]["gate_start"], wait=True
-        )
+    def set_pc_step_for_scan(self, scn_cfg, pc_cfg):
+        yield from abs_set(self.encoder.pc.dir, pc_cfg[self.scn_modes[scn_cfg["scn_mode"]]]["dir"], wait=True)
+        yield from abs_set(self.encoder.pc.gate_start, pc_cfg[self.scn_modes[scn_cfg["scn_mode"]]]["gate_start"], wait=True)
 
-    # @staticmethod
-    # def set_wait(field, val, wait=0.01):
-    #     set_and_wait(field, val, poll_time=wait)
-    #     # while field.get() != val:
-    #     #     field.put(val, timeout=10)
-    #     #     ttime.sleep(0.01)
-    #     # ttime.sleep(wait)
+    @staticmethod
+    def set_wait(field, val, wait=0.01):
+        set_and_wait(field, val, poll_time=wait)
+        # while field.get() != val:
+        #     field.put(val, timeout=10)
+        #     ttime.sleep(0.01)
+        # ttime.sleep(wait)
 
     @classmethod
     def cal_cam_rot_params(cls, det, scn_cfg):
@@ -909,53 +883,31 @@ class FXITomoFlyer(Device):
         taxi_dist = np.ceil(
             (scn_cfg["vel"] - cls.rot_axis.base_velo.get()) * scn_cfg["tacc"] / 2
         )
-        if not (
-            cls.rot_axis.low_limit_switch.get() == 0
-            and cls.rot_axis.high_limit_switch.get() == 0
-        ):
+        if not (cls.rot_axis.low_limit_switch.get() == 0 and cls.rot_axis.high_limit_switch.get() == 0):
             if (scn_cfg["ang_s"] - taxi_dist) < cls.rot_axis.low_limit.get():
-                print(
-                    "Rotation range is beyond the low limit of the rotary stage. Quit!"
-                )
+                print("Rotation range is beyond the low limit of the rotary stage. Quit!")
                 return None
             elif (scn_cfg["ang_s"] - taxi_dist) > cls.rot_axis.high_limit.get():
-                print(
-                    "Rotation range is beyond the high limit of the rotary stage. Quit!"
-                )
+                print("Rotation range is beyond the high limit of the rotary stage. Quit!")
                 return None
 
             if (scn_cfg["ang_e"] + taxi_dist) < cls.rot_axis.low_limit.get():
-                print(
-                    "Rotation range is beyond the low limit of the rotary stage. Quit!"
-                )
+                print("Rotation range is beyond the low limit of the rotary stage. Quit!")
                 return None
             elif (scn_cfg["ang_e"] + taxi_dist) > cls.rot_axis.high_limit.get():
-                print(
-                    "Rotation range is beyond the high limit of the rotary stage. Quit!"
-                )
+                print("Rotation range is beyond the high limit of the rotary stage. Quit!")
                 return None
 
         scn_cfg["taxi_dist"] = taxi_dist
+        scn_cfg["num_images"] = (
+            int(
+                abs(
+                    (scn_cfg["ang_e"] - scn_cfg["ang_s"]) / scn_cfg["vel"] / scn_cfg["acq_p"]
+                )
+            )
+            + 1
+        )
         scn_cfg["ang_step"] = scn_cfg["vel"] * scn_cfg["acq_p"]
-        if cls.scn_modes[scn_cfg["scn_mode"]] == "snaked: single file":
-            scn_cfg["num_images"] = int(
-                int(
-                    round(
-                        abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
-                        / (scn_cfg["acq_p"] * scn_cfg["vel"])
-                        + 2 * scn_cfg["tacc"] / scn_cfg["acq_p"]
-                    )
-                )
-                * scn_cfg["num_swing"]
-            )
-        else:
-            scn_cfg["num_images"] = int(
-                round(
-                    abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
-                    / round(scn_cfg["ang_step"], 3)
-                    + 1
-                )
-            )
 
         if scn_cfg["ang_s"] < scn_cfg["ang_e"]:
             scn_cfg["rot_dir"] = 1
@@ -1000,19 +952,18 @@ class FXITomoFlyer(Device):
             "snaked: single file": {},
         }
         if cls.scn_modes[scn_cfg["scn_mode"]] == "standard":
+            pc_cfg["standard"]["gate_start"] = scn_cfg["ang_s"]
+            pc_cfg["standard"]["gate_width"] = abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
             pc_cfg["standard"]["pulse_start"] = 0
             pc_cfg["standard"]["pulse_width"] = (
                 cls.dft_pulse_wid[cls.tspre] * scn_cfg["vel"]
             )
             pc_cfg["standard"]["pulse_step"] = round(scn_cfg["ang_step"], 3)
-            pc_cfg["standard"]["pulse_max"] = int(
-                round(
-                    abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
-                    / pc_cfg["standard"]["pulse_step"]
-                    + 1
-                )
-            )
-            pc_cfg["standard"]["gate_start"] = scn_cfg["ang_s"]
+            pc_cfg["standard"]["pulse_max"] = int(round(
+                abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
+                / pc_cfg["standard"]["pulse_step"]
+                + 1
+            ))
             pc_cfg["standard"]["gate_width"] = (
                 abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
                 + pc_cfg["standard"]["pulse_step"]
@@ -1022,44 +973,30 @@ class FXITomoFlyer(Device):
             pc_cfg["snaked: multiple files"]["pulse_width"] = (
                 cls.dft_pulse_wid[cls.tspre] * scn_cfg["vel"]
             )
-            pc_cfg["snaked: multiple files"]["pulse_step"] = round(
-                scn_cfg["ang_step"], 3
-            )
-            pc_cfg["snaked: multiple files"]["pulse_max"] = int(
-                round(
-                    abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
-                    / pc_cfg["snaked: multiple files"]["pulse_step"]
-                    + 1
-                )
-            )
-            # pc_cfg["snaked: multiple files"]["gate_start"] = scn_cfg["ang_s"]
+            pc_cfg["snaked: multiple files"]["pulse_step"] = round(scn_cfg["ang_step"], 3)
+            pc_cfg["snaked: multiple files"]["pulse_max"] = int(round(
+                abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
+                / pc_cfg["snaked: multiple files"]["pulse_step"]
+                + 1
+            ))
             pc_cfg["snaked: multiple files"]["gate_width"] = (
                 abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
                 + pc_cfg["snaked: multiple files"]["pulse_step"]
             )
         elif cls.scn_modes[scn_cfg["scn_mode"]] == "snaked: single file":
             pc_cfg["snaked: single file"]["pulse_start"] = 0
-            pc_cfg["snaked: single file"]["pulse_start"] = 0
             pc_cfg["snaked: single file"]["pulse_width"] = cls.dft_pulse_wid[cls.tspre]
             pc_cfg["snaked: single file"]["pulse_step"] = round(scn_cfg["acq_p"], 4)
-            pc_cfg["snaked: single file"]["pulse_max"] = int(
-                int(
-                    round(
-                        abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
-                        / (scn_cfg["acq_p"] * scn_cfg["vel"])
-                        + 2 * scn_cfg["tacc"] / scn_cfg["acq_p"]
-                    )
-                )
-                * scn_cfg["num_swing"]
-            )
-            # pc_cfg["snaked: single file"]["gate_start"] = scn_cfg["ang_s"]
-            # pc_cfg["snaked: single file"]["gate_width"] =
+            pc_cfg["snaked: single file"]["pulse_max"] = int(int(round(
+                abs(scn_cfg["ang_e"] - scn_cfg["ang_s"])
+                / (scn_cfg["acq_p"] * scn_cfg["vel"])
+                + 2 * scn_cfg["tacc"] / scn_cfg["acq_p"]
+                + 1
+            )) * scn_cfg["num_swing"])
         else:
             print("Unrecognized scan mode. Quit")
             return None
-        pc_cfg[cls.scn_modes[scn_cfg["scn_mode"]]]["dir"] = cls.pc_trig_dir[
-            scn_cfg["rot_dir"]
-        ]
+        pc_cfg[cls.scn_modes[scn_cfg["scn_mode"]]]["dir"] = cls.pc_trig_dir[scn_cfg["rot_dir"]]
         return pc_cfg
 
     @staticmethod
@@ -1131,8 +1068,8 @@ class FXITomoFlyer(Device):
     def init_mot_r(scn_cfg):
         cur_pos = zps.pi_r.position
         yield from abs_set(zps.pi_r.offset_freeze_switch, 1)
-        ang_max = max(scn_cfg["ang_s"], scn_cfg["ang_e"])
-
+        ang_max =  max(scn_cfg["ang_s"], scn_cfg["ang_e"])
+        
         if ang_max > 0:
             yield from abs_set(zps.pi_r.user_offset, np.ceil(ang_max / 360) * 360)
 
@@ -1145,31 +1082,27 @@ class FXITomoFlyer(Device):
 
     @staticmethod
     def set_cam_step_for_scan(det, scn_cfg):
-        yield from abs_set(det.cam.acquire_time, scn_cfg["exp_t"], wait=True)
-        yield from abs_set(det.hdf5.num_capture, scn_cfg["num_images"], wait=True)
-        yield from abs_set(det.cam.num_images, scn_cfg["num_images"], wait=True)
-
+        set_and_wait(det.cam.acquire_time, scn_cfg["exp_t"], rtol=0.01)
+        set_and_wait(det.hdf5.num_capture, scn_cfg["num_images"])
+        set_and_wait(det.cam.num_images, scn_cfg["num_images"])
+            
     @staticmethod
     def set_mot_r_step_for_scan(scn_cfg):
         yield from abs_set(zps.pi_r.acceleration, scn_cfg["tacc"], wait=True)
         yield from abs_set(zps.pi_r.velocity, scn_cfg["vel"], wait=True)
-        yield from abs_set(
-            zps.pi_r.user_setpoint,
-            scn_cfg["ang_s"] - scn_cfg["rot_dir"] * scn_cfg["taxi_dist"],
-            wait=True,
-        )
+        yield from abs_set(zps.pi_r.user_setpoint, scn_cfg["ang_s"] - scn_cfg["rot_dir"] * scn_cfg["taxi_dist"], wait=True)
 
     @staticmethod
     def set_cam_mode(cam, stage="pre-scan"):
         if stage == "pre-scan":
-            yield from abs_set(cam.cam.image_mode, 0, wait=True)
-            yield from abs_set(cam.cam.trigger_mode, 4, wait=True)
+            yield from abs_set(cam.cam.image_mode, 0)
+            yield from abs_set(cam.cam.trigger_mode, 4)
         elif stage == "ref-scan":
-            yield from abs_set(cam.cam.image_mode, 0, wait=True)
-            yield from abs_set(cam.cam.trigger_mode, 0, wait=True)
+            yield from abs_set(cam.cam.image_mode, 0)
+            yield from abs_set(cam.cam.trigger_mode, 0)
         elif stage == "post-scan":
-            yield from abs_set(cam.cam.image_mode, 1, wait=True)
-            yield from abs_set(cam.cam.trigger_mode, 0, wait=True)
+            yield from abs_set(cam.cam.image_mode, 1)
+            yield from abs_set(cam.cam.trigger_mode, 0)
 
 
 Zebra = FXIZebra(

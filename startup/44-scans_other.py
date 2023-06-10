@@ -19,6 +19,7 @@ def test_scan(
     num_img=10,
     num_bkg=10,
     note="",
+    period=0.1,
     simu=False,
     md=None,
 ):
@@ -42,7 +43,7 @@ def test_scan(
     num_bkg: int, number of backgroud image to take
     """
 
-    yield from _set_andor_param(exposure_time, exposure_time, 1)
+    yield from _set_andor_param(exposure_time, period, 1)
 
     detectors = [Andor]
     y_ini = zps.sy.position
