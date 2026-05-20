@@ -702,7 +702,7 @@ def fly_scan(
         """
         true_period = exposure_time # temperary solution
         ###########################################################################
-        
+
         rot_time = np.abs(relative_rot_angle) / np.abs(rs) + 1 # it seems acceleration/de-acceleration take more time
         num_img = int(rot_time / true_period)
 
@@ -720,7 +720,7 @@ def fly_scan(
 
         yield from _set_rotation_speed(rs=rot_back_velo)
 
-        
+
         """
                 # move sample from bkg position back to sample position
         print('move sample from bkg position back to sample position')
@@ -731,7 +731,7 @@ def fly_scan(
                 motor_r_ini,
                 trans_first_flag=rot_first_flag,
                 repeat=3,
-            )    
+            )
        """
         #yield from _open_shutter(simu=simu)
         print("\nshutter opened, taking background images...")
@@ -773,7 +773,7 @@ def fly_scan(
             )
         for flt in filters:
             yield from mv(flt, 0)
-        
+
 
     uid = yield from fly_inner_scan()
     yield from mv(KinetixU.cam.image_mode, 2)
@@ -2841,7 +2841,7 @@ def multipos_2D_xanes_scan2(
     binning=[2, 2],
     note="",
     md=None,
-    
+
 ):
     """
     Different from multipos_2D_xanes_scan. In the current scan, it take image at all locations and then move out sample to take background image.
@@ -3038,8 +3038,8 @@ def multipos_2D_xanes_scan2(
                     )
                     """
                     yield from trigger_and_read(list(detectors) + motor, name="primary")
-                   
-                    
+
+
                 # move sample out to take background
                 yield from _take_bkg_image(
                     motor_x_out,

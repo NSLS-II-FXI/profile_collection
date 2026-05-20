@@ -12,7 +12,7 @@ import pprint
 from operator import attrgetter
 from PIL import Image
 from scipy.signal import medfilt2d
-from datetime import datetime  
+from datetime import datetime
 
 def reload_bsui():
 
@@ -116,7 +116,7 @@ def update_CALIBER_th2():
     _calib_th2 = update_th2()
     for key in _calib.keys():
         CALIBER[f"th2_motor_{_calib[key]['pos']}"] = _calib_th2[key]["th2_motor"]
-    
+
 
 def trans_calib():
     global CALIBER
@@ -165,7 +165,7 @@ def record_calib_pos_new(n, record_th2_only=False):
                 if 'mag' in k:
                     calib_mag = CALIBER[k]
                     break
-        CALIBER[f"mag{n}"] = calib_mag 
+        CALIBER[f"mag{n}"] = calib_mag
     else:
         mag = (DetU.z.position / zp.z.position - 1) * GLOBAL_VLM_MAG
         CALIBER[f"mag{n}"] = np.round(mag * 100) / 100.0
@@ -282,7 +282,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
         eng_new, eng_ini, print_flag=0, mag=mag
     )
 
-    
+
     assert (det_final) > det.z.low_limit.value and (det_final) < det.z.high_limit.value, print(
         "Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.".format(
             det_final, det.z.low_limit.value, det.z.high_limit.value
@@ -364,7 +364,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
             chi2_motor_target = (eng_new - eng2) * (dcm_chi2_eng1 - dcm_chi2_eng2) / (
                 eng1 - eng2
             ) + dcm_chi2_eng2
-        
+
             zp_x_target = (eng_new - eng2) * (zp_x_pos_eng1 - zp_x_pos_eng2) / (
                 eng1 - eng2
             ) + zp_x_pos_eng2
@@ -639,7 +639,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
         eng_new, eng_ini, print_flag=0, mag=mag
     )
 
-    
+
     assert (det_final) > det.z.low_limit.value and (det_final) < det.z.high_limit.value, print(
         "Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.".format(
             det_final, det.z.low_limit.value, det.z.high_limit.value
@@ -687,7 +687,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
     _, _, _, _, zp_z2, _ = cal_zp_ccd_position(eng2, print_flag=0, mag=mag)
 
     if not (np.abs(mag1 / mag2 - 1) < 1e-3):
-        print("mismatch in magfinication:")        
+        print("mismatch in magfinication:")
         print(f"magnificatoin at {eng1:2.5f} keV = {mag1}")
         print(f"magnificatoin at {eng2:2.5f} keV = {mag2}")
         print("stage will not move")
@@ -741,7 +741,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
             clens_p_target = slope_eng * (clens_p_eng1 - clens_p_eng2) + clens_p_eng2
             DetU_x_target = slope_eng * (DetU_x_eng1 - DetU_x_eng2) + DetU_x_eng2
             DetU_y_target = slope_eng * (DetU_y_eng1 - DetU_y_eng2) + DetU_y_eng2
-            
+
 
             dcm_chi2_ini = dcm.chi2.position
             zp_x_ini = zp.x.position
@@ -814,7 +814,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
                     t = min(t, 2)
                     print(f"sleep for {t} sec")
                     yield from bps.sleep(t)
- 
+
             return 1
 
 ################################
@@ -1448,9 +1448,11 @@ def get_img(h, det="KinetixU", sli=[]):
     "Take in a Header and return a numpy array of detA1 image(s)."
     det_name = f"{det}_image"
     if len(sli) == 2:
-        img = np.array(list(h.data(det_name))[sli[0] : sli[1]])
+        #img = np.array(list(h.data(det_name))[sli[0] : sli[1]])
+        img = np.array(list(h["primary"]["data"][f"{det_name}_image"]))[0][sli[0] : sli[1]]
     else:
-        img = np.array(list(h.data(det_name)))
+        #img = np.array(list(h.data(det_name)))
+        img = np.array(list(h["primary"]["data"][f"{det_name}_image"]))[0]
     return np.squeeze(img)
 
 
@@ -1518,7 +1520,7 @@ def get_image_timestamp(scan_id, h=None):
                 ts = list(h0.data("Andor_image", stream_name="primary"))[0]
         except:
             print('fail to get image timestamp')
-    
+
     try:
         dt = [datetime.fromtimestamp(t) for t in ts]
     except:
@@ -1526,10 +1528,10 @@ def get_image_timestamp(scan_id, h=None):
     t1 = [t.strftime('%Y-%m-%d %H:%M:%S.%f') for t in dt]
     return t1
 
-def get_scan_timestamp(scan_id, return_flag=0, date_end_by=None, date_start_from=None, print_flag=1):  
+def get_scan_timestamp(scan_id, return_flag=0, date_end_by=None, date_start_from=None, print_flag=1):
     tmp = list(db(scan_id=scan_id))
-    n = len(tmp)    
-    if date_end_by is None:    
+    n = len(tmp)
+    if date_end_by is None:
         h = db[scan_id]
     else:
         for sid in tmp:
@@ -1546,7 +1548,7 @@ def get_scan_timestamp(scan_id, return_flag=0, date_end_by=None, date_start_from
     timestamp = h.start["time"]
     dt = datetime.fromtimestamp(timestamp)
     t = dt.strftime('%Y-%m-%d %H:%M:%S')
-    if print_flag:    
+    if print_flag:
         print(t)
     if return_flag:
         return t
@@ -1656,20 +1658,20 @@ def normalize_bkg_by_desired_scan_file(fn, fn_ref, arg1='img', arg2_bkg='img_bkg
     f2 = h5py.File(fn_ref, 'r')
     scan_id2 = np.array(f2['scan_id'])
     if len(arg2_bkg) > 1:
-        img_bkg = np.array(f2[arg2_bkg])    
+        img_bkg = np.array(f2[arg2_bkg])
         if len(img_bkg.shape) == 3:
             img_bkg = np.median(img_bkg, axis=0)
     else:
         img_bkg = 1
 
     if len(arg2_bkg) > 1:
-        img_dark = np.array(f2[arg2_dark])    
+        img_dark = np.array(f2[arg2_dark])
         if len(img_dark.shape) == 3:
             img_dark = np.median(img_dark, axis=0)
     else:
         img_dark = 0
     f2.close()
-    
+
     img_n = (img-img_dark) / (img_bkg-img_dark) / scale_factor
     fn_save = f'img_{scan_id}_normalize_background_from_{scan_id2}.tiff'
     io.imsave(fn_save, img_n.astype(np.float32))
@@ -1682,7 +1684,7 @@ def normalize_xanes_bkg_by_another_scan(sid, sid_bkg):
     '''
     h = dbv0[sid]
     h2 = dbv0[sid_bkg]
-    
+
     det_name = h.start["detectors"][0]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
@@ -1787,16 +1789,16 @@ def split_fly_scan(fn, num=1):
             hf.create_dataset('img_dark_avg', data=img_dark_avg.astype(np.float32))
             hf.create_dataset('angle', data=ang_t.astype(np.float32))
             hf.create_dataset('X_eng', data=x_eng)
-            
+
     f.close()
     del img_t
-            
-            
+
+
 def abs_set_wait(pv, val, timeout=5, settle_time=0.5, wait=True):
     while pv.value != val:
-        yield from abs_set(pv, val, timeout=timeout, settle_time=settle_time, wait=True) 
-    return      
-        
+        yield from abs_set(pv, val, timeout=timeout, settle_time=settle_time, wait=True)
+    return
+
 
 
 class IndexTracker(object):
