@@ -122,7 +122,9 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None, reverse=False, bkg_sca
     #    x_eng = h.start['XEng']
     t_new = datetime.datetime(2021, 5, 1)
     t = h.start["time"] - 3600 * 60 * 4  # there are 4hour offset
-    t = datetime.datetime.utcfromtimestamp(t)
+    #t = datetime.datetime.utcfromtimestamp(t)
+    t = datetime.datetime.fromtimestamp(t, datetime.UTC)
+    t = t.replace(tzinfo=None)
     if t < t_new:
         scan = "old"
     else:
@@ -490,7 +492,7 @@ def export_xanes_scan_with_binning(h, fpath=None, binning=1):
         img_bin2 = rescale(img_bkg_sub_avg, 1/binning)
         img_bkg_avg.append(img_bin2)
 
-    img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))
+    img_dark = np.array(list(h["dark"]["data"][f"{det_name}_image"]))
     img_dark_avg = np.mean(img_dark, axis=1)[0]
     img_bin = rescale(img_dark_avg, 1/binning)
     img_dark_avg = np.expand_dims(img_bin, axis=0)
@@ -1018,17 +1020,17 @@ def export_raster_2D_2(h, binning=4, fpath=None):
         pix = pix * np.sin(rot_angle/180.*np.pi)
     pix = np.abs(pix)
 
-    img_raw = np.array(list(h.data(f"{det_name}_image", stream_name="primary"))) # (9, chunk_size, 1020, 2014)
+    img_raw = np.array(list(h["primary"]["data"][f"{det_name}_image"])) # (9, chunk_size, 1020, 2014)
     img = np.mean(img_raw, axis=1) # (9, 1020, 1024)
     s = img.shape
     try:
-        img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))[0]
+        img_dark = np.array(list(h["dark"]["data"][f"{det_name}_image"]))[0]
         img_dark_avg = np.mean(img_dark, axis=0, keepdims=True) #(1, 1020, 1024)
     except:
         img_dark_avg = np.zeros((1, *s[1:]))
 
     try:
-        img_bkg = np.array(list(h.data(f"{det_name}_image", stream_name="flat")))[0]
+        img_bkg = np.array(list(h["flat"]["data"][f"{det_name}_image"]))[0]
         img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True) #(1, 1020, 1024)
     except:
         img_bkg_avg = np.ones((1, *s[1:]))
@@ -1155,11 +1157,11 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
         pix = pix * np.sin(rot_angle/180.*np.pi)
 
     if not bkg_scan_id is None:
-        h_ref = db[norm_bkg_scan_id]
+        h_ref = tiled_client_fxi[bkg_scan_id]
     else:
         h_ref = h
 
-    img_raw = np.array(list(h.data(f"{det_name}_image", stream_name="primary"))) # (9, chunk_size, 1020, 2014)
+    img_raw = np.array(list(h["primary"]["data"][f"{det_name}_image"])) # (9, chunk_size, 1020, 2014)
     img = np.mean(img_raw, axis=1) # (9, 1020, 1024)
     s = img.shape # (9, 1020, 1024)
     try:
