@@ -261,6 +261,7 @@ def test_scan2(
         # "motor_pos": wh_pos(print_on_screen=0),
     }
     _md.update(md or {})
+
     _md["hints"].setdefault("dimensions", [(("time",), "primary")])
 
     @stage_decorator(list(detectors) + motors)
@@ -270,6 +271,14 @@ def test_scan2(
         if take_dark_img:
             print("\nshutter closed, taking dark images...")
             yield from _take_dark_image(detectors, motors, num=1, chunk_size=20, stream_name="dark", simu=simu)
+
+        yield from _open_shutter(simu=simu)
+        yield from _set_cam_chunk_size(detectors, chunk_size=num_img)
+        #yield from mv(detectors[0].cam.num_images, num_img)
+        #yield from _set_cam_param(exposure_time, period_time, num_img)
+        yield from _take_image(detectors, motors, num=1, stream_name="primary")
+        if close_shutter_at_end:
+            yield from _close_shutter(simu=simu)
 
         if take_bkg_img:
             # taking out sample and take background image
@@ -297,13 +306,6 @@ def test_scan2(
                 trans_first_flag=rot_first_flag,
                 repeat=3,
             )
-
-        #yield from _open_shutter(simu=simu)
-        yield from _set_cam_chunk_size(detectors, chunk_size=num_img)
-        yield from _take_image(detectors, motors, num=1, stream_name="primary")
-        if close_shutter_at_end:
-            yield from _close_shutter(simu=simu)
-
 
     uid = yield from inner_scan()
     yield from mv(KinetixU.cam.image_mode, 2)
