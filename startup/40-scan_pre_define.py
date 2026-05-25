@@ -80,16 +80,8 @@ def _set_cam_chunk_size(detectors, chunk_size, scan_type='fly'):
 
 
     for detector in detectors:
-        #print(f'try to unstage:\n {detector}\n')
-        #yield from unstage(detector)
-        try:
-            detector.unstage()
-        except Exception as e:
-            print(e)
-            pass
-        #print('sleep 0.2 sec')
+        yield from bps.unstage(detector)
         yield from bps.sleep(0.2)
-
 
     yield from mv(detectors[0].cam.acquire, 0)
     yield from bps.sleep(0.2)
@@ -98,13 +90,17 @@ def _set_cam_chunk_size(detectors, chunk_size, scan_type='fly'):
     yield from mv(detectors[0].cam.trigger_mode, trigger_mode_id)
     yield from bps.sleep(0.2)
     yield from mv(detectors[0].cam.num_images, chunk_size)
+    # bps.configure re-prepares all stream descriptors that include this detector using
+    # _current_stream_cache. That cache only holds objects from the most recently active
+    # stream, so any stream set up WITHOUT motors (e.g. "flat") must not be the last
+    # active stream before this call — otherwise descriptor re-preparation raises a
+    # KeyError for motors. See test_scan2 for the enforced dark → primary → background order.
     yield from bps.configure(detectors[0], {})
     yield from bps.sleep(0.2)
 
     for detector in detectors:
         yield from bps.sleep(0.2)
-        #yield from stage(detector)
-        detector.stage()
+        yield from bps.stage(detector)
 
 
 def _take_dark_image(
