@@ -1521,7 +1521,7 @@ def multi_edge_xanes_zebra(
     bin_fac=None,
     bulk=False,
     bulk_intgr=10,
-    roi={"min_x": 576, "size_x": 2048, "min_y": 576, "size_y": 2048},
+    roi={"min_x": 176, "size_x": 2048, "min_y": 176, "size_y": 2048},
     simu=False,
     sleep=0,
     settle_time=0,

@@ -13,9 +13,62 @@ from skimage import io
 
 CATALOG_NAME = "fxi"
 tiled_client = from_uri("https://tiled.nsls2.bnl.gov")[CATALOG_NAME]
-tiled_client_fxi = tiled_client["raw"]
+raw = tiled_client_fxi = tiled_client["raw"]
 
 
+def get_raw_data_file(scan_id):
+    fl = []
+    for name, doc in raw[scan_id].documents():
+        if name in ("resource"): 
+            f = f"{doc['root']}/{doc['resource_path']}"
+            fl.append(f)
+    return fl
+
+def temp_export_test_scan2(scan_id):
+    fl = get_raw_data_file(scan_id)
+    if len(fl) == 2:
+
+        with h5py.File(fl[0], 'r') as hf:
+            img = np.array(hf['entry']['data']['data'])    
+        h = raw[scan_id]
+        zp_z_pos = h["baseline"]["data"]["zp_z"][1].item()
+        DetU_z_pos = h["baseline"]["data"]["DetU_z"][1].item()
+        M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+        pxl_sz = 6500.0 / M
+        scan_type = h.start["plan_name"]
+        uid = h.start["uid"]
+        note = h.start["note"]
+        scan_id = h.start["scan_id"]
+        scan_time = h.start["time"]
+        try:
+            x_eng = h.start["XEng"]
+        except:
+            x_eng = h.start["x_ray_energy"]
+        print(f'exporting {scan_type} {scan_id} ...')
+        n_bkg = h.start['plan_args']['num_bkg']
+        img_dark = img[:n_bkg]
+        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True)
+        img_bkg = img[n_bkg:2*n_bkg]
+        img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True)
+        img1 = img[2*n_bkg:]
+        img_norm = (img1 - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
+        img_norm[np.isnan(img_norm)] = 0
+        img_norm[np.isinf(img_norm)] = 0
+
+        fname = scan_type + "_id_" + str(scan_id) + ".h5"
+        
+        with h5py.File(fname, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img", data=np.array(img, dtype=np.float32))
+            hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 def timestamp_to_float(t):
     tf = []
