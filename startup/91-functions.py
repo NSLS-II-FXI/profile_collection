@@ -190,7 +190,7 @@ def remove_caliber_pos(n):
     CALIBER_backup = CALIBER.copy()
     try:
         for k in CALIBER_backup.keys():
-            if str(n) in k:
+            if 'pos'+str(n) in k:
             #if k[-1] == str(n):
                 del CALIBER[k]
         df = pd.DataFrame.from_dict(CALIBER, orient="index")
