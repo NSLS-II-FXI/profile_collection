@@ -13,6 +13,7 @@ from skimage import io
 
 CATALOG_NAME = "fxi"
 tiled_client = from_uri("https://tiled.nsls2.bnl.gov")[CATALOG_NAME]
+tiled_client.context.http_client.headers['tiled-qos'] = 'acquisition'
 raw = tiled_client_fxi = tiled_client["raw"]
 
 
