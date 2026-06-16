@@ -20,3 +20,5 @@ startup/existing_plans_and_devices.yaml
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+hs_err_*.log
+zren_test_*.py
