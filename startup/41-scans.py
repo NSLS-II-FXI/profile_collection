@@ -596,6 +596,8 @@ def fly_scan(
 
     #detectors = [KinetixU, ic3]
     detectors = [KinetixU]
+    if not (start_angle is None):
+        yield from mv(zps.pi_r, start_angle)
     offset_angle = -1 * rs
     current_rot_angle = zps.pi_r.position
     target_rot_angle = current_rot_angle + relative_rot_angle
@@ -610,8 +612,8 @@ def fly_scan(
     out_r_relative = ((target_rot_angle-1) // 360) * 360 + out_r_frac
     """
 
-    if not (start_angle is None):
-        yield from mv(zps.pi_r, start_angle)
+    #if not (start_angle is None):
+    #    yield from mv(zps.pi_r, start_angle)
 
     if relative_move_flag:
         motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini

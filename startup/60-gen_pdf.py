@@ -219,8 +219,9 @@ def export_pdf(merge_flag=0):
         if merge_flag:
             merge_pdf(PDF_ARGS["fn_log"], PDF_ARGS["fn_tmp"], PDF_ARGS["fn_log"])
         reset_pdf()
-    except:
-        pass
+    except Exception as err:
+        print(err)
+
 
 
 def merge_log():
