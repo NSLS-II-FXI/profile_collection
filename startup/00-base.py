@@ -65,6 +65,7 @@ if not is_re_worker_active():
 from bluesky.preprocessors import stage_decorator, run_decorator
 
 tiled_writing_client = from_profile("nsls2", api_key=os.getenv("TILED_BLUESKY_WRITING_API_KEY_FXI", ""))["fxi"]["raw"]
+tiled_writing_client.context.http_client.headers['tiled-qos'] = 'acquisition'
 
 class TiledInserter:
     name = 'fxi'
@@ -76,6 +77,7 @@ tiled_inserter = TiledInserter()
 
 if not is_re_worker_active():
     db = tiled_reading_client = from_profile("nsls2", include_data_sources=True)["fxi"]["raw"]
+    db.context.http_client.headers['tiled-qos'] = 'acquisition'
 
 nslsii.configure_base(get_ipython().user_ns,
                       tiled_inserter,
