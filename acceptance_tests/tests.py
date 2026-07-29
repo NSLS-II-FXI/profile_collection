@@ -57,13 +57,13 @@ def test_multi_edge_xanes_zebra_scan():
     If db.table() and export scan complete without errors then it was successful.
     """
     print("Starting multi edge xanes zebra scan")
-    uid, = RE(multi_edge_xanes_zebra(edge_list={"Ni": [8.339, 8.338]}, scan_type="3D", flts={"Ni": []}, exp_t={"Ni": 0.03}, acq_p={"Ni": 0.032}, ang_s=0, ang_e=180, vel=6, acc_t=1, in_pos_list=[[None, None, None, None]], bin_fac=1, out_pos=[None, None, None, None], rel_out_flag=1, note="test", simu=True))
+    uid1, uid2 = RE(multi_edge_xanes_zebra(edge_list={"Ni": [8.339, 8.338]}, scan_type="3D", flts={"Ni": []}, exp_t={"Ni": 0.03}, acq_p={"Ni": 0.032}, ang_s=0, ang_e=180, vel=6, acc_t=1, in_pos_list=[[None, None, None, None]], bin_fac=1, out_pos=[None, None, None, None], rel_out_flag=1, note="test", simu=True))
     print("Multi edge xanes zebra scan complete")
     print("Reading scan from tiled...")
     # db[uid].table(fill=True)
-    db[uid].baseline.data
+    db[uid1].baseline.data
     print("Exporting scan ...")
-    export_scan(db[uid].start['scan_id'])
+    export_scan(db[uid1].start['scan_id'])
     print("Test is complete")
 
 
