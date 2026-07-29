@@ -221,7 +221,7 @@ def _set_rotation_speed(rs=30):
         yield from abs_set(zps.pi_r.velocity, rs, wait=True)
 
 
-def _move_sample(x_pos, y_pos, z_pos, r_pos, repeat=1):
+def _move_sample(tgt_pos, repeat=1):
     """_summary_
 
     Args:
@@ -232,14 +232,8 @@ def _move_sample(x_pos, y_pos, z_pos, r_pos, repeat=1):
         repeat (int, optional): number of trials. Defaults to 1.
     """
     for i in range(repeat):
-        # yield from mv(zps.pi_r, r_pos)
-        # set_and_wait(
-        #         zps.pi_r.user_setpoint, r_pos, rtol=2.286585e-3
-        #     )
-        # yield from move_and_wait(zps.pi_r, r_pos, atol=0.1)
-        yield from mv(zps.pi_r, r_pos)
-        yield from mv(zps.sx, x_pos, zps.sy, y_pos, zps.sz, z_pos)
-        # yield from bps.sleep(6)
+        yield from mv(zps.pi_r, tgt_pos['r'])
+        yield from mv(zps.sx, tgt_pos['x'], zps.sy, tgt_pos['y'], zps.sz, tgt_pos['z'])
 
 
 def _set_cam_chunk_size_xhx(cam, chunk_size, scan_type='fly'):
@@ -257,46 +251,62 @@ def _set_cam_chunk_size_xhx(cam, chunk_size, scan_type='fly'):
         yield from mv(cam.cam.num_images, chunk_size)
 
 
+def _take_image_xh(detectors, motor, stream_name="primary"):
+    if not (type(detectors) == list):
+        detectors = list(detectors)
+    if not (type(motor) == list):
+        motor = list(motor)
+    readings = yield from trigger_and_read(detectors + motor, name=stream_name)
+    return readings
+
+
 def _take_ref_image(
     dets,
     mots_pos = {},
-    num=1,
     chunk_size=1,
     stream_name="flat",
     simu=False,
+    stage=True,
 ):
+    print(f"ref set cam starts at {ttime.asctime()}")
+    yield from _set_cam_chunk_size_xhx(dets[0], chunk_size, scan_type='fly')
+    print(f"ref set cam finishes at {ttime.asctime()}")
+
+    if stage:
+        for d in dets:
+            try:
+                d.stage()
+            except Exception as e:
+                print(f"error: {e}")
+                d.unstage()
+                d.stage()
+    
     if stream_name == "flat":
         print(f"ref move sam starts at {ttime.asctime()}")
         yield from _move_sample(
-            mots_pos["x"], mots_pos["y"], mots_pos["z"], mots_pos["r"], repeat=2
+            mots_pos, repeat=2
         )
         print(f"ref open shutter starts at {ttime.asctime()}")
         yield from _open_shutter_xhx(simu)
         print(f"ref open shutter finishes at {ttime.asctime()}")
     elif stream_name == "dark":
         print(f"ref close shutter starts at {ttime.asctime()}")
+        yield from _move_sample(
+            mots_pos, repeat=2
+        )
         yield from _close_shutter_xhx(simu)
         print(f"ref close shutter finishes at {ttime.asctime()}")
 
-    print(f"ref set cam starts at {ttime.asctime()}")
-    yield from _set_cam_chunk_size_xhx(dets[0], chunk_size, scan_type='fly')
-    print(f"ref set cam finishes at {ttime.asctime()}")
-    for d in dets:
-        try:
-            d.stage()
-        except Exception as e:
-            print(f"error: {e}")
-            d.unstage()
-            d.stage()
     print(f"ref take image starts at {ttime.asctime()}")
-    yield from _take_image(dets, [], num, stream_name=stream_name)
-    print(f"ref take image finishes at {ttime.asctime()}")
-    for d in dets:
-        try:
-            d.unstage()
-        except Exception as e:
-            print(f"error: {e}")
-            d.unstage(d)
+    yield from _take_image_xh(dets, [], stream_name=stream_name)
+
+    if stage:
+        for d in dets:
+            try:
+                d.unstage()
+            except Exception as e:
+                print(f"error: {e}")
+                d.unstage(d)
     print(f"ref finishes at {ttime.asctime()}")
 
 

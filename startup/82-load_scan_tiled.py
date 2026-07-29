@@ -1120,6 +1120,9 @@ def export_raster_2D_2(h, binning=4, fpath=None):
     index = 0
     for i in range(int(x_num)):
         for j in range(int(y_num)):
+            img_small = img[index, rs:re, cs:ce] 
+            if np.abs(rot_angle - 180) < 1:
+                img_small = img_small[:, ::-1]
             #img_patch[0, j * s[1] : (j + 1) * s[1], i * s[2] : (i + 1) * s[2]] = img[index, rs:re, cs:ce]
             img_patch[0, j*rl : (j+1)*rl, i*cl : (i+1)*cl] = img[index, rs:re, cs:ce]
             pos_file_for_print[index] = [
@@ -1247,14 +1250,14 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
     else:
         warn_msg = ''
 
-    frac = np.round(pix / pxl_sz, 2) # e.g., 10nm/20nm = 0.5
-    rl = int(s[1] * frac) # num of pixel (row) in cropped_and_centered image
+    frac = np.abs(np.round(pix / pxl_sz, 2)) # e.g., 10nm/20nm = 0.5
+    rl = int(np.abs(s[1] * frac)) # num of pixel (row) in cropped_and_centered image
     rs = s[1]/2 * (1 - frac)
     rs = int(max(0, rs))
     re = rs + rl
     re = int(min(re, s[1]))
 
-    cl = int(s[2] * frac) # num of pixel (column) in cropped_and_centered image
+    cl = int(np.abs(s[2] * frac)) # num of pixel (column) in cropped_and_centered image
     cs = s[2]/2 *(1 - frac)
     cs = int(max(0, cs))
     ce = cs + cl
@@ -1272,8 +1275,11 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
     index = 0
     for i in range(int(x_num)):
         for j in range(int(y_num)):
+            img_small = img[index, rs:re, cs:ce] 
+            if np.abs(rot_angle - 180) < 1:
+                img_small = img_small[:, ::-1]
             #img_patch[0, j * s[1] : (j + 1) * s[1], i * s[2] : (i + 1) * s[2]] = img[index, rs:re, cs:ce]
-            img_patch[0, j*rl : (j+1)*rl, i*cl : (i+1)*cl] = img[index, rs:re, cs:ce]
+            img_patch[0, j*rl : (j+1)*rl, i*cl : (i+1)*cl] = img_small
             pos_file_for_print[index] = [
                 x_list[i],
                 y_list[j],
@@ -1286,6 +1292,8 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
             index = index + 1
             print(i,j, index)
     s_patch = img_patch.shape # (1, 3060, 3072)
+    if np.abs(rot_angle - 180) < 1:
+        img_patch = img_patch[:, :, ::-1]
     try:
         s_bin = (s_patch[0], s_patch[1]//binning*binning, s_patch[2]//binning*binning)
         img_patch_bin = bin_ndarray(
@@ -1767,7 +1775,43 @@ def get_moving_x_scan_position(scan_id):
 
 
 
+def bin_ndarray(ndarray, new_shape=None, operation="mean"):
+    """
+    Bins an ndarray in all axes based on the target shape, by summing or
+        averaging.
 
+    Number of output dimensions must match number of input dimensions and
+        new axes must divide old ones.
+
+    Example
+    -------
+    >>> m = np.arange(0,100,1).reshape((10,10))
+    >>> n = bin_ndarray(m, new_shape=(5,5), operation='sum')
+    >>> print(n)
+
+    [[ 22  30  38  46  54]
+     [102 110 118 126 134]
+     [182 190 198 206 214]
+     [262 270 278 286 294]
+     [342 350 358 366 374]]
+
+    """
+    if new_shape == None:
+        s = np.array(ndarray.shape)
+        s1 = np.int32(s / 2)
+        new_shape = tuple(s1)
+    operation = operation.lower()
+    if not operation in ["sum", "mean"]:
+        raise ValueError("Operation not supported.")
+    if ndarray.ndim != len(new_shape):
+        raise ValueError("Shape mismatch: {} -> {}".format(ndarray.shape, new_shape))
+    compression_pairs = [(d, c // d) for d, c in zip(new_shape, ndarray.shape)]
+    flattened = [l for p in compression_pairs for l in p]
+    ndarray = ndarray.reshape(flattened)
+    for i in range(len(new_shape)):
+        op = getattr(ndarray, operation)
+        ndarray = op(-1 * (i + 1))
+    return ndarray
 
 
 

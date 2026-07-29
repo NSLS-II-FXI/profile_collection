@@ -1091,7 +1091,7 @@ def _multi_pos_xanes_2D_xh(
     global ZONE_PLATE
     yield from select_filters(flts)
 
-    detectors = [cam, ic3, ic4]
+    detectors = [cam]
     period = exposure_time
     yield from abs_set_wait(cam.cam.acquire, 0)
     yield from _set_cam_param(
@@ -1171,7 +1171,8 @@ def _multi_pos_xanes_2D_xh(
     else:
         _md["hints"].setdefault("dimensions", dimensions)
 
-    @stage_decorator(list(detectors) + motor)
+    # @stage_decorator(list(detectors) + motor)
+    @stage_decorator(motor)
     @run_decorator(md=_md)
     def inner_scan():
         # close shutter and take dark image
@@ -1179,8 +1180,7 @@ def _multi_pos_xanes_2D_xh(
         print(f"\ntake {chunk_size} dark images...")
         yield from _take_ref_image(
             detectors,
-            mots_pos = {'x': out_pos[0], 'y': out_pos[1], 'z': out_pos[2], 'r': out_pos[3]},
-            num=1,
+            mots_pos = {'x': motor_x_ini, 'y': motor_y_ini, 'z': motor_z_ini, 'r': motor_r_ini},
             chunk_size=chunk_size,
             stream_name="dark",
             simu=simu,
@@ -1230,7 +1230,6 @@ def _multi_pos_xanes_2D_xh(
                 yield from _take_ref_image(
                     detectors,
                     mots_pos = {'x': motor_x_out, 'y': motor_y_out, 'z': motor_z_out, 'r': motor_r_out},
-                    num=1,
                     chunk_size=chunk_size,
                     stream_name="flat",
                     simu=simu,
@@ -1308,6 +1307,14 @@ def _mk_eng_list(elem, bulk=False):
                     + "/eng_list_"
                     + elem.split("_")[0]
                     + "_xanes_standard_101pnt.txt"
+                )
+            elif elem.split("_")[-1] == "300":
+                eng_list = np.genfromtxt(
+                    "/nsls2/data/fxi-new/shared/config/xanes_ref/"
+                    + elem.split("_")[0]
+                    + "/eng_list_"
+                    + elem.split("_")[0]
+                    + "_xafs_standard_300pnt.txt"
                 )
             elif elem.split("_")[-1] == "63":
                 eng_list = np.genfromtxt(
@@ -2289,7 +2296,6 @@ def fly_scan2(
         yield from _take_ref_image(
             dets,
             mots_pos = {'x': out_x, 'y': out_y, 'z': out_z, 'r': out_r},
-            num=1,
             chunk_size=10,
             stream_name="dark",
             simu=simu,
@@ -2316,7 +2322,6 @@ def fly_scan2(
         yield from _take_ref_image(
             dets,
             mots_pos = {'x': motor_x_out, 'y': motor_y_out, 'z': motor_z_out, 'r': motor_r_out},
-            num=1,
             chunk_size=10,
             stream_name="flat",
             simu=simu,
@@ -2513,7 +2518,6 @@ def fly_scan3(
             yield from _take_ref_image(
                 dets,
                 mots_pos = {'x': out_x, 'y': out_y, 'z': out_z, 'r': out_r},
-                num=1,
                 chunk_size=10,
                 stream_name="dark",
                 simu=simu,
@@ -2545,7 +2549,6 @@ def fly_scan3(
             yield from _take_ref_image(
                 dets,
                 mots_pos = {'x': motor_x_out, 'y': motor_y_out, 'z': motor_z_out, 'r': motor_r_out},
-                num=1,
                 chunk_size=10,
                 stream_name="flat",
                 simu=simu,
@@ -2579,10 +2582,7 @@ def rock_scan(
     t_span=10,
     start_angle=None,
     rel_rot_ang=30,
-    out_x=None,
-    out_y=None,
-    out_z=None,
-    out_r=None,
+    out_pos={'x':None, 'y':None, 'z':None, 'r':None},
     rs=30,
     relative_move_flag=1,
     rot_first_flag=1,
@@ -2649,7 +2649,7 @@ def rock_scan(
         binning = 0
     if int(binning) not in [0, 1, 2, 3, 4]:
         raise ValueError("binnng must be in [0, 1, 2, 3, 4]")
-    yield from abs_set_wait(cam.binning, binning)
+    FXITomoFlyer.bin_det(cam, binning)
 
     motor_x_ini = zps.sx.position
     motor_y_ini = zps.sy.position
@@ -2662,23 +2662,24 @@ def rock_scan(
         start_angle = zps.pi_r.position
 
     if relative_move_flag:
-        motor_x_out = motor_x_ini + out_x if not (out_x is None) else motor_x_ini
-        motor_y_out = motor_y_ini + out_y if not (out_y is None) else motor_y_ini
-        motor_z_out = motor_z_ini + out_z if not (out_z is None) else motor_z_ini
-        motor_r_out = motor_r_ini + out_r if not (out_r is None) else motor_r_ini
+        motor_x_out = motor_x_ini + out_pos['x'] if not (out_pos['x'] is None) else motor_x_ini
+        motor_y_out = motor_y_ini + out_pos['y'] if not (out_pos['y'] is None) else motor_y_ini
+        motor_z_out = motor_z_ini + out_pos['z'] if not (out_pos['z'] is None) else motor_z_ini
+        motor_r_out = motor_r_ini + out_pos['r'] if not (out_pos['r'] is None) else motor_r_ini
     else:
-        motor_x_out = out_x if not (out_x is None) else motor_x_ini
-        motor_y_out = out_y if not (out_y is None) else motor_y_ini
-        motor_z_out = out_z if not (out_z is None) else motor_z_ini
-        motor_r_out = out_r if not (out_r is None) else motor_r_ini
+        motor_x_out = out_pos['x'] if not (out_pos['x'] is None) else motor_x_ini
+        motor_y_out = out_pos['y'] if not (out_pos['y'] is None) else motor_y_ini
+        motor_z_out = out_pos['z'] if not (out_pos['z'] is None) else motor_z_ini
+        motor_r_out = out_pos['r'] if not (out_pos['r'] is None) else motor_r_ini
 
-    rev = int(np.ceil(t_span / (2 * rel_rot_ang / rs))) + 1
+    rev = int(np.ceil(t_span / ((rel_rot_ang - abs(rs)) / abs(rs) + 2 * zps.pi_r.acceleration.value)))
+
     mots = [zps.pi_r]
-
     dets = [cam]
     tgt_ang = start_angle + rel_rot_ang
+
     _md = {
-        "detectors": ["KinetixU"],
+        "detectors": [cam.name],
         "motors": [mot.name for mot in mots],
         "XEng": XEng.position,
         "ion_chamber": ic3.name,
@@ -2689,10 +2690,10 @@ def rock_scan(
             "period": period,
             "time_span": t_span,
             "rock_velocity": rs,
-            "out_x": out_x,
-            "out_y": out_y,
-            "out_z": out_z,
-            "out_r": out_r,
+            "out_x": out_pos['x'],
+            "out_y": out_pos['y'],
+            "out_z": out_pos['z'],
+            "out_r": out_pos['r'],
             "relative_move_flag": relative_move_flag,
             "rot_first_flag": rot_first_flag,
             "filters": ["filter{}".format(t) for t in flts] if flts else "None",
@@ -2722,10 +2723,14 @@ def rock_scan(
         _md["hints"].setdefault("dimensions", dimensions)
 
     yield from _set_cam_param(
-        exposure_time=exp_t, period=period, chunk_size=20
+        exposure_time=exp_t, period=period
     )
-    true_period = yield from rd(KinetixU.cam.acquire_period)
-    num_img = int(t_span / true_period) + 2
+
+    if 'Kinetix' in cam.name:
+        true_period = exp_t
+    else:
+        true_period = yield from rd(cam.cam.acquire_period)
+    num_img = int(t_span / true_period) + 20
 
     yield from _set_rotation_speed(rs=np.abs(rs))
     print("set rotation speed: {} deg/sec".format(rs))
@@ -2742,8 +2747,7 @@ def rock_scan(
             print("\nshutter closed, taking dark images...")
             yield from _take_ref_image(
                 dets,
-                mots_pos = {'x': out_x, 'y': out_y, 'z': out_z, 'r': out_r},
-                num=1,
+                mots_pos = {'x': motor_x_out, 'y': motor_y_out, 'z': motor_z_out, 'r': motor_r_out},
                 chunk_size=10,
                 stream_name="dark",
                 simu=simu,
@@ -2753,17 +2757,17 @@ def rock_scan(
         yield from _set_cam_chunk_size(dets, chunk_size=num_img)
         yield from _open_shutter_xhx(simu=simu)
         print("\nshutter opened, taking tomo images...")
-        yield from abs_set(zps.pi_r, start_angle, wait=True)
 
+        yield from abs_set(zps.pi_r, start_angle, wait=True)
         # modified based on trigger_and_read
         tgt, old_tgt = tgt_ang, start_angle
-        yield from trigger(KinetixU, group="Andor", wait=False)
+        yield from trigger(cam, group=cam.name, wait=False)
         for ii in range(rev):
             yield from mv(zps.pi_r, tgt)
             old_tgt, tgt = tgt, old_tgt
-        yield from bps.wait(group="Andor")
+        yield from bps.wait(group=cam.name)
         yield from bps.create("primary")
-        yield from bps.read(KinetixU)
+        yield from bps.read(cam)
         yield from bps.save()
 
         # bkg images
@@ -2774,7 +2778,6 @@ def rock_scan(
             yield from _take_ref_image(
                 dets,
                 mots_pos = {'x': motor_x_out, 'y': motor_y_out, 'z': motor_z_out, 'r': motor_r_out},
-                num=1,
                 chunk_size=10,
                 stream_name="flat",
                 simu=simu,
@@ -2792,10 +2795,9 @@ def rock_scan(
             )
         yield from select_filters([])
 
-    uid = yield from rock_inner_scan()
-    yield from abs_set_wait(cam.cam.image_mode, 1)
+    yield from rock_inner_scan()
+    yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")
     print("scan finished")
-    return uid
 
 
 def mosaic_fly_scan_xh(
@@ -2909,12 +2911,6 @@ def record_calib_pos_new_xh(n=None):
                     idx.append(int(sorted_calib_dict[key]['pos'].strip('pos')))
             if n is None:
                 n = find_missing_or_next(idx)
-                # idx_set = set(idx)
-                # n = min(idx)
-                # while True:
-                #     if n not in idx_set:
-                #         break
-                #     n += 1
         else:
             n = 1
 
@@ -2940,32 +2936,61 @@ def record_calib_pos_new_xh(n=None):
 
     tmp = {}
     for k in CALIBER.keys():
-        if str(n) in k:
+        if f'pos{n}' == k.split('_')[-1]:
             tmp[k] = CALIBER[k]
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(tmp)
     df = pd.DataFrame.from_dict(CALIBER, orient="index")
     df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_new.csv")
-    # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
     print(
         f'calib_pos{n} recored: current Magnification = GLOBAL_MAG = {CALIBER[f"mag{n}"]}'
     )
     yield from bps.sleep(0.5)
 
 
-def remove_caliber_pos_new_xh(n):
+# def remove_caliber_pos_new_xh(n):
+#     global CALIBER_FLAG, CURRENT_MAG, CALIBER
+#     df = pd.DataFrame.from_dict(CALIBER, orient="index")
+#     df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_backup.csv")
+#     CALIBER_backup = CALIBER.copy()
+#     try:
+#         for k in CALIBER_backup.keys():
+#             if f"pos{n}" == k.split('_')[-1]:
+#                 del CALIBER[k]
+#             if f"mag{n}" == k:
+#                 del CALIBER[k]
+#         df = pd.DataFrame.from_dict(CALIBER, orient="index")
+#         # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
+#         df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_new.csv")
+#     except:
+#         CALIBER = CALIBER.copy()
+#         print(f"fails to remove CALIBER postion {n}, or it does not exist")
+#         print("CALIBER not changed")
+#     pp = pprint.PrettyPrinter(indent=4)
+#     pp.pprint(CALIBER)
+#     yield from bps.sleep(0.1)
+
+
+def remove_caliber_pos_new_xh(eng):
     global CALIBER_FLAG, CURRENT_MAG, CALIBER
     df = pd.DataFrame.from_dict(CALIBER, orient="index")
     df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_backup.csv")
     CALIBER_backup = CALIBER.copy()
+
+    for key in CALIBER.keys():
+        if "XEng" in key:
+            if CALIBER[key] == eng:
+                pos_idx = key.split("_")[-1]
+                idx = pos_idx.strip("pos")
+                break
+
     try:
         for k in CALIBER_backup.keys():
-            if str(n) == k.split('pos')[1]:
+            if pos_idx == k.split('_')[-1]:
                 del CALIBER[k]
-            if str(n) == k.split('mag')[1]:
+            if f"mag{idx}" == k:
                 del CALIBER[k]
         df = pd.DataFrame.from_dict(CALIBER, orient="index")
-        # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
         df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_new.csv")
     except:
         CALIBER = CALIBER.copy()
@@ -2973,6 +2998,7 @@ def remove_caliber_pos_new_xh(n):
         print("CALIBER not changed")
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(CALIBER)
+    yield from bps.sleep(0.1)
 
 
 def cal_calib_pos_xh():
@@ -3071,7 +3097,7 @@ def trans_calib_xh():
     for key1, key2 in zip(new_key1, new_key2):
         calib_dict[key2] = {}
         for k in CALIBER.keys():
-            if key1 in k:
+            if key1 == k.split("_")[-1]:
                 calib_dict[key2][k.strip("_" + key1)] = CALIBER[k]
         calib_dict[key2]["pos"] = key1
         calib_dict[key2]["mag"] = CALIBER["mag" + key1.strip("pos")]
@@ -3396,6 +3422,26 @@ def move_zp_ccd_xh(
                 t = min(t, 2)
                 print(f"sleep for {t} sec")
                 yield from bps.sleep(t)
+
+
+def change_txm_eng_xh(
+    eng_new,
+    move_flag=1,
+    info_flag=1,
+    move_clens_flag=0,
+    move_det_flag=0,
+    mag=None,
+    zp_cfg=None,
+):
+    yield from move_zp_ccd_xh(
+        eng_new,
+        move_flag=move_flag,
+        info_flag=info_flag,
+        move_clens_flag=move_clens_flag,
+        move_det_flag=move_det_flag,
+        mag=mag,
+        zp_cfg=zp_cfg,
+    )
 
 
 def grid_z_scan(
@@ -3926,7 +3972,6 @@ def mosaic_2D_xh(
         yield from _take_ref_image(
             dets,
             mots_pos = {'x': out_x, 'y': out_y, 'z': out_z, 'r': out_r},
-            num=1,
             chunk_size=5,
             stream_name="dark",
             simu=simu,
@@ -3957,7 +4002,6 @@ def mosaic_2D_xh(
         yield from _take_ref_image(
                 dets,
                 mots_pos = {'x': motor_x_out, 'y': motor_y_out, 'z': motor_z_out, 'r': motor_r_out},
-                num=1,
                 chunk_size=5,
                 stream_name="flat",
                 simu=simu,
@@ -4298,10 +4342,10 @@ def radiographic_record(
             "exposure_time": exp_t,
             "period": period,
             "time_span": t_span,
-            "out_x": out_x,
-            "out_y": out_y,
-            "out_z": out_z,
-            "out_r": out_r,
+            "out_x": motor_x_out,
+            "out_y": motor_y_out,
+            "out_z": motor_z_out,
+            "out_r": motor_r_out,
             "filters": ["filter{}".format(t) for t in flts] if flts else "None",
             "note": note if note else "None",
             "zone_plate": ZONE_PLATE,
@@ -4681,18 +4725,16 @@ def multi_pos_2D_xanes_and_3D_tomo(
 
 
 def z_scan_xh(
-    scan_motor: "zp_z",
     start=-0.03,
     stop=0.03,
     steps=5,
-    out_x=-100,
-    out_y=-100,
-    out_z=0,
+    out_pos={'x': None, 'y': -100, 'z': None, 'r': None},
     chunk_size=10,
-    exposure_time=0.1,
+    exposure_time=0.02,
     relative_move_flag=1,
     note="",
     md=None,
+    simu=False,
     cam=None,
 ):
     """
@@ -4732,24 +4774,17 @@ def z_scan_xh(
     r_ini = zps.pi_r.position
 
     if relative_move_flag:
-        x_out = x_ini + out_x if not (out_x is None) else x_ini
-        y_out = y_ini + out_y if not (out_y is None) else y_ini
-        z_out = z_ini + out_z if not (out_z is None) else z_ini
+        x_out = x_ini if out_pos['x'] is None else x_ini + out_pos['x']
+        y_out = y_ini if out_pos['y'] is None else y_ini + out_pos['y']
+        z_out = z_ini if out_pos['z'] is None else z_ini + out_pos['z']
 
     else:
-        x_out = out_x if not (out_x is None) else x_ini
-        y_out = out_y if not (out_y is None) else y_ini
-        z_out = out_z if not (out_z is None) else z_ini
+        x_out = x_ini if out_x is None else out_pos['x']
+        y_out = y_ini if out_y is None else out_pos['y']
+        z_out = z_ini if out_z is None else out_pos['z']
 
-    if scan_motor == "zp_x":
-        zp_ini = zp.x.position  # zp.x intial position
-        real_motor = zp.x
-    if scan_motor == "zp_y":
-        real_motor = zp.y
-        zp_ini = zp.y.position  # zp.y intial position
-    else:
-        zp_ini = zp.z.position  # zp.z intial position
-        real_motor = zp.z
+    zp_ini = zp.z.position  # zp.z intial position
+    real_motor = zp.z
 
     zp_start = zp_ini + start
     zp_stop = zp_ini + stop
@@ -4768,9 +4803,9 @@ def z_scan_xh(
             "start": start,
             "stop": stop,
             "steps": steps,
-            "out_x": out_x,
-            "out_y": out_y,
-            "out_z": out_z,
+            "out_x": out_pos['x'],
+            "out_y": out_pos['y'],
+            "out_z": out_pos['z'],
             "chunk_size": chunk_size,
             "exposure_time": exposure_time,
             "note": note if note else "None",
@@ -4783,7 +4818,7 @@ def z_scan_xh(
         #'motor_pos': wh_pos(print_on_screen=0),
     }
     _md.update(md or {})
-    my_var = np.linspace(zp_start, zp_stop, steps)
+    zp_pos = np.linspace(zp_start, zp_stop, steps)
     try:
         dimensions = [(motor.hints["fields"], "primary")]
     except (AttributeError, KeyError):
@@ -4794,37 +4829,34 @@ def z_scan_xh(
     @stage_decorator(list(detectors) + motor)
     @run_decorator(md=_md)
     def z_inner_scan():
-
-        # take dark image
-        yield from _take_dark_image(detectors, motor)
-        yield from _open_shutter_xhx()
-        for pos in my_var:
-            yield from mv(zps.sx, x_ini, zps.sy, y_ini)
+        yield from _move_sample(
+            {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
+            repeat=1
+        )
+        for pos in zp_pos:
             yield from mv(real_motor, pos)
             yield from bps.sleep(0.1)
-            yield from mv(zps.sx, x_ini, zps.sy, y_ini)
-            yield from mv(real_motor, pos)
-            yield from bps.sleep(0.1)
-            yield from _take_image(detectors, motor=motor, num=1)
-        yield from _take_bkg_image(
-            out_x=x_out,
-            out_y=y_out,
-            out_z=z_out,
-            out_r=0,
-            detectors=detectors,
-            motor=motor,
+            yield from _take_image(detectors, motor=motor, num=1, stream_name="primary")
+        # take flat image
+        yield from _take_ref_image(
+            detectors,
+            mots_pos = {'x': x_out, 'y': y_out, 'z': z_out, 'r': r_ini},
             chunk_size=chunk_size,
+            stream_name="flat",
+            simu=simu,
+        )
+        # take dark image
+        yield from _take_ref_image(
+            detectors,
+            mots_pos = {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
+            chunk_size=chunk_size,
+            stream_name="dark",
+            simu=simu,
         )
 
-        # move back zone_plate and sample y
-        yield from mv(zps.sx, x_ini, zps.sy, y_ini, zps.sz, z_ini, zp.z, zp_ini)
-        # yield from abs_set(shutter_open, 1, wait=True)
-
     yield from z_inner_scan()
-    yield from abs_set_wait(cam.cam.image_mode, 1)
-    yield from _close_shutter_xhx(simu=False)
+    yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")
     txt = get_scan_parameter()
-    insert_text(txt)
     print(txt)
 
 
@@ -5071,6 +5103,7 @@ def diff_img(out_pos=[None, None, None], eng_1st=8.97, eng_2nd=8.92, flts=[], ca
     yield from _close_shutter_xhx()
     yield from count([cam], 1)
     yield from select_filters(flts_ini)
+
 
 
 

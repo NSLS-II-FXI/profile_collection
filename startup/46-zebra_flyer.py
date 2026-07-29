@@ -4,6 +4,11 @@ from bluesky.plan_stubs import kickoff, collect, complete, wait
 from bluesky.utils import short_uid
 
 
+# ts_flat_file = EpicsSignal("NSLS2:TomoStream:FlatFileName", name="ts_flat_file")
+# ts_dark_file = EpicsSignal("NSLS2:TomoStream:DarkFileName", name="ts_dark_file")
+# ts_load_refs = EpicsSignal("NSLS2:TomoStream:LoadRefImages", name="ts_load_refs")
+# ts_refs_loaded = EpicsSignal("NSLS2:TomoStream:RefImagesLoaded", name="ts_refs_loaded")
+
 def tomo_zfly(
     scn_mode=0,
     exp_t=0.05,
@@ -142,6 +147,46 @@ def tomo_zfly(
         if flyer.scn_mode == "standard": # scn_mode = 0
             print(f"{sleep_plan=}")
             for ii in range(scn_cfg["num_swing"]):
+                yield from FXITomoFlyer.set_cam_mode(cam, stage="ref-scan")
+                print(f"Scan # {ii} set ref-scan finishes at {ttime.asctime()}")
+                
+                print(f"taking dark images at {ttime.asctime()}")
+                yield from _take_ref_image(
+                    flyer.detectors,
+                    mots_pos={
+                        "x": mot_x_out,
+                        "y": mot_y_out,
+                        "z": mot_z_out,
+                        "r": mot_r_out,
+                    },
+                    chunk_size=10,
+                    stream_name="dark",
+                    simu=simu,
+                )
+                print(f"{resolver.latest_dark()['file_reference']}")
+                
+                print(f"taking flat images at {ttime.asctime()}")
+                yield from _take_ref_image(
+                    flyer.detectors,
+                    mots_pos={
+                        "x": mot_x_out,
+                        "y": mot_y_out,
+                        "z": mot_z_out,
+                        "r": mot_r_out,
+                    },
+                    chunk_size=10,
+                    stream_name="flat",
+                    simu=simu,
+                )
+                print(f"{resolver.latest_flat()['file_reference']}")
+                
+                print(f"Scan # {ii} set sam in position starts at {ttime.asctime()}")
+                yield from _move_sample(
+                    {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
+                    repeat=2,
+                )
+                print(f"Scan # {ii} set sam in position finishes at {ttime.asctime()}")
+                
                 yield from FXITomoFlyer.set_cam_mode(flyer.detectors[0], stage="pre-scan")
                 yield from FXITomoFlyer.set_cam_step_for_scan(cam, scn_cfg)
                 yield from FXITomoFlyer.set_mot_r_step_for_scan(scn_cfg)
@@ -155,7 +200,6 @@ def tomo_zfly(
                 for mot in mots:
                     mot.stage()
 
-                # yield from FXITomoFlyer.set_cam_mode(flyer.detectors[0], stage="pre-scan")
                 print(f"{scn_cfg=}")
                 st = yield from kickoff(flyer, wait=True, scn_cfg=scn_cfg)
                 st.wait(timeout=10)             
@@ -197,46 +241,13 @@ def tomo_zfly(
                 for mot in mots:
                     mot.unstage()
 
+                yield from _close_shutter_xhx(simu=simu)
                 print(f"Scan # {ii} cleaning at {ttime.asctime()}")
                 scn_cfg["ang_s"] = r_ini
                 yield from FXITomoFlyer.init_mot_r(scn_cfg)
 
                 print(f"Scan # {ii} post init_mot_r finishes at {ttime.asctime()}")
-                yield from FXITomoFlyer.set_cam_mode(cam, stage="ref-scan")
-                print(f"Scan # {ii} post set cam finishes at {ttime.asctime()}")
-                print(f"take flat images at {ttime.asctime()}")
-                yield from _take_ref_image(
-                    flyer.detectors,
-                    mots_pos={
-                        "x": mot_x_out,
-                        "y": mot_y_out,
-                        "z": mot_z_out,
-                        "r": mot_r_out,
-                    },
-                    num=1,
-                    chunk_size=10,
-                    stream_name="flat",
-                    simu=simu,
-                )
-                print(f"take dark images at {ttime.asctime()}")
-                yield from _take_ref_image(
-                    flyer.detectors,
-                    mots_pos={},
-                    num=1,
-                    chunk_size=10,
-                    stream_name="dark",
-                    simu=simu,
-                )
-                
-                print(f"Scan # {ii} post move sam back starts at {ttime.asctime()}")
-                yield from _move_sample(
-                    x_ini,
-                    y_ini,
-                    z_ini,
-                    r_ini,
-                    repeat=2,
-                )
-                print(f"Scan # {ii} post move sam back finishes at {ttime.asctime()}")
+
                 yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")
                 print(f"set post-scan finishes at {ttime.asctime()}")
 
@@ -340,25 +351,25 @@ def tomo_zfly(
                     "z": mot_z_out,
                     "r": mot_r_out,
                 },
-                num=1,
                 chunk_size=10,
                 stream_name="flat",
                 simu=simu,
             )
             yield from _take_ref_image(
                 [cam],
-                mots_pos={},
-                num=1,
+                mots_pos={
+                    "x": mot_x_out,
+                    "y": mot_y_out,
+                    "z": mot_z_out,
+                    "r": mot_r_out,
+                },
                 chunk_size=10,
                 stream_name="dark",
                 simu=simu,
             )
             print(13)
             yield from _move_sample(
-                x_ini,
-                y_ini,
-                z_ini,
-                r_ini,
+                {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
                 repeat=2,
             )
             print(14)            
@@ -436,24 +447,24 @@ def tomo_zfly(
                     "z": mot_z_out,
                     "r": mot_r_out,
                 },
-                num=1,
                 chunk_size=10,
                 stream_name="flat",
                 simu=simu,
             )
             yield from _take_ref_image(
                 [cam],
-                mots_pos={},
-                num=1,
+                mots_pos={
+                    "x": mot_x_out,
+                    "y": mot_y_out,
+                    "z": mot_z_out,
+                    "r": mot_r_out,
+                },
                 chunk_size=10,
                 stream_name="dark",
                 simu=simu,
             )
             yield from _move_sample(
-                x_ini,
-                y_ini,
-                z_ini,
-                r_ini,
+                {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
                 repeat=2,
             )
             yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")

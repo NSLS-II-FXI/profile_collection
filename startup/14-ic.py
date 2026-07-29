@@ -11,3 +11,6 @@ ic_rate = EpicsSignal("XF:18IDB-BI{i404:1}Cmd:GetCS-Cmd.SCAN", name="ic_rate")
 
 Vout1 = EpicsSignal("XF:18IDB-UT{Voltage-input:1}Val", name="Vout1")
 Vout2 = EpicsSignal("XF:18IDB-UT{Voltage-input:2}Val", name="Vout2")
+
+
+T_channel_C = EpicsSignal("XF:18ID-ES{Env:01-Chan:C}T:C-I", name='T_channel_C')

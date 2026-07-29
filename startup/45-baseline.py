@@ -24,6 +24,11 @@ sd.baseline = [
     filter2,
     filter3,
     filter4,
+    filter5,
+    filter6,
+    filter7,
+    filter8,
+    T_channel_C,
 ]
 # temporary take off lakeshore336,
 

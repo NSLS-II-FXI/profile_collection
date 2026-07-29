@@ -649,10 +649,13 @@ def fly_scan(
             "take_bkg_img": take_bkg_img,
             "take_dark_img":take_dark_img,
             "close_shutter_finish":close_shutter_finish,
+            "add_bkg_filt_only": add_bkg_filt_only,
             "filters": [t.name for t in filters] if filters else "None",
             "binning": binning,
+            "rot_back_velo": rot_back_velo,
+            "move_to_ini_pos": move_to_ini_pos,
+            "simu": simu,
             "note": note if note else "None",
-            "zone_plate": ZONE_PLATE,
         },
         "plan_name": "fly_scan",
         "num_bkg_images": 20,
@@ -724,7 +727,7 @@ def fly_scan(
 
 
         """
-                # move sample from bkg position back to sample position
+        # move sample from bkg position back to sample position
         print('move sample from bkg position back to sample position')
         yield from _move_sample_in(
                 motor_x_ini,
@@ -895,9 +898,11 @@ def xanes_scan2(
             "out_z": out_z,
             "our_r": out_r,
             "relative_move_flag": relative_move_flag,
-            "note": note if note else "None",
+            "rot_first_flag": rot_first_flag,
             "filters": [t.name for t in filters] if filters else "None",
-            "zone_plate": ZONE_PLATE,
+            "note": note if note else "None",
+            "simu": simu,
+            "mag": mag if mag else "None"
         },
         "plan_name": "xanes_scan2",
         "hints": {},
@@ -2035,11 +2040,11 @@ def raster_2D_scan(
             "img_sizeY": img_sizeY,
             "pxl": pxl,
             "chunk_size": chunk_size,
-            "note": note if note else "None",
             "relative_move_flag": relative_move_flag,
             "rot_first_flag": rot_first_flag,
-            "note": note if note else "None",
+            "filters": [t.name for t in filters] if filters else "None",
             "scan_x_flag": scan_x_flag,
+            "note": note if note else "None",            
             "zone_plate": ZONE_PLATE,
         },
         "plan_name": "raster_2D",
