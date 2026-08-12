@@ -14,11 +14,12 @@ from PIL import Image
 from scipy.signal import medfilt2d
 from datetime import datetime
 
-def reload_bsui():
 
+def reload_bsui():
     """Restarts the current bsui and updates live elements info."""
 
-    os.execl(sys.executable, sys.executable, * sys.argv)
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
 
 def check_latest_scan_id(init_guess=60000, search_size=100):
     sid_from_md = RE.md["scan_id"]
@@ -100,13 +101,13 @@ def update_th2():
     else:
         eng1 = above[-1]
         eng2 = below[0]
-    old_th2 = (cur_eng - eng2) * (calib[eng1]["th2_motor"] - calib[eng2]["th2_motor"]) / (
-                eng1 - eng2
-            ) + calib[eng2]["th2_motor"]
+    old_th2 = (cur_eng - eng2) * (
+        calib[eng1]["th2_motor"] - calib[eng2]["th2_motor"]
+    ) / (eng1 - eng2) + calib[eng2]["th2_motor"]
     delta_th2 = cur_th2 - old_th2
     for key in calib.keys():
         calib[key]["th2_motor"] += delta_th2
-    print(f'For all energy calibrition point, offset DCM_th2 by {delta_th2}')
+    print(f"For all energy calibrition point, offset DCM_th2 by {delta_th2}")
     return calib
 
 
@@ -125,7 +126,7 @@ def trans_calib():
 
     for key in CALIBER.keys():
         if "XEng" in key:
-            new_key1.append(key.split("_")[-1] )
+            new_key1.append(key.split("_")[-1])
             new_key2.append(CALIBER[key])
 
     calib_dict = {}
@@ -133,10 +134,9 @@ def trans_calib():
         calib_dict[key2] = {}
         for k in CALIBER.keys():
             if key1 in k:
-                calib_dict[key2][k.strip("_"+ key1)] = CALIBER[k]
+                calib_dict[key2][k.strip("_" + key1)] = CALIBER[k]
         calib_dict[key2]["pos"] = key1
     return calib_dict
-
 
 
 def record_calib_pos_new(n, record_th2_only=False):
@@ -155,14 +155,14 @@ def record_calib_pos_new(n, record_th2_only=False):
     CALIBER[f"DetU_x_pos{n}"] = DetU.x.position
     CALIBER[f"aper_x_pos{n}"] = aper.x.position
     CALIBER[f"aper_y_pos{n}"] = aper.y.position
-    #CALIBER[f"txm_x_pos{n}"] = zps.pi_x.position
+    # CALIBER[f"txm_x_pos{n}"] = zps.pi_x.position
 
     if record_th2_only:
         calib_mag = GLOBAL_MAG
         keys = list(CALIBER.keys())
         if len(keys):
             for k in keys:
-                if 'mag' in k:
+                if "mag" in k:
                     calib_mag = CALIBER[k]
                     break
         CALIBER[f"mag{n}"] = calib_mag
@@ -180,7 +180,9 @@ def record_calib_pos_new(n, record_th2_only=False):
     df = pd.DataFrame.from_dict(CALIBER, orient="index")
     df.to_csv("/nsls2/data/fxi-new/legacy/log/calib_new.csv")
     # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
-    print(f'calib_pos{n} recored: current Magnification = GLOBAL_MAG = {CALIBER[f"mag{n}"]}')
+    print(
+        f"calib_pos{n} recored: current Magnification = GLOBAL_MAG = {CALIBER[f'mag{n}']}"
+    )
 
 
 def remove_caliber_pos(n):
@@ -190,8 +192,8 @@ def remove_caliber_pos(n):
     CALIBER_backup = CALIBER.copy()
     try:
         for k in CALIBER_backup.keys():
-            if 'pos'+str(n) in k:
-            #if k[-1] == str(n):
+            if "pos" + str(n) in k:
+                # if k[-1] == str(n):
                 del CALIBER[k]
         df = pd.DataFrame.from_dict(CALIBER, orient="index")
         # df.to_csv("/home/xf18id/.ipython/profile_collection/startup/calib_new.csv", sep="\t")
@@ -252,7 +254,9 @@ def read_calib_file_new(return_flag=0):
         return CALIBER
 
 
-def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0, mag=None):
+def move_zp_ccd(
+    eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0, mag=None
+):
     """
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
@@ -270,6 +274,7 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
           0: Do calculation without moving real stages
           1: Will move stages
     """
+
     def find_nearest(data, value):
         data = np.array(data)
         return np.abs(data - value).argmin()
@@ -282,8 +287,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
         eng_new, eng_ini, print_flag=0, mag=mag
     )
 
-
-    assert (det_final) > det.z.low_limit.value and (det_final) < det.z.high_limit.value, print(
+    assert (det_final) > det.z.low_limit.value and (
+        det_final
+    ) < det.z.high_limit.value, print(
         "Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.".format(
             det_final, det.z.low_limit.value, det.z.high_limit.value
         )
@@ -360,7 +366,6 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
                 f'eng1({eng1:2.5f} eV) and eng2({eng2:2.5f} eV) in "CALIBER" are two close, will not move any motors...'
             )
         else:
-
             chi2_motor_target = (eng_new - eng2) * (dcm_chi2_eng1 - dcm_chi2_eng2) / (
                 eng1 - eng2
             ) + dcm_chi2_eng2
@@ -371,7 +376,6 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
             zp_y_target = (eng_new - eng2) * (zp_y_pos_eng1 - zp_y_pos_eng2) / (
                 eng1 - eng2
             ) + zp_y_pos_eng2
-
 
             th2_motor_target = (eng_new - eng2) * (th2_motor_eng1 - th2_motor_eng2) / (
                 eng1 - eng2
@@ -441,11 +445,11 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
                         )
                     )
                     # print ('move pzt_dcm_th2: ({0:2.4f} um --> {1:2.4f} um)'.format(pzt_dcm_th2_ini, pzt_dcm_th2_target))
-                    #print(
+                    # print(
                     #    "move dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)".format(
                     #        dcm_chi2_ini, chi2_motor_target
                     #    )
-                    #)
+                    # )
                     print(
                         "move th2_motor: ({0:2.6f} deg --> {1:2.6f} deg)".format(
                             th2_motor_ini, th2_motor_target
@@ -498,9 +502,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
                 yield from mv(dcm_th2.feedback, th2_motor_target)
                 yield from mv(dcm_th2.feedback_enable, 1)
 
-                #yield from mv(dcm_chi2.feedback_enable, 0)
-                #yield from mv(dcm_chi2.feedback, chi2_motor_target)
-                #yield from mv(dcm_chi2.feedback_enable, 1)
+                # yield from mv(dcm_chi2.feedback_enable, 0)
+                # yield from mv(dcm_chi2.feedback, chi2_motor_target)
+                # yield from mv(dcm_chi2.feedback_enable, 1)
 
                 yield from mv(zp.z, zp_final, det.z, det_final, XEng, eng_new)
                 yield from mv(zp.x, zp_x_target, zp.y, zp_y_target)
@@ -563,11 +567,11 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
                         aper_y_ini, aper_y_target
                     )
                 )
-                #print(
+                # print(
                 #    "will move dcm_chi2: ({0:2.4f} um --> {1:2.4f} um)".format(
                 #        dcm_chi2_ini, chi2_motor_target
                 #    )
-                #)
+                # )
                 print(
                     "will move th2_motor: ({0:2.6f} deg --> {1:2.6f} deg)".format(
                         th2_motor_ini, th2_motor_target
@@ -609,7 +613,9 @@ def move_zp_ccd(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_f
 
 
 ###############################
-def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0, mag=None):
+def move_zp_ccd_TEST(
+    eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_det_flag=0, mag=None
+):
     """
     move the zone_plate and ccd to the user-defined energy with constant magnification
     use the function as:
@@ -627,6 +633,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
           0: Do calculation without moving real stages
           1: Will move stages
     """
+
     def find_nearest(data, value):
         data = np.array(data)
         return np.abs(data - value).argmin()
@@ -639,8 +646,9 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
         eng_new, eng_ini, print_flag=0, mag=mag
     )
 
-
-    assert (det_final) > det.z.low_limit.value and (det_final) < det.z.high_limit.value, print(
+    assert (det_final) > det.z.low_limit.value and (
+        det_final
+    ) < det.z.high_limit.value, print(
         "Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.".format(
             det_final, det.z.low_limit.value, det.z.high_limit.value
         )
@@ -651,7 +659,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
     for k in CALIBER.keys():
         if "XEng" in k:
             ENG_val.append(CALIBER[k])
-            tmp_str = k.split('pos')
+            tmp_str = k.split("pos")
             idx = int(tmp_str[-1])
             ENG_idx.append(idx)
 
@@ -693,32 +701,34 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
         print("stage will not move")
         return 0
     else:
-        print(f"using reference at {eng1:2.5f} keV and {eng2:2.5f} kev to interpolate\n")
-        #dcm_chi2_eng1 =  CALIBER[f"chi2_pos{id1}"]
-        zp_x_pos_eng1 =  CALIBER[f"zp_x_pos{id1}"]
-        zp_y_pos_eng1 =  CALIBER[f"zp_y_pos{id1}"]
+        print(
+            f"using reference at {eng1:2.5f} keV and {eng2:2.5f} kev to interpolate\n"
+        )
+        # dcm_chi2_eng1 =  CALIBER[f"chi2_pos{id1}"]
+        zp_x_pos_eng1 = CALIBER[f"zp_x_pos{id1}"]
+        zp_y_pos_eng1 = CALIBER[f"zp_y_pos{id1}"]
         th2_motor_eng1 = CALIBER[f"th2_motor_pos{id1}"]
-        clens_x_eng1 =   CALIBER[f"clens_x_pos{id1}"]
-        clens_y1_eng1 =  CALIBER[f"clens_y1_pos{id1}"]
-        clens_y2_eng1 =  CALIBER[f"clens_y2_pos{id1}"]
-        clens_p_eng1 =   CALIBER[f"clens_p_pos{id1}"]
-        DetU_x_eng1 =    CALIBER[f"DetU_x_pos{id1}"]
-        DetU_y_eng1 =    CALIBER[f"DetU_y_pos{id1}"]
-        aper_x_eng1 =    CALIBER[f"aper_x_pos{id1}"]
-        aper_y_eng1 =    CALIBER[f"aper_y_pos{id1}"]
+        clens_x_eng1 = CALIBER[f"clens_x_pos{id1}"]
+        clens_y1_eng1 = CALIBER[f"clens_y1_pos{id1}"]
+        clens_y2_eng1 = CALIBER[f"clens_y2_pos{id1}"]
+        clens_p_eng1 = CALIBER[f"clens_p_pos{id1}"]
+        DetU_x_eng1 = CALIBER[f"DetU_x_pos{id1}"]
+        DetU_y_eng1 = CALIBER[f"DetU_y_pos{id1}"]
+        aper_x_eng1 = CALIBER[f"aper_x_pos{id1}"]
+        aper_y_eng1 = CALIBER[f"aper_y_pos{id1}"]
 
-        #dcm_chi2_eng2 =  CALIBER[f"chi2_pos{id2}"]
-        zp_x_pos_eng2 =  CALIBER[f"zp_x_pos{id2}"]
-        zp_y_pos_eng2 =  CALIBER[f"zp_y_pos{id2}"]
+        # dcm_chi2_eng2 =  CALIBER[f"chi2_pos{id2}"]
+        zp_x_pos_eng2 = CALIBER[f"zp_x_pos{id2}"]
+        zp_y_pos_eng2 = CALIBER[f"zp_y_pos{id2}"]
         th2_motor_eng2 = CALIBER[f"th2_motor_pos{id2}"]
-        clens_x_eng2 =   CALIBER[f"clens_x_pos{id2}"]
-        clens_y1_eng2 =  CALIBER[f"clens_y1_pos{id2}"]
-        clens_y2_eng2 =  CALIBER[f"clens_y2_pos{id2}"]
-        clens_p_eng2 =   CALIBER[f"clens_p_pos{id2}"]
-        DetU_x_eng2 =    CALIBER[f"DetU_x_pos{id2}"]
-        DetU_y_eng2 =    CALIBER[f"DetU_y_pos{id2}"]
-        aper_x_eng2 =    CALIBER[f"aper_x_pos{id2}"]
-        aper_y_eng2 =    CALIBER[f"aper_y_pos{id2}"]
+        clens_x_eng2 = CALIBER[f"clens_x_pos{id2}"]
+        clens_y1_eng2 = CALIBER[f"clens_y1_pos{id2}"]
+        clens_y2_eng2 = CALIBER[f"clens_y2_pos{id2}"]
+        clens_p_eng2 = CALIBER[f"clens_p_pos{id2}"]
+        DetU_x_eng2 = CALIBER[f"DetU_x_pos{id2}"]
+        DetU_y_eng2 = CALIBER[f"DetU_y_pos{id2}"]
+        aper_x_eng2 = CALIBER[f"aper_x_pos{id2}"]
+        aper_y_eng2 = CALIBER[f"aper_y_pos{id2}"]
 
         if np.abs(eng1 - eng2) < 1e-5:  # difference less than 0.01 eV
             print(
@@ -733,15 +743,20 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
             aper_x_target = slope_zp_z * (aper_x_eng1 - aper_x_eng2) + aper_x_eng2
             aper_y_target = slope_zp_z * (aper_y_eng1 - aper_y_eng2) + aper_y_eng2
 
-            #chi2_motor_target = slope_eng * (dcm_chi2_eng1 - dcm_chi2_eng2) + dcm_chi2_eng2
-            th2_motor_target = slope_eng * (th2_motor_eng1 - th2_motor_eng2) + th2_motor_eng2
+            # chi2_motor_target = slope_eng * (dcm_chi2_eng1 - dcm_chi2_eng2) + dcm_chi2_eng2
+            th2_motor_target = (
+                slope_eng * (th2_motor_eng1 - th2_motor_eng2) + th2_motor_eng2
+            )
             clens_x_target = slope_eng * (clens_x_eng1 - clens_x_eng2) + clens_x_eng2
-            clens_y1_target = slope_eng * (clens_y1_eng1 - clens_y1_eng2) + clens_y1_eng2
-            clens_y2_target = slope_eng * (clens_y2_eng1 - clens_y2_eng2) + clens_y2_eng2
+            clens_y1_target = (
+                slope_eng * (clens_y1_eng1 - clens_y1_eng2) + clens_y1_eng2
+            )
+            clens_y2_target = (
+                slope_eng * (clens_y2_eng1 - clens_y2_eng2) + clens_y2_eng2
+            )
             clens_p_target = slope_eng * (clens_p_eng1 - clens_p_eng2) + clens_p_eng2
             DetU_x_target = slope_eng * (DetU_x_eng1 - DetU_x_eng2) + DetU_x_eng2
             DetU_y_target = slope_eng * (DetU_y_eng1 - DetU_y_eng2) + DetU_y_eng2
-
 
             dcm_chi2_ini = dcm.chi2.position
             zp_x_ini = zp.x.position
@@ -757,7 +772,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
             aper_y_ini = aper.y.position
 
             if info_flag or (not move_flag):
-                if (not move_flag):
+                if not move_flag:
                     print("This is calculation. No stages move\n")
 
                 print(f"At Magnification = {mag * 10}\n")
@@ -766,18 +781,36 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
                 print(f"CCD position: {det_ini:2.4f} mm --> {det_final:2.4f} mm")
                 print(f"move zp_x: ({zp_x_ini:2.4f} um --> {zp_x_target:2.4f} um)")
                 print(f"move zp_y: ({zp_y_ini:2.4f} um --> {zp_y_target:2.4f} um)")
-                #print(f"move dcm_chi2: ({dcm_chi2_ini:2.4f} um --> {chi2_motor_target:2.4f} um)")
-                print(f"move th2_motor: ({th2_motor_ini:2.6f} deg --> {th2_motor_target:2.6f} deg)")
-                print(f"move aper_x_motor: ({aper_x_ini:2.4f} um --> {aper_x_target:2.4f} um)")
-                print(f"move aper_y_motor: ({aper_y_ini:2.4f} um --> {aper_y_target:2.4f} um)")
+                # print(f"move dcm_chi2: ({dcm_chi2_ini:2.4f} um --> {chi2_motor_target:2.4f} um)")
+                print(
+                    f"move th2_motor: ({th2_motor_ini:2.6f} deg --> {th2_motor_target:2.6f} deg)"
+                )
+                print(
+                    f"move aper_x_motor: ({aper_x_ini:2.4f} um --> {aper_x_target:2.4f} um)"
+                )
+                print(
+                    f"move aper_y_motor: ({aper_y_ini:2.4f} um --> {aper_y_target:2.4f} um)"
+                )
                 if move_clens_flag:
-                    print(f"move clens_x: ({clens_x_ini:2.4f} um --> {clens_x_target:2.4f} um)")
-                    print(f"move clens_y1: ({clens_y1_ini:2.4f} um --> {clens_y1_target:2.4f} um)")
-                    print(f"move clens_y2: ({clens_y1_ini:2.4f} um --> {clens_y2_target:2.4f} um)")
-                    print(f"move clens_p: ({clens_p_ini:2.4f} um --> {clens_p_target:2.4f} um)")
+                    print(
+                        f"move clens_x: ({clens_x_ini:2.4f} um --> {clens_x_target:2.4f} um)"
+                    )
+                    print(
+                        f"move clens_y1: ({clens_y1_ini:2.4f} um --> {clens_y1_target:2.4f} um)"
+                    )
+                    print(
+                        f"move clens_y2: ({clens_y1_ini:2.4f} um --> {clens_y2_target:2.4f} um)"
+                    )
+                    print(
+                        f"move clens_p: ({clens_p_ini:2.4f} um --> {clens_p_target:2.4f} um)"
+                    )
                 if move_det_flag:
-                    print(f"move DetU_x: ({DetU_x_ini:2.4f} um --> {DetU_x_target:2.4f} um)")
-                    print(f"move DetU_y: ({DetU_y_ini:2.4f} um --> {DetU_y_target:2.4f} um)")
+                    print(
+                        f"move DetU_x: ({DetU_x_ini:2.4f} um --> {DetU_x_target:2.4f} um)"
+                    )
+                    print(
+                        f"move DetU_y: ({DetU_y_ini:2.4f} um --> {DetU_y_target:2.4f} um)"
+                    )
 
             if move_flag:  # move stages
                 print(f"Now moving stages at Magnification = {mag * 10}....")
@@ -787,14 +820,14 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
                 yield from mv(dcm_th2.feedback, th2_motor_target)
                 yield from mv(dcm_th2.feedback_enable, 1)
 
-                #yield from mv(dcm_chi2.feedback_enable, 0)
-                #yield from mv(dcm_chi2.feedback, chi2_motor_target)
-                #yield from mv(dcm_chi2.feedback_enable, 1)
+                # yield from mv(dcm_chi2.feedback_enable, 0)
+                # yield from mv(dcm_chi2.feedback, chi2_motor_target)
+                # yield from mv(dcm_chi2.feedback_enable, 1)
 
                 yield from mv(zp.z, zp_final, det.z, det_final, XEng, eng_new)
                 yield from mv(aper.x, aper_x_target, aper.y, aper_y_target)
 
-                #yield from mv(DetU.x, DetU_x_ini + (det_final-det_ini)/400*0.15)
+                # yield from mv(DetU.x, DetU_x_ini + (det_final-det_ini)/400*0.15)
                 if move_clens_flag:
                     yield from mv(
                         clens.x,
@@ -817,6 +850,7 @@ def move_zp_ccd_TEST(eng_new, move_flag=1, info_flag=1, move_clens_flag=0, move_
 
             return 1
 
+
 ################################
 
 
@@ -828,7 +862,7 @@ def show_global_para():
     for k in CALIBER.keys():
         if "mag" in k:
             print(f"{k} = {CALIBER[k]} X")
-    print(f"\nFor KinetixU camera, current pixel size = {6500./GLOBAL_MAG:3.1f} nm")
+    print(f"\nFor KinetixU camera, current pixel size = {6500.0 / GLOBAL_MAG:3.1f} nm")
     print("\nChange parameters if necessary.\n\n")
 
 
@@ -948,9 +982,9 @@ def check_eng_range(eng):
     high_limit = 12.000
     low_limit = 4.000
     for i in range(len(eng)):
-        assert (
-            eng[i] >= low_limit and eng[i] <= high_limit
-        ), "Energy is outside the range (4.000, 12.000) keV"
+        assert eng[i] >= low_limit and eng[i] <= high_limit, (
+            "Energy is outside the range (4.000, 12.000) keV"
+        )
     return
 
 
@@ -977,9 +1011,9 @@ def cal_parameter(eng, print_flag=1):
 
     h = 6.6261e-34
     # c = 3e8
-    c = 299792458 # changed by xh
+    c = 299792458  # changed by xh
     # ec = 1.602e-19
-    ec = 1.602176565e-19 # changed by xh
+    ec = 1.602176565e-19  # changed by xh
 
     #    if eng < 4000:    eng = XEng.position * 1000 # current beam energy
     check_eng_range([eng])
@@ -999,7 +1033,6 @@ def cal_parameter(eng, print_flag=1):
 
 
 def cal_zp_ccd_position(eng_new, eng_ini=0, print_flag=1, mag=None):
-
     """
     calculate the delta amount of movement for zone_plate and CCD whit change energy from ene_ini to eng_new while keeping same magnification
     E.g. delta_zp, delta_det, final_zp, final_det = cal_zp_ccd_with_const_mag(eng_new=8000, eng_ini=0)
@@ -1348,7 +1381,7 @@ def plot1d(scan_id=-1, detectors=[], plot_time_stamp=0, return_flag=0):
     if flag:
         plt.xlabel("time (s)")
     else:
-        plt.xlabel(f'{h.start["plan_args"]["motor"]} position')
+        plt.xlabel(f"{h.start['plan_args']['motor']} position")
     fig.subplots_adjust(hspace=1)
     plt.show()
     if return_flag:
@@ -1448,10 +1481,12 @@ def get_img(h, det="KinetixU", sli=[]):
     "Take in a Header and return a numpy array of detA1 image(s)."
     det_name = f"{det}_image"
     if len(sli) == 2:
-        #img = np.array(list(h.data(det_name))[sli[0] : sli[1]])
-        img = np.array(list(h["primary"]["data"][f"{det_name}_image"]))[0][sli[0] : sli[1]]
+        # img = np.array(list(h.data(det_name))[sli[0] : sli[1]])
+        img = np.array(list(h["primary"]["data"][f"{det_name}_image"]))[0][
+            sli[0] : sli[1]
+        ]
     else:
-        #img = np.array(list(h.data(det_name)))
+        # img = np.array(list(h.data(det_name)))
         img = np.array(list(h["primary"]["data"][f"{det_name}_image"]))[0]
     return np.squeeze(img)
 
@@ -1461,7 +1496,7 @@ def get_scan_parameter(scan_id=-1, print_flag=1):
     scan_id = h.start["scan_id"]
     uid = h.start["uid"]
     try:
-        X_eng = f'{h.start["XEng"]:2.4f}'
+        X_eng = f"{h.start['XEng']:2.4f}"
     except:
         X_eng = "n/a"
     scan_type = h.start["plan_name"]
@@ -1498,7 +1533,7 @@ def get_scan_timestamp_legacy(scan_id, return_flag=0):
         int(timestamp_conv.dt.second),
         int(timestamp_conv.dt.microsecond),
     )
-    scan_time = f"scan#{scan_id}: {scan_year-20:04d}-{scan_mon:02d}-{scan_day:02d}   {scan_hour:02d}:{scan_min:02d}:{scan_sec:02d}"
+    scan_time = f"scan#{scan_id}: {scan_year - 20:04d}-{scan_mon:02d}-{scan_day:02d}   {scan_hour:02d}:{scan_min:02d}:{scan_sec:02d}"
     print(scan_time)
     if return_flag:
         return scan_time.split("#")[-1]
@@ -1508,7 +1543,7 @@ def get_image_timestamp(scan_id, h=None):
     if h is None:
         h0 = dbv0[scan_id]
     else:
-        uid = h.start['uid']
+        uid = h.start["uid"]
         h0 = dbv0[uid]
     det_name = h0.start["detectors"][0]
     try:
@@ -1516,19 +1551,24 @@ def get_image_timestamp(scan_id, h=None):
             ts = list(h0.data(f"{det_name}_image", stream_name="primary"))[0]
     except:
         try:
-            with dbv0.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
+            with dbv0.reg.handler_context(
+                {"AD_HDF5": AreaDetectorHDF5TimestampHandler}
+            ):
                 ts = list(h0.data("Andor_image", stream_name="primary"))[0]
         except:
-            print('fail to get image timestamp')
+            print("fail to get image timestamp")
 
     try:
         dt = [datetime.fromtimestamp(t) for t in ts]
     except:
         dt = [datetime.fromtimestamp(ts)]
-    t1 = [t.strftime('%Y-%m-%d %H:%M:%S.%f') for t in dt]
+    t1 = [t.strftime("%Y-%m-%d %H:%M:%S.%f") for t in dt]
     return t1
 
-def get_scan_timestamp(scan_id, return_flag=0, date_end_by=None, date_start_from=None, print_flag=1):
+
+def get_scan_timestamp(
+    scan_id, return_flag=0, date_end_by=None, date_start_from=None, print_flag=1
+):
     tmp = list(db(scan_id=scan_id))
     n = len(tmp)
     if date_end_by is None:
@@ -1538,8 +1578,8 @@ def get_scan_timestamp(scan_id, return_flag=0, date_end_by=None, date_start_from
             uid = sid.start["uid"]
             timestamp = sid.start["time"]
             ts = pd.to_datetime(timestamp, unit="s").tz_localize("US/Eastern")
-            date_end = pd.Timestamp(date_end_by).tz_localize('US/Eastern')
-            date_start = pd.Timestamp(date_start_from).tz_localize('US/Eastern')
+            date_end = pd.Timestamp(date_end_by).tz_localize("US/Eastern")
+            date_start = pd.Timestamp(date_start_from).tz_localize("US/Eastern")
             if ts < date_end and ts > date_start:
                 h = db[uid]
                 break
@@ -1547,7 +1587,7 @@ def get_scan_timestamp(scan_id, return_flag=0, date_end_by=None, date_start_from
     scan_id = h.start["scan_id"]
     timestamp = h.start["time"]
     dt = datetime.fromtimestamp(timestamp)
-    t = dt.strftime('%Y-%m-%d %H:%M:%S')
+    t = dt.strftime("%Y-%m-%d %H:%M:%S")
     if print_flag:
         print(t)
     if return_flag:
@@ -1601,25 +1641,31 @@ def get_scan_motor_pos(scan_id):
     except:
         pass
 
+
 def get_scan_motor_xyz(scan_id):
     df = db[scan_id].table("baseline").T
     mot = BlueskyMagics.positioners
     for i in mot:
         try:
             mot_name = i.name
-            if mot_name == 'zps_sx' or mot_name == 'zps_sy' or mot_name == 'zps_sz' or mot_name == 'zps_pi_r':
+            if (
+                mot_name == "zps_sx"
+                or mot_name == "zps_sy"
+                or mot_name == "zps_sz"
+                or mot_name == "zps_pi_r"
+            ):
                 if mot_name[:3] == "pzt":
                     print(f"{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} ")
                 else:
                     mot_parent_name = i.parent.name
                     offset_name = f"{mot_name}_user_offset"
                     offset_dir = f"{mot_name}_user_offset_dir"
-                    offset_val = db[scan_id].config_data(mot_parent_name)["baseline"][0][
-                        offset_name
-                    ]
-                    offset_dir_val = db[scan_id].config_data(mot_parent_name)["baseline"][
+                    offset_val = db[scan_id].config_data(mot_parent_name)["baseline"][
                         0
-                    ][offset_dir]
+                    ][offset_name]
+                    offset_dir_val = db[scan_id].config_data(mot_parent_name)[
+                        "baseline"
+                    ][0][offset_dir]
                     print(
                         f"{mot_name:>16s}  :: {df[1][mot_name]: 14.6f} {i.motor_egu.value:>4s}  --->  {df[2][mot_name]: 14.6f} {i.motor_egu.value:>4s}      offset = {offset_val: 14.6f}    {offset_dir_val: 1d}"
                     )
@@ -1644,19 +1690,22 @@ def reprint_scan(scan_id):
     for name, doc in h.documents():
         mybec(name, doc)
 
-def normalize_bkg_by_desired_scan_file(fn, fn_ref, arg1='img', arg2_bkg='img_bkg', arg2_dark='img_dark', scale_factor=1):
-    '''
+
+def normalize_bkg_by_desired_scan_file(
+    fn, fn_ref, arg1="img", arg2_bkg="img_bkg", arg2_dark="img_dark", scale_factor=1
+):
+    """
     take image from fn (e.g., test_scan_id_43471.h5'
     take img_bkg and or img_dark from fn_ref (e.g., fly_scan_id_43501.h5')
     normalize image by: (img-img_dark)/(img_bkg-img_dark)
-    '''
-    f1 = h5py.File(fn, 'r')
+    """
+    f1 = h5py.File(fn, "r")
     img = np.array(f1[arg1])
-    scan_id = np.array(f1['scan_id'])
+    scan_id = np.array(f1["scan_id"])
     f1.close()
 
-    f2 = h5py.File(fn_ref, 'r')
-    scan_id2 = np.array(f2['scan_id'])
+    f2 = h5py.File(fn_ref, "r")
+    scan_id2 = np.array(f2["scan_id"])
     if len(arg2_bkg) > 1:
         img_bkg = np.array(f2[arg2_bkg])
         if len(img_bkg.shape) == 3:
@@ -1672,16 +1721,16 @@ def normalize_bkg_by_desired_scan_file(fn, fn_ref, arg1='img', arg2_bkg='img_bkg
         img_dark = 0
     f2.close()
 
-    img_n = (img-img_dark) / (img_bkg-img_dark) / scale_factor
-    fn_save = f'img_{scan_id}_normalize_background_from_{scan_id2}.tiff'
+    img_n = (img - img_dark) / (img_bkg - img_dark) / scale_factor
+    fn_save = f"img_{scan_id}_normalize_background_from_{scan_id2}.tiff"
     io.imsave(fn_save, img_n.astype(np.float32))
-    print(f'image saved: {fn_save}')
+    print(f"image saved: {fn_save}")
 
 
 def normalize_xanes_bkg_by_another_scan(sid, sid_bkg):
-    '''
+    """
     e.g. normalize_xanes_bkg_by_another_scan(61696, 61694)# will use bkg from scan(61694) to normalize image (both "primary" and "flat")
-    '''
+    """
     h = dbv0[sid]
     h2 = dbv0[sid_bkg]
 
@@ -1718,7 +1767,6 @@ def normalize_xanes_bkg_by_another_scan(sid, sid_bkg):
     img1_norm = (img1_avg - img_dark_avg) / (img_bkg_avg - img_dark_avg)
     img2_norm = (img2_avg - img_dark_avg) / (img_bkg_avg - img_dark_avg)
 
-
     sid_norm = h2.start["scan_id"]
     fname = scan_type + "_id_" + str(scan_id) + f"_normalized_by_scan_{sid_norm}.h5"
     with h5py.File(fname, "w") as hf:
@@ -1734,6 +1782,7 @@ def normalize_xanes_bkg_by_another_scan(sid, sid_bkg):
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
+
 def get_lakeshore_param(scan_id, print_flag=0, return_flag=0):
     h = db[scan_id]
     df = h.table("baseline").T
@@ -1747,17 +1796,17 @@ def get_lakeshore_param(scan_id, print_flag=0, return_flag=0):
 
 
 def split_fly_scan(fn, num=1):
-    f = h5py.File(fn, 'r')
-    img_bkg = np.array(f['img_bkg'])
-    img_bkg_avg = np.array(f['img_bkg_avg'])
-    img_dark = np.array(f['img_dark'])
-    img_dark_avg = np.array(f['img_dark_avg'])
-    x_eng = np.float32(f['X_eng'])
-    sid = np.int32(f['scan_id'])
-    uid = str(f['uid'])
-    pix = f['Pixel Size']
+    f = h5py.File(fn, "r")
+    img_bkg = np.array(f["img_bkg"])
+    img_bkg_avg = np.array(f["img_bkg_avg"])
+    img_dark = np.array(f["img_dark"])
+    img_dark_avg = np.array(f["img_dark_avg"])
+    x_eng = np.float32(f["X_eng"])
+    sid = np.int32(f["scan_id"])
+    uid = str(f["uid"])
+    pix = f["Pixel Size"]
 
-    ang = np.array(f['angle'])
+    ang = np.array(f["angle"])
     n_ang = len(ang)
     ang_max = np.max(np.abs(ang))
     ang_min = np.min(np.abs(ang))
@@ -1767,28 +1816,28 @@ def split_fly_scan(fn, num=1):
         direction = -1
     t = ang_max - ang_min - 180
     if t <= 0:
-        print('angle spans less than 180 degrees, will not do anything')
+        print("angle spans less than 180 degrees, will not do anything")
         return 0
     ang_start = np.linspace(0, t, num, endpoint=True)
     for i in range(num):
         id_s = find_nearest(ang, ang[0] + ang_start[i] * direction)
         id_e = find_nearest(ang, ang[0] + (ang_start[i] + 180) * direction)
         id_e = np.min([id_e, n_ang])
-        img_t = np.array(f['img_tomo'][id_s:id_e])
+        img_t = np.array(f["img_tomo"][id_s:id_e])
         ang_t = ang[id_s:id_e]
-        fsave = f'fly_scan_id_{sid:d}_sub_{i:d}.h5'
-        print(f'angle: {ang_t[0]:4.2f} - {ang_t[-1]:4.2f}: saved to {fsave}')
-        with h5py.File(fsave, 'w') as hf:
-            hf.create_dataset('Pixel Size', data=pix)
-            hf.create_dataset('scan_id', data=sid)
-            hf.create_dataset('uid', data=uid)
-            hf.create_dataset('img_tomo', data=img_t.astype(np.float32))
-            hf.create_dataset('img_bkg', data=img_bkg.astype(np.float32))
-            hf.create_dataset('img_bkg_avg', data=img_bkg_avg.astype(np.float32))
-            hf.create_dataset('img_dark', data=img_dark.astype(np.float32))
-            hf.create_dataset('img_dark_avg', data=img_dark_avg.astype(np.float32))
-            hf.create_dataset('angle', data=ang_t.astype(np.float32))
-            hf.create_dataset('X_eng', data=x_eng)
+        fsave = f"fly_scan_id_{sid:d}_sub_{i:d}.h5"
+        print(f"angle: {ang_t[0]:4.2f} - {ang_t[-1]:4.2f}: saved to {fsave}")
+        with h5py.File(fsave, "w") as hf:
+            hf.create_dataset("Pixel Size", data=pix)
+            hf.create_dataset("scan_id", data=sid)
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("img_tomo", data=img_t.astype(np.float32))
+            hf.create_dataset("img_bkg", data=img_bkg.astype(np.float32))
+            hf.create_dataset("img_bkg_avg", data=img_bkg_avg.astype(np.float32))
+            hf.create_dataset("img_dark", data=img_dark.astype(np.float32))
+            hf.create_dataset("img_dark_avg", data=img_dark_avg.astype(np.float32))
+            hf.create_dataset("angle", data=ang_t.astype(np.float32))
+            hf.create_dataset("X_eng", data=x_eng)
 
     f.close()
     del img_t
@@ -1800,7 +1849,6 @@ def abs_set_wait(pv, val, timeout=5, settle_time=0.5, wait=True):
     return
 
 
-
 class IndexTracker(object):
     def __init__(self, ax, X, clim):
         self.ax = ax
@@ -1808,7 +1856,7 @@ class IndexTracker(object):
         self.X = X
         self.slices, rows, cols = X.shape
         self.ind = self.slices // 2
-        if len(clim)==2:
+        if len(clim) == 2:
             self.im = ax.imshow(self.X[self.ind, :, :], cmap="gray", clim=clim)
         else:
             self.im = ax.imshow(self.X[self.ind, :, :], cmap="gray")
@@ -1830,7 +1878,7 @@ class IndexTracker(object):
 
 def image_scrubber(data, clim, *, ax=None):
     if ax is None:
-        fig, ax = plt.subplots(figsize=(10,10))
+        fig, ax = plt.subplots(figsize=(10, 10))
     else:
         fig = ax.figure
     tracker = IndexTracker(ax, data, clim)

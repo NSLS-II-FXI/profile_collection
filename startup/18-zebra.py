@@ -278,6 +278,7 @@ class FXIZebra(Zebra):
 
 class ZebraSaver(Device):
     """Device for saving zebra and scaler data via IOC."""
+
     # Saving business logic
     write_dir = Cpt(EpicsSignal, "write_dir", string=True)
     file_name = Cpt(EpicsSignal, "file_name", string=True)
@@ -368,9 +369,7 @@ class FXITomoFlyer(Device):
         self._dets = dets
         self._filestore_resource = None
         self._encoder = zebra
-        self._document_cache = (
-            []
-        )  # self._document_cache defines resource and datum documents
+        self._document_cache = []  # self._document_cache defines resource and datum documents
         self._stage_sigs = {}
         self._last_bulk = None  # self._last_bulk defines event document
 
@@ -582,7 +581,9 @@ class FXITomoFlyer(Device):
         data_session = self._md["data_session"]
         cycle = self._md["cycle"]
         if "Commissioning" in get_proposal_type():
-            root_path = f"/nsls2/data/fxi-new/proposals/commissioning/{data_session}/assets/"
+            root_path = (
+                f"/nsls2/data/fxi-new/proposals/commissioning/{data_session}/assets/"
+            )
         else:
             root_path = f"/nsls2/data/fxi-new/proposals/{cycle}/{data_session}/assets/"
         return root_path
@@ -639,7 +640,7 @@ class FXITomoFlyer(Device):
             pass  # to short-circuit checking individual cases
         elif self._staged == Staged.yes:
             raise RedundantStaging(
-                "Device {!r} is already staged. " "Unstage it first.".format(self)
+                "Device {!r} is already staged. Unstage it first.".format(self)
             )
         elif self._staged == Staged.partially:
             raise RedundantStaging(
@@ -842,7 +843,9 @@ class FXITomoFlyer(Device):
                 use_nano_export = True  # Placeholder - update trigger logic as needed
                 if use_nano_export:
                     # NOTE: this is a new export function which uses the caproto IOC for file saving into the proposal dirs.
-                    export_nano_zebra_data(self._encoder, self.__write_filepath, self.fast_axis.get())
+                    export_nano_zebra_data(
+                        self._encoder, self.__write_filepath, self.fast_axis.get()
+                    )
                 else:
                     # NOTE: this export function is legacy and uses the operator account to write data.
                     export_zebra_data(self._encoder, self.__write_filepath)
@@ -1595,11 +1598,11 @@ def export_nano_zebra_data(zebra, filepath, fastaxis):
     enc3_d = zebra.pc.data.enc3.get()
 
     px = zebra.pc.pulse_step.get()
-    if fastaxis == 'PI_R':
+    if fastaxis == "PI_R":
         enc1_d = enc1_d + (px / 2)
-    elif fastaxis == 'SX':
+    elif fastaxis == "SX":
         enc2_d = enc2_d + (px / 2)
-    elif fastaxis == 'SY':
+    elif fastaxis == "SY":
         enc3_d = enc3_d + (px / 2)
 
     zs.enc1.put(enc1_d)
@@ -1656,13 +1659,13 @@ def export_sis_data(ion, filepath, zebra):
         it = ion.mca4.get(timeout=5.0)
 
     if len(i) != N:
-        print(f'Scaler did not collect enough points.')
+        print(f"Scaler did not collect enough points.")
         t = ion.mca1.get(timeout=5.0)
         i = ion.mca2.get(timeout=5.0)
         im = ion.mca3.get(timeout=5.0)
         it = ion.mca4.get(timeout=5.0)
         if len(i) != N:
-            print(f'Nope. Only received {len(i)}/{N} points.')
+            print(f"Nope. Only received {len(i)}/{N} points.")
 
     correct_length = N // 2
     # Only consider even points

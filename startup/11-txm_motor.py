@@ -31,9 +31,7 @@ class TwoButtonShutter(Device):
 
     def set(self, val):
         if self._set_st is not None:
-            raise RuntimeError(
-                f"trying to set {self.name}" " while a set is in progress"
-            )
+            raise RuntimeError(f"trying to set {self.name} while a set is in progress")
 
         cmd_map = {self.open_str: self.open_cmd, self.close_str: self.close_cmd}
         target_map = {self.open_str: self.open_val, self.close_str: self.close_val}

@@ -1,5 +1,6 @@
 print(f"Loading {__file__}...")
 
+
 def _close_shutter_legacy(simu=False):
     if simu:
         print("testing: close shutter")

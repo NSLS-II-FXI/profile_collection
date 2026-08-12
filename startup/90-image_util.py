@@ -11,8 +11,8 @@ from scipy.ndimage import median_filter as medfilt
 from PIL import Image
 from matplotlib.widgets import Slider
 
-def pad(img, thick, direction):
 
+def pad(img, thick, direction):
     """
     symmetrically padding the image with "0"
 
@@ -353,7 +353,6 @@ def dftregistration(buf1ft, buf2ft, usfac=100):
 
     # Partial-pixel shift
     else:
-
         # First upsample by a factor of 2 to obtain initial estimate
         # Embed Fourier data in a 2x larger array
         ndim = np.shape(buf1ft)
@@ -835,24 +834,24 @@ def rm_phase_ramp_manual_2d(array, x_shift, y_shift):
     return tmp
 
 
-
-def plot3D(data,axis=0,index_init=None):
+def plot3D(data, axis=0, index_init=None):
     fig, ax = plt.subplots()
     if index_init is None:
-        index_init = int(data.shape[axis]//2)
-    im = ax.imshow(data.take(index_init,axis=axis))
+        index_init = int(data.shape[axis] // 2)
+    im = ax.imshow(data.take(index_init, axis=axis))
     fig.subplots_adjust(bottom=0.15)
     axslide = fig.add_axes([0.1, 0.03, 0.8, 0.03])
     im_slider = Slider(
         ax=axslide,
-        label='index',
+        label="index",
         valmin=0,
         valmax=data.shape[axis] - 1,
         valstep=1,
         valinit=index_init,
     )
+
     def update(val):
-        im.set_data(data.take(val,axis=axis))
+        im.set_data(data.take(val, axis=axis))
         fig.canvas.draw_idle()
 
     im_slider.on_changed(update)

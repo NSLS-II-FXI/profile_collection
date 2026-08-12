@@ -71,8 +71,8 @@ class FXIScaler(EpicsScaler):
         super().__init__(prefix, **kwargs)
         self.stage_sigs[self.count_mode] = "OneShot"
 
-sclr1 = FXIScaler("XF:18IDB-ES{Sclr:1}", name="sclr1")
 
+sclr1 = FXIScaler("XF:18IDB-ES{Sclr:1}", name="sclr1")
 
 
 class SR570(Device):
@@ -90,7 +90,10 @@ class SR570(Device):
     offset_sign = Cpt(EpicsSignal, "offset_sign", string=True)
     offset_num = Cpt(EpicsSignal, "offset_num", string=True)
     offset_unit = Cpt(EpicsSignal, "offset_unit", string=True)
-    offset_u_put = Cpt(EpicsSignal, "off_u_put", )
+    offset_u_put = Cpt(
+        EpicsSignal,
+        "off_u_put",
+    )
     offset_u_tweak = Cpt(EpicsSignal, "offset_u_tweak")
     offset_cal = Cpt(EpicsSignal, "offset_cal", string=True)
 
@@ -109,17 +112,16 @@ class SR570(Device):
 
 
 class SR570_PREAMPS(Device):
-   unit1 = Cpt(SR570, "{SR570:1}")
-   unit2 = Cpt(SR570, "{SR570:2}")
-   unit3 = Cpt(SR570, "{SR570:3}")
-   unit4 = Cpt(SR570, "{SR570:4}")
+    unit1 = Cpt(SR570, "{SR570:1}")
+    unit2 = Cpt(SR570, "{SR570:2}")
+    unit3 = Cpt(SR570, "{SR570:3}")
+    unit4 = Cpt(SR570, "{SR570:4}")
 
 
 sr570_preamps = SR570_PREAMPS("XF:18IDB-CT", name="sr570_preamps")
 
 
 class WienerHVCrateChannel(Device):
-
     status_dec = Cpt(EpicsSignalRO, "StatusDec")  # Bits 0-7
 
     # Meanings of the status bits:
@@ -131,7 +133,7 @@ class WienerHVCrateChannel(Device):
     # outputFailureMaxCurrent (5)               Current is too high
     # outputFailureMaxTemperature (6)           Heat sink temperature is too high
     # outputFailureMaxPower (7)                 Output power is too high
-    
+
     switch_on_off = Cpt(EpicsSignal, "Switch")
     V_set = Cpt(EpicsSignal, "V-Set")
     V_sense = Cpt(EpicsSignalRO, "V-Sense")
@@ -140,19 +142,17 @@ class WienerHVCrateChannel(Device):
     temperature = Cpt(EpicsSignalRO, "Temperature")
     V_fall_rate = Cpt(EpicsSignal, "V-FallRate")
     V_rise_rate = Cpt(EpicsSignal, "V-RiseRate")
-    
+
 
 class WienerHVCrate(Device):
-
-    u0 = Cpt(WienerHVCrateChannel, "HV:u0}")   
-    u1 = Cpt(WienerHVCrateChannel, "HV:u1}")   
-    u2 = Cpt(WienerHVCrateChannel, "HV:u2}")   
-    u3 = Cpt(WienerHVCrateChannel, "HV:u3}")   
-    u4 = Cpt(WienerHVCrateChannel, "HV:u4}")   
-    u5 = Cpt(WienerHVCrateChannel, "HV:u5}")   
-    u6 = Cpt(WienerHVCrateChannel, "HV:u6}")   
-    u7 = Cpt(WienerHVCrateChannel, "HV:u7}")   
+    u0 = Cpt(WienerHVCrateChannel, "HV:u0}")
+    u1 = Cpt(WienerHVCrateChannel, "HV:u1}")
+    u2 = Cpt(WienerHVCrateChannel, "HV:u2}")
+    u3 = Cpt(WienerHVCrateChannel, "HV:u3}")
+    u4 = Cpt(WienerHVCrateChannel, "HV:u4}")
+    u5 = Cpt(WienerHVCrateChannel, "HV:u5}")
+    u6 = Cpt(WienerHVCrateChannel, "HV:u6}")
+    u7 = Cpt(WienerHVCrateChannel, "HV:u7}")
 
 
 hv_crate = WienerHVCrate("XF:18IDB-OP{WPS:01-", name="hv_crate")
-

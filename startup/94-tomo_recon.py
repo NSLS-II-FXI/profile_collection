@@ -168,7 +168,7 @@ def rotcen_test2(
     txm_normed_flag=0,
     denoise_flag=0,
     fw_level=9,
-    algorithm='gridrec',
+    algorithm="gridrec",
     n_iter=5,
     circ_mask_ratio=0.95,
     options={},
@@ -176,7 +176,7 @@ def rotcen_test2(
     clim=[],
     dark_scale=1,
     snr=3,
-    filter_name='None',
+    filter_name="None",
     plot_flag=1,
     save_flag=1,
 ):
@@ -202,7 +202,7 @@ def rotcen_test2(
         np.max([0, sli - addition_slice // 2]),
         np.min([sli + addition_slice // 2 + 1, s[1]]),
     ]
-    tomo_angle = np.array(f["angle"]) 
+    tomo_angle = np.array(f["angle"])
     theta = tomo_angle / 180.0 * np.pi
     img_tomo = np.array(f["img_tomo"][:, sli_exp[0] : sli_exp[1], :])
 
@@ -210,7 +210,9 @@ def rotcen_test2(
         prj_norm = img_tomo
     else:
         img_bkg = np.array(f["img_bkg_avg"][:, sli_exp[0] : sli_exp[1], :])
-        img_dark = np.array(f["img_dark_avg"][:, sli_exp[0] : sli_exp[1], :]) / dark_scale
+        img_dark = (
+            np.array(f["img_dark_avg"][:, sli_exp[0] : sli_exp[1], :]) / dark_scale
+        )
         prj = (img_tomo - img_dark) / (img_bkg - img_dark)
         if not atten is None:
             for i in range(len(tomo_angle)):
@@ -219,19 +221,19 @@ def rotcen_test2(
         prj_norm = -np.log(prj)
     f.close()
 
-    prj_norm = denoise(prj_norm, denoise_flag)    
+    prj_norm = denoise(prj_norm, denoise_flag)
     prj_norm[np.isnan(prj_norm)] = 0
     prj_norm[np.isinf(prj_norm)] = 0
     prj_norm[prj_norm < 0] = 0
 
     prj_norm -= bkg_level
 
-    '''
+    """
     prj_norm = tomopy.prep.stripe.remove_stripe_fw(
         prj_norm, level=fw_level, wname="db5", sigma=1, pad=True
     )
-    '''
-    #prj_norm = tomopy.prep.stripe.remove_all_stripe(prj_norm, snr=snr)
+    """
+    # prj_norm = tomopy.prep.stripe.remove_all_stripe(prj_norm, snr=snr)
     """    
     if denoise_flag == 1: # denoise using wiener filter
         ss = prj_norm.shape
@@ -267,30 +269,30 @@ def rotcen_test2(
     for i in range(len(cen)):
         if print_flag:
             print("{}: rotcen {}".format(i + 1, cen[i]))
-            if algorithm == 'gridrec':
+            if algorithm == "gridrec":
                 img[i] = tomopy.recon(
-                prj_norm[:, addition_slice//2 : addition_slice//2 + 1],
-                theta,
-                center=cen[i],
-                algorithm="gridrec",
-                filter_name=filter_name
+                    prj_norm[:, addition_slice // 2 : addition_slice // 2 + 1],
+                    theta,
+                    center=cen[i],
+                    algorithm="gridrec",
+                    filter_name=filter_name,
                 )
-            elif 'astra' in algorithm:
-            	img[i] = tomopy.recon(
-                prj_norm[:, addition_slice//2 : addition_slice//2 + 1],
-                theta,
-                center=cen[i],
-                algorithm=tomopy.astra,
-                options=options
+            elif "astra" in algorithm:
+                img[i] = tomopy.recon(
+                    prj_norm[:, addition_slice // 2 : addition_slice // 2 + 1],
+                    theta,
+                    center=cen[i],
+                    algorithm=tomopy.astra,
+                    options=options,
                 )
             else:
                 img[i] = tomopy.recon(
-                prj_norm[:, addition_slice//2 : addition_slice//2 + 1],
-                theta,
-                center=cen[i],
-                algorithm=algorithm,
-                num_iter=n_iter,
-                #filter_name=filter_name
+                    prj_norm[:, addition_slice // 2 : addition_slice // 2 + 1],
+                    theta,
+                    center=cen[i],
+                    algorithm=algorithm,
+                    num_iter=n_iter,
+                    # filter_name=filter_name
                 )
     if save_flag:
         fout = "center_test.h5"
@@ -302,7 +304,7 @@ def rotcen_test2(
         tracker = image_scrubber(img, clim)
     if return_flag:
         return img, cen
-        
+
 
 def img_variance(img):
     import tomopy
@@ -437,7 +439,7 @@ def recon(
         else:
             sli_sub = [i * sli_step + sli_total[0], (i + 1) * sli_step + sli_total[0]]
             current_sli = [sli_sub[0] - add_slice, sli_sub[1] + add_slice]
-        print(f"recon {i+1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ")
+        print(f"recon {i + 1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ")
 
         prj_norm = proj_normalize(
             fn,
@@ -455,9 +457,9 @@ def recon(
                 :, add_slice // binning : sli_step // binning + add_slice // binning
             ]
         rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm="gridrec")
-        rec[
-            i * sli_step // binning : i * sli_step // binning + rec_sub.shape[0]
-        ] = rec_sub
+        rec[i * sli_step // binning : i * sli_step // binning + rec_sub.shape[0]] = (
+            rec_sub
+        )
 
     bin_info = f"_bin{int(binning)}"
     fout = f"recon_scan_{str(scan_id)}{str(slice_info)}{str(bin_info)}"
@@ -475,13 +477,14 @@ def recon(
     # del img_tomo
     del prj_norm
 
+
 def recon2(
     fn,
     rot_cen,
     sli=[],
     col=[],
     binning=None,
-    algorithm='gridrec',
+    algorithm="gridrec",
     zero_flag=0,
     block_list=[],
     bkg_level=0,
@@ -494,34 +497,35 @@ def recon2(
     atten=[],
     norm_empty_sli=[],
     snr=1,
-    options={'proj_type':'cuda',
-             'method':'SIRT_CUDA',
-             'num_iter':200,
-             },
-    filter_name='None',
-    output_size = [],
-    output_roi_start = [],
+    options={
+        "proj_type": "cuda",
+        "method": "SIRT_CUDA",
+        "num_iter": 200,
+    },
+    filter_name="None",
+    output_size=[],
+    output_roi_start=[],
     circ_mask_ratio=0.95,
     return_flag=False,
-    ncore=4
+    ncore=4,
 ):
     """
     reconstruct 3D tomography
     Inputs:
-    --------  
+    --------
     fn: string
         filename of scan, e.g. 'fly_scan_0001.h5'
     rot_cen: float
         rotation center
     sli: list
         a range of slice to recontruct, e.g. [100:300]
-    col: 
-    	a range of column to reconstruct, e.g, [300,800]
+    col:
+        a range of column to reconstruct, e.g, [300,800]
     algorithm:
-    	if using astra, algorithm="astra", and will use "options" provided
+        if using astra, algorithm="astra", and will use "options" provided
     bingning: int
-        binning the reconstruted 3D tomographic image 
-    zero_flag: bool 
+        binning the reconstruted 3D tomographic image
+    zero_flag: bool
         if 1: set negative pixel value to 0
         if 0: keep negative pixel value
     block_list: list
@@ -529,7 +533,7 @@ def recon2(
     denoise_flag: int
         0: no denoising on projection image
         1: wiener denoising
-        2: gaussian denoising   
+        2: gaussian denoising
     """
 
     from PIL import Image
@@ -553,17 +557,16 @@ def recon2(
     else:
         print("non valid slice id, will take reconstruction for the whole object")
 
-
     if len(col) == 0:
         col = [0, s[2]]
-    elif len(col) == 1 and col[0] >=0 and col[0] <= s[2]:
-        col = [col[0], col[0]+1]
-        col_info = '_col_{}'.format(col[0])
-    elif len(col) == 2 and col[0] >=0 and col[1] <= s[2]:
-        col_info = '_col_{}_{}'.format(col[0], col[1])
+    elif len(col) == 1 and col[0] >= 0 and col[0] <= s[2]:
+        col = [col[0], col[0] + 1]
+        col_info = "_col_{}".format(col[0])
+    elif len(col) == 2 and col[0] >= 0 and col[1] <= s[2]:
+        col_info = "_col_{}_{}".format(col[0], col[1])
     else:
         col = [0, s[2]]
-        print('invalid col id, will take reconstruction for the whole object')
+        print("invalid col id, will take reconstruction for the whole object")
 
     scan_id = np.array(f["scan_id"])
     theta = np.array(f["angle"]) / 180.0 * np.pi
@@ -577,7 +580,7 @@ def recon2(
     allow_list = list(set(np.arange(len(theta))) - set(block_list))
     theta = theta[allow_list]
     tmp = np.squeeze(np.array(f["img_tomo"][0]))
-    tmp = tmp[:, col[0]:col[1]]
+    tmp = tmp[:, col[0] : col[1]]
     s = tmp.shape
     f.close()
 
@@ -623,7 +626,7 @@ def recon2(
         else:
             sli_sub = [i * sli_step + sli_total[0], (i + 1) * sli_step + sli_total[0]]
             current_sli = [sli_sub[0] - add_slice, sli_sub[1] + add_slice]
-        print(f"recon {i+1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ")
+        print(f"recon {i + 1}/{n_steps}:    sli = [{sli_sub[0]}, {sli_sub[1]}] ... ")
 
         prj_norm = proj_normalize(
             fn,
@@ -636,37 +639,60 @@ def recon2(
             denoise_flag=denoise_flag,
             dark_scale=dark_scale,
             snr=snr,
-            #atten=atten,
-            #norm_empty_sli=norm_empty_sli
+            # atten=atten,
+            # norm_empty_sli=norm_empty_sli
         )
-        prj_norm = prj_norm[:, :, col[0]//binning:col[1]//binning]
+        prj_norm = prj_norm[:, :, col[0] // binning : col[1] // binning]
         if i != 0 and i != n_steps - 1:
             prj_norm = prj_norm[
-                :, 
-                add_slice // binning : sli_step // binning + add_slice // binning
+                :, add_slice // binning : sli_step // binning + add_slice // binning
             ]
-        if algorithm == 'gridrec':
-            rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm='gridrec', ncore=ncore,filter_name=filter_name)
-        elif 'astra' in algorithm:
-            rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm=tomopy.astra, options=options, ncore=ncore)
+        if algorithm == "gridrec":
+            rec_sub = tomopy.recon(
+                prj_norm,
+                theta,
+                center=rot_cen,
+                algorithm="gridrec",
+                ncore=ncore,
+                filter_name=filter_name,
+            )
+        elif "astra" in algorithm:
+            rec_sub = tomopy.recon(
+                prj_norm,
+                theta,
+                center=rot_cen,
+                algorithm=tomopy.astra,
+                options=options,
+                ncore=ncore,
+            )
         else:
-            rec_sub = tomopy.recon(prj_norm, theta, center=rot_cen, algorithm=algorithm, num_iter=num_iter, ncore=ncore,filter_name=filter_name)
+            rec_sub = tomopy.recon(
+                prj_norm,
+                theta,
+                center=rot_cen,
+                algorithm=algorithm,
+                num_iter=num_iter,
+                ncore=ncore,
+                filter_name=filter_name,
+            )
         s_rec_sub = rec_sub.shape
         if np.mod(s_rec_sub[1], 2) == 1:
             rec_sub = rec_sub[:, :-1, :-1]
-        rec[i * sli_step // binning : i * sli_step // binning + rec_sub.shape[0]] = rec_sub
+        rec[i * sli_step // binning : i * sli_step // binning + rec_sub.shape[0]] = (
+            rec_sub
+        )
         time_e = time.time()
-        print(f'takeing {time_e-time_s:3.1f} sec')
+        print(f"takeing {time_e - time_s:3.1f} sec")
     bin_info = f"_bin{int(binning)}"
-    #fout = f"recon_scan_{str(scan_id)}{str(slice_info)}{str(col_info)}{str(bin_info)}"
+    # fout = f"recon_scan_{str(scan_id)}{str(slice_info)}{str(col_info)}{str(bin_info)}"
     fout = f"recon_{fn[4:-3]}{str(slice_info)}{str(bin_info)}"
     if zero_flag:
         rec[rec < 0] = 0
-    
+
     if circ_mask_ratio < 1:
         rec = tomopy.circ_mask(rec, axis=0, ratio=circ_mask_ratio)
 
-    roi = [0,0,0,0]
+    roi = [0, 0, 0, 0]
     if len(output_roi_start) == 2:
         row_s, col_s = output_roi_start
         rec = rec[:, row_s:, col_s:]
@@ -679,14 +705,14 @@ def recon2(
         out_size = [output_size[0], output_size[0]]
     else:
         out_size = output_size
- 
+
     s = rec.shape
-    if len(out_size) == 2:        
+    if len(out_size) == 2:
         r, c = out_size
         row_e = min(s[1], r)
         col_e = min(s[2], c)
         row_e = int(row_e // 2 * 2)
-        col_e = int(col_e // 2 * 2)    
+        col_e = int(col_e // 2 * 2)
         print(s, r, c, row_e, col_e)
         rec = rec[:, :row_e, :col_e]
     else:
@@ -694,7 +720,7 @@ def recon2(
     roi[2] = row_e
     roi[3] = col_e
     rec[np.isnan(rec)] = 0
- 
+
     fout_h5 = f"{fout}.h5"
     with h5py.File(fout_h5, "w") as hf:
         hf.create_dataset("img", data=np.array(rec, dtype=np.float32))
@@ -749,7 +775,7 @@ def proj_normalize(
     except:
         img_bkg = []
     try:
-        img_dark = np.array(f["img_dark_avg"][:, sli[0] : sli[1]])/dark_scale
+        img_dark = np.array(f["img_dark_avg"][:, sli[0] : sli[1]]) / dark_scale
     except:
         img_dark = []
     if len(img_dark) == 0 or len(img_bkg) == 0 or txm_normed_flag == 1:
@@ -764,11 +790,11 @@ def proj_normalize(
     prj_norm[np.isinf(prj_norm)] = 0
     prj_norm[prj_norm < 0] = 0
     prj_norm = prj_norm[allow_list]
-    '''
+    """
     prj_norm = tomopy.prep.stripe.remove_stripe_fw(
         prj_norm, level=fw_level, wname="db5", sigma=1, pad=True
     )
-    '''
+    """
     prj_norm = tomopy.prep.stripe.remove_all_stripe(prj_norm, snr=snr)
     prj_norm -= bkg_level
     f.close()
@@ -793,5 +819,3 @@ def show_image_slice(fn, sli=0):
             print("cannot display image")
     finally:
         f.close()
-
-

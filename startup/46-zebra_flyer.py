@@ -9,6 +9,7 @@ from bluesky.utils import short_uid
 # ts_load_refs = EpicsSignal("NSLS2:TomoStream:LoadRefImages", name="ts_load_refs")
 # ts_refs_loaded = EpicsSignal("NSLS2:TomoStream:RefImagesLoaded", name="ts_refs_loaded")
 
+
 def tomo_zfly(
     scn_mode=0,
     exp_t=0.05,
@@ -34,7 +35,7 @@ def tomo_zfly(
     """_summary_
 
     Args:
-        scn_mode (int, optional): 
+        scn_mode (int, optional):
             0: "standard",  # a single scan in a given angle range
             1: "snaked: multiple files",  # back-forth rocking scan with each swing being saved into a file
             2: "snaked: single file",  # back-forth rocking scan being saved into a single file
@@ -69,16 +70,16 @@ def tomo_zfly(
     """
     cam = _sel_cam(cam)
     flyer = _sel_flyer(flyer)
-  
+
     global ZONE_PLATE
     yield from FXITomoFlyer.stop_det(cam)
     yield from FXITomoFlyer.set_roi_det(cam, roi)
-    
+
     sleep_plan = _schedule_sleep(sleep, num_swing)
     if not sleep_plan:
         print(f"A wrong sleep pattern {sleep=} and {num_swing=} breaks the scan. Quit")
         return
-    
+
     mots = [zps.sx, zps.sy, zps.sz]
     flyer.detectors = [
         cam,
@@ -139,17 +140,17 @@ def tomo_zfly(
     _md.update(md or {})
     print("preset scan is done")
 
-    #@stage_decorator(list(mots))
+    # @stage_decorator(list(mots))
     @run_decorator(md=_md)
     def inner_fly_plan():
         yield from select_filters(flts)
-        
-        if flyer.scn_mode == "standard": # scn_mode = 0
+
+        if flyer.scn_mode == "standard":  # scn_mode = 0
             print(f"{sleep_plan=}")
             for ii in range(scn_cfg["num_swing"]):
                 yield from FXITomoFlyer.set_cam_mode(cam, stage="ref-scan")
                 print(f"Scan # {ii} set ref-scan finishes at {ttime.asctime()}")
-                
+
                 print(f"taking dark images at {ttime.asctime()}")
                 yield from _take_ref_image(
                     flyer.detectors,
@@ -164,7 +165,7 @@ def tomo_zfly(
                     simu=simu,
                 )
                 print(f"{resolver.latest_dark()['file_reference']}")
-                
+
                 print(f"taking flat images at {ttime.asctime()}")
                 yield from _take_ref_image(
                     flyer.detectors,
@@ -179,15 +180,17 @@ def tomo_zfly(
                     simu=simu,
                 )
                 print(f"{resolver.latest_flat()['file_reference']}")
-                
+
                 print(f"Scan # {ii} set sam in position starts at {ttime.asctime()}")
                 yield from _move_sample(
-                    {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
+                    {"x": x_ini, "y": y_ini, "z": z_ini, "r": r_ini},
                     repeat=2,
                 )
                 print(f"Scan # {ii} set sam in position finishes at {ttime.asctime()}")
-                
-                yield from FXITomoFlyer.set_cam_mode(flyer.detectors[0], stage="pre-scan")
+
+                yield from FXITomoFlyer.set_cam_mode(
+                    flyer.detectors[0], stage="pre-scan"
+                )
                 yield from FXITomoFlyer.set_cam_step_for_scan(cam, scn_cfg)
                 yield from FXITomoFlyer.set_mot_r_step_for_scan(scn_cfg)
                 yield from _open_shutter_xhx(simu)
@@ -202,23 +205,21 @@ def tomo_zfly(
 
                 print(f"{scn_cfg=}")
                 st = yield from kickoff(flyer, wait=True, scn_cfg=scn_cfg)
-                st.wait(timeout=10)             
+                st.wait(timeout=10)
 
                 det_stream = short_uid("dets")
                 for d in flyer.detectors:
                     yield from bps.trigger(d, group=det_stream)
                 wait(det_stream)
 
-                set_and_wait(
-                    flyer.encoder.pc.gate_start, scn_cfg["ang_s"], rtol=0.1
-                )
+                set_and_wait(flyer.encoder.pc.gate_start, scn_cfg["ang_s"], rtol=0.1)
                 yield from abs_set(flyer.encoder.pc.arm, 1, wait=True)
 
                 t0 = ttime.monotonic()
                 yield from move_and_wait(
-                    zps.pi_r, 
-                    scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"], 
-                    atol=0.1
+                    zps.pi_r,
+                    scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"],
+                    atol=0.1,
                 )
 
                 t1 = ttime.monotonic()
@@ -252,11 +253,17 @@ def tomo_zfly(
                 print(f"set post-scan finishes at {ttime.asctime()}")
 
                 if ii < (scn_cfg["num_swing"] - 1):
-                    print(f" Sleeping {sleep_plan[ii]} seconds before {ii+1}th scan ... ".center(100, "#"))
+                    print(
+                        f" Sleeping {sleep_plan[ii]} seconds before {ii + 1}th scan ... ".center(
+                            100, "#"
+                        )
+                    )
                     print("\n")
                     yield from bps.sleep(sleep_plan[ii])
             yield from select_filters([])
-        elif flyer.scn_mode == "snaked: multiple files": # scn_mode = 1; not working due to buggy Zebra IOC
+        elif (
+            flyer.scn_mode == "snaked: multiple files"
+        ):  # scn_mode = 1; not working due to buggy Zebra IOC
             yield from FXITomoFlyer.set_cam_mode(flyer.detectors[0], stage="pre-scan")
             yield from bps.sleep(1)
 
@@ -294,9 +301,9 @@ def tomo_zfly(
                 t0 = ttime.monotonic()
                 print(7)
                 yield from move_and_wait(
-                    zps.pi_r, 
-                    scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"], 
-                    atol=0.1
+                    zps.pi_r,
+                    scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"],
+                    atol=0.1,
                 )
 
                 t1 = ttime.monotonic()
@@ -311,7 +318,7 @@ def tomo_zfly(
                 st.wait(timeout=10)
                 print(9)
                 yield from collect(flyer)
-                
+
                 for d in flyer.detectors:
                     try:
                         d.unstage()
@@ -320,7 +327,7 @@ def tomo_zfly(
                         return None
                 for mot in mots:
                     mot.unstage()
-                
+
                 print(10)
                 if ii < (scn_cfg["num_swing"] - 1):
                     (scn_cfg["ang_s"], scn_cfg["ang_e"]) = (
@@ -337,7 +344,7 @@ def tomo_zfly(
                     print(f"{pc_cfg=}")
                     # yield from flyer.preset_zebra(pc_cfg)
                     # print("preset_flyer is done")
-                
+
                     yield from flyer.set_pc_step_for_scan(scn_cfg, pc_cfg)
                     print(12)
 
@@ -369,14 +376,16 @@ def tomo_zfly(
             )
             print(13)
             yield from _move_sample(
-                {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
+                {"x": x_ini, "y": y_ini, "z": z_ini, "r": r_ini},
                 repeat=2,
             )
-            print(14)            
+            print(14)
             scn_cfg["ang_s"] = r_ini
             yield from FXITomoFlyer.init_mot_r(scn_cfg)
             yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")
-        elif flyer.scn_mode == "snaked: single file": # scn_mode = 2; external trigger not allowing precise angle alignment in different repeats
+        elif (
+            flyer.scn_mode == "snaked: single file"
+        ):  # scn_mode = 2; external trigger not allowing precise angle alignment in different repeats
             yield from FXITomoFlyer.set_cam_mode(flyer.detectors[0], stage="pre-scan")
             yield from FXITomoFlyer.set_cam_step_for_scan(cam, scn_cfg)
             yield from FXITomoFlyer.set_mot_r_step_for_scan(scn_cfg)
@@ -407,9 +416,9 @@ def tomo_zfly(
             t0 = ttime.monotonic()
             for ii in range(scn_cfg["num_swing"]):
                 yield from move_and_wait(
-                    zps.pi_r, 
-                    scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"], 
-                    atol=0.1
+                    zps.pi_r,
+                    scn_cfg["ang_e"] + scn_cfg["rot_dir"] * scn_cfg["taxi_dist"],
+                    atol=0.1,
                 )
                 (scn_cfg["ang_s"], scn_cfg["ang_e"]) = (
                     scn_cfg["ang_e"],
@@ -464,7 +473,7 @@ def tomo_zfly(
                 simu=simu,
             )
             yield from _move_sample(
-                {'x': x_ini, 'y': y_ini, 'z': z_ini, 'r': r_ini},
+                {"x": x_ini, "y": y_ini, "z": z_ini, "r": r_ini},
                 repeat=2,
             )
             yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")
@@ -497,38 +506,44 @@ def tomo_zfly_repeat(
     flyer=None,
     open_sh=False,
 ):
-    
+
     cam = _sel_cam(cam)
     flyer = _sel_flyer(flyer)
 
     for ii in range(repeat):
-        yield from tomo_zfly(scn_mode=scn_mode,
-                            exp_t=exp_t,
-                            acq_p=acq_p,
-                            ang_s=ang_s,
-                            ang_e=ang_e,
-                            vel=vel,
-                            acc_t=acc_t,
-                            num_swing=1,
-                            out_pos=out_pos,
-                            rel_out_flag=rel_out_flag,
-                            flts=flts,
-                            rot_back_velo=rot_back_velo,
-                            bin_fac=bin_fac,
-                            roi=roi,
-                            note=note,
-                            md=md,
-                            simu=simu,
-                            sleep=0,
-                            cam=cam,
-                            flyer=flyer,)
+        yield from tomo_zfly(
+            scn_mode=scn_mode,
+            exp_t=exp_t,
+            acq_p=acq_p,
+            ang_s=ang_s,
+            ang_e=ang_e,
+            vel=vel,
+            acc_t=acc_t,
+            num_swing=1,
+            out_pos=out_pos,
+            rel_out_flag=rel_out_flag,
+            flts=flts,
+            rot_back_velo=rot_back_velo,
+            bin_fac=bin_fac,
+            roi=roi,
+            note=note,
+            md=md,
+            simu=simu,
+            sleep=0,
+            cam=cam,
+            flyer=flyer,
+        )
         if ii != repeat - 1:
-            print(f" Sleeping {sleep} seconds before {ii+2}th scan ... ".center(100, "#"))
+            print(
+                f" Sleeping {sleep} seconds before {ii + 2}th scan ... ".center(
+                    100, "#"
+                )
+            )
             print("\n")
             if open_sh:
                 yield from _open_shutter_xhx(simu)
             yield from bps.sleep(sleep)
-        
+
 
 def tomo_grid_zfly(
     scn_mode=0,
@@ -538,9 +553,11 @@ def tomo_grid_zfly(
     ang_e=180,
     vel=3,
     acc_t=1,
-    pos_dict={"zps_x": [None, None, None], 
-              "zps_y": [None, None, None],
-              "zps_z": [None, None, None]},
+    pos_dict={
+        "zps_x": [None, None, None],
+        "zps_y": [None, None, None],
+        "zps_z": [None, None, None],
+    },
     num_swing=1,
     out_pos=[None, None, None, None],
     rel_out_flag=True,
@@ -558,7 +575,7 @@ def tomo_grid_zfly(
     """_summary_
 
     Args:
-        scn_mode (int, optional): 
+        scn_mode (int, optional):
             0: "standard",  # a single scan in a given angle range
             1: "snaked: multiple files",  # back-forth rocking scan with each swing being saved into a file
             2: "snaked: single file",  # back-forth rocking scan being saved into a single file
@@ -570,7 +587,7 @@ def tomo_grid_zfly(
         vel (int, optional): _description_. Defaults to 3.
         acc_t (float, optional): _description_. Defaults to 1.
         pos_dict (dic, optional): a dictionary in form {
-                                "zps_x": [xstart, xend, xstep], 
+                                "zps_x": [xstart, xend, xstep],
                                 "zps_y": [ystart, yend, ystep],
                                 "zps_z": [zstart, zend, zstep]
                             }.
@@ -604,7 +621,7 @@ def tomo_grid_zfly(
     if not sleep_plan:
         print(f"A wrong sleep pattern {sleep=} and {num_swing=} breaks the scan. Quit")
         return
-    
+
     mots = {"zps_x": zps.sx, "zps_y": zps.sy, "zps_z": zps.sz}
     # mots = [zps.sx, zps.sz]
     flyer.detectors = [
@@ -636,27 +653,29 @@ def tomo_grid_zfly(
     for jj in grid_nodes["pos"]:
         for idx, kk in enumerate(grid_nodes["mots"]):
             yield from mv(mots[kk], jj[idx])
-        yield from tomo_zfly(scn_mode=scn_mode,
-                            exp_t=exp_t,
-                            acq_p=acq_p,
-                            ang_s=ang_s,
-                            ang_e=ang_e,
-                            vel=vel,
-                            acc_t=acc_t,
-                            num_swing=1,
-                            out_pos=out_pos,
-                            rel_out_flag=rel_out_flag,
-                            flts=flts,
-                            rot_back_velo=rot_back_velo,
-                            bin_fac=bin_fac,
-                            roi=roi,
-                            note=note,
-                            md=md,
-                            sleep=sleep,
-                            simu=simu,
-                            cam=cam,
-                            flyer=flyer)
-        
+        yield from tomo_zfly(
+            scn_mode=scn_mode,
+            exp_t=exp_t,
+            acq_p=acq_p,
+            ang_s=ang_s,
+            ang_e=ang_e,
+            vel=vel,
+            acc_t=acc_t,
+            num_swing=1,
+            out_pos=out_pos,
+            rel_out_flag=rel_out_flag,
+            flts=flts,
+            rot_back_velo=rot_back_velo,
+            bin_fac=bin_fac,
+            roi=roi,
+            note=note,
+            md=md,
+            sleep=sleep,
+            simu=simu,
+            cam=cam,
+            flyer=flyer,
+        )
+
 
 def _schedule_sleep(sleep, num_scan):
     sleep_plan = {}
@@ -674,8 +693,8 @@ def _schedule_sleep(sleep, num_scan):
                 return False
             else:
                 for ii in range(0, num_scan - 1):
-                    sleep_plan[ii] = sleep[ii]  
-                return sleep_plan     
+                    sleep_plan[ii] = sleep[ii]
+                return sleep_plan
         elif isinstance(sleep, int) or isinstance(sleep, float):
             for ii in range(0, num_scan - 1):
                 sleep_plan[ii] = sleep
@@ -691,35 +710,67 @@ def _schedule_sleep(sleep, num_scan):
 def prep_grid_dic(pos_dict):
     """
     pos_dict: dictionary in form {
-                                "zps_x": [xstart, xend, xstep], 
+                                "zps_x": [xstart, xend, xstep],
                                 "zps_y": [ystart, yend, ystep],
                                 "zps_z": [zstart, zend, zstep]
-                            }. 
+                            }.
     """
+
     def mot_dict(mot_str):
-        if mot_str == 'zps_x':
+        if mot_str == "zps_x":
             return zps.sx
-        elif mot_str == 'zps_y':
+        elif mot_str == "zps_y":
             return zps.sy
-        elif mot_str == 'zps_z':
+        elif mot_str == "zps_z":
             return zps.sz
         else:
             return None
+
     grid_nodes = {}
     grid_nodes["mots"] = list(pos_dict.keys())
     tem = []
     for ii in pos_dict.keys():
         if mot_dict(ii) is not None:
-            num = int(round(((pos_dict[ii][1] if pos_dict[ii][1] is not None else mot_dict(ii).position) 
-                             - (pos_dict[ii][0] if pos_dict[ii][0] is not None else mot_dict(ii).position)) 
-                             / (pos_dict[ii][2] if pos_dict[ii][2] is not None else 1))) + 1
-            tem.append(np.linspace((pos_dict[ii][0] if pos_dict[ii][0] is not None else mot_dict(ii).position), 
-                                   (pos_dict[ii][1] if pos_dict[ii][1] is not None else mot_dict(ii).position), 
-                                   num, endpoint=True))
+            num = (
+                int(
+                    round(
+                        (
+                            (
+                                pos_dict[ii][1]
+                                if pos_dict[ii][1] is not None
+                                else mot_dict(ii).position
+                            )
+                            - (
+                                pos_dict[ii][0]
+                                if pos_dict[ii][0] is not None
+                                else mot_dict(ii).position
+                            )
+                        )
+                        / (pos_dict[ii][2] if pos_dict[ii][2] is not None else 1)
+                    )
+                )
+                + 1
+            )
+            tem.append(
+                np.linspace(
+                    (
+                        pos_dict[ii][0]
+                        if pos_dict[ii][0] is not None
+                        else mot_dict(ii).position
+                    ),
+                    (
+                        pos_dict[ii][1]
+                        if pos_dict[ii][1] is not None
+                        else mot_dict(ii).position
+                    ),
+                    num,
+                    endpoint=True,
+                )
+            )
         else:
-            raise(f"Unrecognized motor name {ii}!")
+            raise (f"Unrecognized motor name {ii}!")
     print(tem)
-    m = np.meshgrid(*tem, indexing='xy')
+    m = np.meshgrid(*tem, indexing="xy")
     pos = list(zip(*(ii.ravel() for ii in m)))
     grid_nodes["pos"] = pos
     return grid_nodes
