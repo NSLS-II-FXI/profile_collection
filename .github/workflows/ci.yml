@@ -1,4 +1,4 @@
-name: Check Code Style - BLACK
+name: Check Code Style - Format
 permissions:
   contents: read
 
@@ -23,4 +23,4 @@ jobs:
           activate-environment: true
 
       - name: Run formatter
-        run: format
+        run: ruff format .
