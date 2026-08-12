@@ -2,6 +2,7 @@
 
 print(f"Loading {__file__}...")
 
+
 class mirror(Device):
     x = Cpt(MyEpicsMotor, "-Ax:X}Mtr")
     yaw = Cpt(MyEpicsMotor, "-Ax:Yaw}Mtr")
@@ -47,7 +48,9 @@ dcm_th2.feedback_enable = EpicsSignal(
     "XF:18IDA-OP{Mono:DCM-Ax:Th2}PID.FBON", name="th2_feedback_enable"
 )
 
-dcm_chi2.feedback = EpicsSignal("XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID", name="chi2_feedback")
+dcm_chi2.feedback = EpicsSignal(
+    "XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID", name="chi2_feedback"
+)
 dcm_chi2.feedback_enable = EpicsSignal(
     "XF:18IDA-OP{Mono:DCM-Ax:Chi2}PID.FBON", name="chi2_feedback_enable"
 )

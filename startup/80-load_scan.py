@@ -26,8 +26,8 @@ def get_fly_scan_angle(scan_id):
     det_name = h.start["detectors"][0]
     with dbv0.reg.handler_context({"AD_HDF5": AreaDetectorHDF5TimestampHandler}):
         timestamp_tomo = list(h.data(f"{det_name}_image", stream_name="primary"))[0]
-        #timestamp_dark = list(h.data(f"{det_name}_image", stream_name="dark"))[0]
-        #timestamp_bkg = list(h.data(f"{det_name}_image", stream_name="flat"))[0]
+        # timestamp_dark = list(h.data(f"{det_name}_image", stream_name="dark"))[0]
+        # timestamp_bkg = list(h.data(f"{det_name}_image", stream_name="flat"))[0]
     assert "zps_pi_r_monitor" in h.stream_names
     pos = h.table("zps_pi_r_monitor")
     timestamp_mot = timestamp_to_float(pos["time"])
@@ -40,15 +40,14 @@ def get_fly_scan_angle(scan_id):
 
     n = len(timestamp_mot)
     for idx in range(1, n):
-        ts1 = timestamp_mot[idx] - timestamp_mot[idx-1]
-        ts2 = timestamp_mot[idx+1] - timestamp_mot[idx]
-        #if ts1 < 0.25 and ts2 < 0.25:
+        ts1 = timestamp_mot[idx] - timestamp_mot[idx - 1]
+        ts2 = timestamp_mot[idx + 1] - timestamp_mot[idx]
+        # if ts1 < 0.25 and ts2 < 0.25:
         #    break
         if ts1 < 1 and ts2 < 1:
             break
     mot_ini_timestamp = timestamp_mot[idx]
     ## end modifing
-
 
     tomo_time = timestamp_tomo - img_ini_timestamp
     mot_time = timestamp_mot - mot_ini_timestamp
@@ -71,7 +70,15 @@ def write_lakeshore_to_file(h, fname):
             break
 
 
-def export_scan(scan_id, scan_id_end=None, binning=4, date_end_by=None, fpath=None, reverse=False, bkg_scan_id=None):
+def export_scan(
+    scan_id,
+    scan_id_end=None,
+    binning=4,
+    date_end_by=None,
+    fpath=None,
+    reverse=False,
+    bkg_scan_id=None,
+):
     """
     e.g. load_scan([0001, 0002])
     """
@@ -80,22 +87,39 @@ def export_scan(scan_id, scan_id_end=None, binning=4, date_end_by=None, fpath=No
             scan_id = [scan_id]
         for item in scan_id:
             try:
-                custom_export(int(item), binning, date_end_by=date_end_by, fpath=fpath, reverse=reverse, bkg_scan_id=bkg_scan_id)
+                custom_export(
+                    int(item),
+                    binning,
+                    date_end_by=date_end_by,
+                    fpath=fpath,
+                    reverse=reverse,
+                    bkg_scan_id=bkg_scan_id,
+                )
                 dbv0.reg.clear_process_cache()
             except Exception as err:
-                print(f'fail to export {item}')
+                print(f"fail to export {item}")
                 print(err)
     else:
         for i in range(scan_id, scan_id_end + 1):
             try:
                 # export_single_scan(int(i), binning)
-                custom_export(int(i), binning, date_end_by=date_end_by, fpath=fpath, reverse=reverse, bkg_scan_id=bkg_scan_id)
+                custom_export(
+                    int(i),
+                    binning,
+                    date_end_by=date_end_by,
+                    fpath=fpath,
+                    reverse=reverse,
+                    bkg_scan_id=bkg_scan_id,
+                )
                 dbv0.reg.clear_process_cache()
             except Exception as err:
-                print(f'fail to export {i}')
+                print(f"fail to export {i}")
                 print(err)
 
-def custom_export(scan_id, binning=4, date_end_by=None, fpath=None, reverse=False, bkg_scan_id=None):
+
+def custom_export(
+    scan_id, binning=4, date_end_by=None, fpath=None, reverse=False, bkg_scan_id=None
+):
     """
     date_end_by: string, e.g., '2020-01-20'
     """
@@ -108,14 +132,19 @@ def custom_export(scan_id, binning=4, date_end_by=None, fpath=None, reverse=Fals
             uid = sid.start["uid"]
             timestamp = sid.start["time"]
             ts = pd.to_datetime(timestamp, unit="s").tz_localize("US/Eastern")
-            date_end = pd.Timestamp(date_end_by,).tz_localize('US/Eastern')
+            date_end = pd.Timestamp(
+                date_end_by,
+            ).tz_localize("US/Eastern")
             if ts < date_end:
                 export_single_scan(uid, binning, reverse=reverse)
                 break
 
 
-def export_single_scan(scan_id=-1, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
+def export_single_scan(
+    scan_id=-1, binning=4, fpath=None, reverse=False, bkg_scan_id=None
+):
     import datetime
+
     h = dbv0[scan_id]
     scan_id = h.start["scan_id"]
     scan_type = h.start["plan_name"]
@@ -157,7 +186,7 @@ def export_single_scan(scan_id=-1, binning=4, fpath=None, reverse=False, bkg_sca
             export_xanes_scan(h, fpath)
         print("xanes scan: #{} loading finished".format(scan_id))
 
-    elif scan_type == 'radiography_scan':
+    elif scan_type == "radiography_scan":
         print("exporting radiography_scan: #{}".format(scan_id))
         export_radiography_scan(h, fpath)
     elif scan_type == "xanes_scan_img_only":
@@ -278,7 +307,7 @@ def export_fly_scan(h, fpath=None):
     y_pos = h.table("baseline")["zps_sy"][1]
     z_pos = h.table("baseline")["zps_sz"][1]
     r_pos = h.table("baseline")["zps_pi_r"][1]
-    relative_rot_angle = h.start['plan_args']['relative_rot_angle']
+    relative_rot_angle = h.start["plan_args"]["relative_rot_angle"]
     zp_z_pos = h.table("baseline")["zp_z"][1]
     DetU_z_pos = h.table("baseline")["DetU_z"][1]
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
@@ -286,10 +315,10 @@ def export_fly_scan(h, fpath=None):
 
     x_eng = h.start["XEng"]
     img_angle = get_fly_scan_angle(uid)
-    id_stop = find_nearest(img_angle, img_angle[0]+relative_rot_angle-1)
+    id_stop = find_nearest(img_angle, img_angle[0] + relative_rot_angle - 1)
 
     tmp = list(h.data(f"{det_name}_image", stream_name="primary"))[0]
-    img_tomo = np.array(tmp[:len(img_angle)])
+    img_tomo = np.array(tmp[: len(img_angle)])
     s = img_tomo.shape
     try:
         img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))[0]
@@ -589,19 +618,17 @@ def export_xanes_scan_with_binning(h, fpath=None, binning=1):
     for i in trange(num_eng):
         img_xanes_sub = np.array(img_list[i])
         img_xanes_sub_avg = np.median(img_xanes_sub, axis=0)
-        img_bin1 = rescale(img_xanes_sub_avg, 1/binning)
+        img_bin1 = rescale(img_xanes_sub_avg, 1 / binning)
         img_xanes_avg.append(img_bin1)
 
         img_bkg_sub = np.array(bkg_list[i])
         img_bkg_sub_avg = np.median(img_bkg_sub, axis=0)
-        img_bin2 = rescale(img_bkg_sub_avg, 1/binning)
+        img_bin2 = rescale(img_bkg_sub_avg, 1 / binning)
         img_bkg_avg.append(img_bin2)
-
-
 
     img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))
     img_dark_avg = np.mean(img_dark, axis=1)[0]
-    img_bin = rescale(img_dark_avg, 1/binning)
+    img_bin = rescale(img_dark_avg, 1 / binning)
     img_dark_avg = np.expand_dims(img_bin, axis=0)
     eng_list = list(h.start["eng_list"])
 
@@ -632,6 +659,7 @@ def export_xanes_scan_with_binning(h, fpath=None, binning=1):
         img_xanes_avg,
         img_xanes_norm,
     )
+
 
 def export_xanes_scan_img_only(h, fpath=None):
     if fpath is None:
@@ -720,9 +748,15 @@ def export_z_scan(h, fpath=None):
     chunk_size = h.start["plan_args"]["chunk_size"]
     note = h.start["plan_args"]["note"] if h.start["plan_args"]["note"] else "None"
 
-    img_zscan = np.mean(np.array(list(h.data(f"{det_name}_image", stream_name="primary"))), axis=1)
-    img_bkg = np.mean(np.array(list(h.data(f"{det_name}_image", stream_name="flat"))), axis=1).squeeze()
-    img_dark = np.mean(np.array(list(h.data(f"{det_name}_image", stream_name="dark"))), axis=1).squeeze()
+    img_zscan = np.mean(
+        np.array(list(h.data(f"{det_name}_image", stream_name="primary"))), axis=1
+    )
+    img_bkg = np.mean(
+        np.array(list(h.data(f"{det_name}_image", stream_name="flat"))), axis=1
+    ).squeeze()
+    img_dark = np.mean(
+        np.array(list(h.data(f"{det_name}_image", stream_name="dark"))), axis=1
+    ).squeeze()
     # img = np.array(list(h.data(f"{det_name}_image", stream_name="primary")))
     # img_zscan = np.mean(img[:num], axis=1)
     # img_bkg = np.mean(img[num], axis=0, keepdims=False)
@@ -833,33 +867,32 @@ def export_test_scan(h, fpath=None):
         x_eng = h.start["x_ray_energy"]
     num = h.start["plan_args"]["num_img"]
 
-
     img_list = list(h.data(f"{det_name}_image", stream_name="primary"))
     n = len(img_list)
-    for i in range(n-1, 0, -1):
+    for i in range(n - 1, 0, -1):
         try:
-            #print(i)
+            # print(i)
             img = np.array(img_list[:i])[:, 0]
         except:
             continue
         break
     if i < n:
-        print(f'few images are lost, only {i}/{n} images saved')
-    #img = np.array(list(h.data(f"{det_name}_image", stream_name="primary")))[:,0]
+        print(f"few images are lost, only {i}/{n} images saved")
+    # img = np.array(list(h.data(f"{det_name}_image", stream_name="primary")))[:,0]
     try:
         img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))[0]
         img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
     except:
         img_dark = np.zeros((1, img.shape[1], img.shape[2]))
         img_dark_avg = img_dark
-        print('img dark not taken')
+        print("img dark not taken")
     try:
         img_bkg = np.array(list(h.data(f"{det_name}_image", stream_name="flat")))[0]
         img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
     except:
         img_bkg = np.zeros((1, img.shape[1], img.shape[2]))
         img_bkg_avg = img_bkg
-        print('img background not taken')
+        print("img background not taken")
 
     img_norm = (img - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
     img_norm[np.isnan(img_norm)] = 0
@@ -889,10 +922,10 @@ def export_test_scan(h, fpath=None):
         img_dark_avg,
         img_bkg,
         img_bkg_avg,
-        #img_xanes,
-        #img_xanes_avg,
+        # img_xanes,
+        # img_xanes_avg,
         img_norm,
-        img
+        img,
     )
 
 
@@ -959,12 +992,11 @@ def export_test_scan2(h, fpath=None):
         img_dark_avg,
         img_bkg,
         img_bkg_avg,
-        #img_xanes,
-        #img_xanes_avg,
+        # img_xanes,
+        # img_xanes_avg,
         img_norm,
-        img
+        img,
     )
-
 
 
 def export_radiography_scan(h, fpath=None):
@@ -1021,15 +1053,7 @@ def export_radiography_scan(h, fpath=None):
     except:
         print("fails to write lakeshore info into {fname}")
 
-    del (
-        img_dark,
-        img_dark_avg,
-        img_bkg,
-        img_bkg_avg,
-        img_norm,
-        img
-    )
-
+    del (img_dark, img_dark_avg, img_bkg, img_bkg_avg, img_norm, img)
 
 
 def export_count_img(h, fpath=None):
@@ -1156,7 +1180,7 @@ def export_multipos_count(h, fpath=None):
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
         for i in range(num_of_position):
-            hf.create_dataset(f"img_pos{i+1}", data=np.squeeze(img_group[i]))
+            hf.create_dataset(f"img_pos{i + 1}", data=np.squeeze(img_group[i]))
     try:
         write_lakeshore_to_file(h, fname)
     except:
@@ -1229,25 +1253,27 @@ def export_raster_2D_2(h, binning=4, fpath=None):
     pxl_sz = 6500.0 / M
 
     rot_angle = h.table("baseline")["zps_pi_r"][1]
-    scan_x_flag = h.start['plan_args']['scan_x_flag']
+    scan_x_flag = h.start["plan_args"]["scan_x_flag"]
     if scan_x_flag:
-        pix = pix * np.cos(rot_angle/180.*np.pi)
+        pix = pix * np.cos(rot_angle / 180.0 * np.pi)
     else:
-        pix = pix * np.sin(rot_angle/180.*np.pi)
+        pix = pix * np.sin(rot_angle / 180.0 * np.pi)
     pix = np.abs(pix)
 
-    img_raw = np.array(list(h.data(f"{det_name}_image", stream_name="primary"))) # (9, chunk_size, 1020, 2014)
-    img = np.mean(img_raw, axis=1) # (9, 1020, 1024)
+    img_raw = np.array(
+        list(h.data(f"{det_name}_image", stream_name="primary"))
+    )  # (9, chunk_size, 1020, 2014)
+    img = np.mean(img_raw, axis=1)  # (9, 1020, 1024)
     s = img.shape
     try:
         img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))[0]
-        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True) #(1, 1020, 1024)
+        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True)  # (1, 1020, 1024)
     except:
         img_dark_avg = np.zeros((1, *s[1:]))
 
     try:
         img_bkg = np.array(list(h.data(f"{det_name}_image", stream_name="flat")))[0]
-        img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True) #(1, 1020, 1024)
+        img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True)  # (1, 1020, 1024)
     except:
         img_bkg_avg = np.ones((1, *s[1:]))
 
@@ -1257,15 +1283,15 @@ def export_raster_2D_2(h, binning=4, fpath=None):
     x_num = round((x_range[1] - x_range[0]) + 1)
     y_num = round((y_range[1] - y_range[0]) + 1)
     # start stitching
-    frac = np.round(pix / pxl_sz, 2) # e.g., 10nm/20nm = 0.5
-    rl = int(s[1] * frac) # num of pixel (row) in cropped_and_centered image
-    rs = s[1]/2 * (1 - frac)
+    frac = np.round(pix / pxl_sz, 2)  # e.g., 10nm/20nm = 0.5
+    rl = int(s[1] * frac)  # num of pixel (row) in cropped_and_centered image
+    rs = s[1] / 2 * (1 - frac)
     rs = int(max(0, rs))
     re = rs + rl
     re = int(min(re, s[1]))
 
-    cl = int(s[2] * frac) # num of pixel (column) in cropped_and_centered image
-    cs = s[2]/2 *(1 - frac)
+    cl = int(s[2] * frac)  # num of pixel (column) in cropped_and_centered image
+    cs = s[2] / 2 * (1 - frac)
     cs = int(max(0, cs))
     ce = cs + cl
     ce = int(min(ce, s[2]))
@@ -1276,14 +1302,15 @@ def export_raster_2D_2(h, binning=4, fpath=None):
     col_size = x_num * cl
     img_patch = np.zeros([1, row_size, col_size])
 
-
     pos_file_for_print = np.zeros([x_num * y_num, 4])
     pos_file = ["cord_x\tcord_y\tx_pos_relative\ty_pos_relative\n"]
     index = 0
     for i in range(int(x_num)):
         for j in range(int(y_num)):
-            #img_patch[0, j * s[1] : (j + 1) * s[1], i * s[2] : (i + 1) * s[2]] = img[index, rs:re, cs:ce]
-            img_patch[0, j*rl : (j+1)*rl, i*cl : (i+1)*cl] = img[index, rs:re, cs:ce]
+            # img_patch[0, j * s[1] : (j + 1) * s[1], i * s[2] : (i + 1) * s[2]] = img[index, rs:re, cs:ce]
+            img_patch[0, j * rl : (j + 1) * rl, i * cl : (i + 1) * cl] = img[
+                index, rs:re, cs:ce
+            ]
             pos_file_for_print[index] = [
                 x_list[i],
                 y_list[j],
@@ -1291,15 +1318,20 @@ def export_raster_2D_2(h, binning=4, fpath=None):
                 y_list[j] * pix * img_sizeY / 1000,
             ]
             pos_file.append(
-                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i]*pix*img_sizeX/1000:3.3f}\t\t{y_list[j]*pix*img_sizeY/1000:3.3f}\n"
+                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i] * pix * img_sizeX / 1000:3.3f}\t\t{y_list[j] * pix * img_sizeY / 1000:3.3f}\n"
             )
             index = index + 1
-            print(i,j, index)
-    s_patch = img_patch.shape # (1, 3060, 3072)
+            print(i, j, index)
+    s_patch = img_patch.shape  # (1, 3060, 3072)
     try:
-        s_bin = (s_patch[0], s_patch[1]//binning*binning, s_patch[2]//binning*binning)
+        s_bin = (
+            s_patch[0],
+            s_patch[1] // binning * binning,
+            s_patch[2] // binning * binning,
+        )
         img_patch_bin = bin_ndarray(
-            img_patch[:, :int(s_bin[1]), :int(s_bin[2])], new_shape=(s_bin[0], int(s_bin[1]//binning), int(s_bin[2]//binning))
+            img_patch[:, : int(s_bin[1]), : int(s_bin[2])],
+            new_shape=(s_bin[0], int(s_bin[1] // binning), int(s_bin[2] // binning)),
         )
     except:
         img_patch_bin = img_patch
@@ -1357,8 +1389,8 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
     scan_type = "grid2D_rel"
     scan_id = h.start["scan_id"]
     scan_time = h.start["time"]
-    #num_dark = h.start["num_dark_images"]
-    #num_bkg = h.start["num_bkg_images"]
+    # num_dark = h.start["num_dark_images"]
+    # num_bkg = h.start["num_bkg_images"]
     x_eng = h.start["XEng"]
     x_range = h.start["plan_args"]["x_range"]
     y_range = h.start["plan_args"]["y_range"]
@@ -1372,29 +1404,33 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
     pxl_sz = 6500.0 / M
 
-    scan_x_flag = h.start['plan_args']['scan_x_flag']
+    scan_x_flag = h.start["plan_args"]["scan_x_flag"]
     if scan_x_flag:
-        pix = pix * np.cos(rot_angle/180.*np.pi)
+        pix = pix * np.cos(rot_angle / 180.0 * np.pi)
     else:
-        pix = pix * np.sin(rot_angle/180.*np.pi)
+        pix = pix * np.sin(rot_angle / 180.0 * np.pi)
 
     if not bkg_scan_id is None:
         h_ref = db[norm_bkg_scan_id]
     else:
         h_ref = h
 
-    img_raw = np.array(list(h.data(f"{det_name}_image", stream_name="primary"))) # (9, chunk_size, 1020, 2014)
-    img = np.mean(img_raw, axis=1) # (9, 1020, 1024)
-    s = img.shape # (9, 1020, 1024)
+    img_raw = np.array(
+        list(h.data(f"{det_name}_image", stream_name="primary"))
+    )  # (9, chunk_size, 1020, 2014)
+    img = np.mean(img_raw, axis=1)  # (9, 1020, 1024)
+    s = img.shape  # (9, 1020, 1024)
     try:
-        img_dark = np.array(list(h_ref.data(f"{det_name}_image", stream_name="dark")))[0]
-        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True) #(1, 1020, 1024)
+        img_dark = np.array(list(h_ref.data(f"{det_name}_image", stream_name="dark")))[
+            0
+        ]
+        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True)  # (1, 1020, 1024)
     except:
         img_dark_avg = np.zeros((1, *s[1:]))
 
     try:
         img_bkg = np.array(list(h_ref.data(f"{det_name}_image", stream_name="flat")))[0]
-        img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True) #(1, 1020, 1024)
+        img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True)  # (1, 1020, 1024)
     except:
         img_bkg_avg = np.ones((1, *s[1:]))
 
@@ -1403,30 +1439,26 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
         img_dark_avg = img_dark_avg[:, ::-1, ::-1]
         img_bkg_avg = img_bkg_avg[:, ::-1, ::-1]
 
-
-
-
     img = (img - img_dark_avg) / (img_bkg_avg - img_dark_avg)
     x_num = round((x_range[1] - x_range[0]) + 1)
     y_num = round((y_range[1] - y_range[0]) + 1)
 
-
     # start stitching
     if pix > pxl_sz:
-        warn_msg = f'warning: the setpoint pixel size used in scan ({pix:3.2f} nm) should be smaller than actual pixel size ({pxl_sz:3.2f} nm)'
+        warn_msg = f"warning: the setpoint pixel size used in scan ({pix:3.2f} nm) should be smaller than actual pixel size ({pxl_sz:3.2f} nm)"
         pix = pxl_sz
     else:
-        warn_msg = ''
+        warn_msg = ""
 
-    frac = np.round(pix / pxl_sz, 2) # e.g., 10nm/20nm = 0.5
-    rl = int(s[1] * frac) # num of pixel (row) in cropped_and_centered image
-    rs = s[1]/2 * (1 - frac)
+    frac = np.round(pix / pxl_sz, 2)  # e.g., 10nm/20nm = 0.5
+    rl = int(s[1] * frac)  # num of pixel (row) in cropped_and_centered image
+    rs = s[1] / 2 * (1 - frac)
     rs = int(max(0, rs))
     re = rs + rl
     re = int(min(re, s[1]))
 
-    cl = int(s[2] * frac) # num of pixel (column) in cropped_and_centered image
-    cs = s[2]/2 *(1 - frac)
+    cl = int(s[2] * frac)  # num of pixel (column) in cropped_and_centered image
+    cs = s[2] / 2 * (1 - frac)
     cs = int(max(0, cs))
     ce = cs + cl
     ce = int(min(ce, s[2]))
@@ -1437,14 +1469,15 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
     col_size = x_num * cl
     img_patch = np.zeros([1, row_size, col_size])
 
-
     pos_file_for_print = np.zeros([x_num * y_num, 4])
     pos_file = ["cord_x\tcord_y\tx_pos_relative\ty_pos_relative\n"]
     index = 0
     for i in range(int(x_num)):
         for j in range(int(y_num)):
-            #img_patch[0, j * s[1] : (j + 1) * s[1], i * s[2] : (i + 1) * s[2]] = img[index, rs:re, cs:ce]
-            img_patch[0, j*rl : (j+1)*rl, i*cl : (i+1)*cl] = img[index, rs:re, cs:ce]
+            # img_patch[0, j * s[1] : (j + 1) * s[1], i * s[2] : (i + 1) * s[2]] = img[index, rs:re, cs:ce]
+            img_patch[0, j * rl : (j + 1) * rl, i * cl : (i + 1) * cl] = img[
+                index, rs:re, cs:ce
+            ]
             pos_file_for_print[index] = [
                 x_list[i],
                 y_list[j],
@@ -1452,15 +1485,20 @@ def export_raster_2D(h, binning=4, fpath=None, reverse=False, bkg_scan_id=None):
                 y_list[j] * pix * img_sizeY / 1000,
             ]
             pos_file.append(
-                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i]*pix*img_sizeX/1000:3.3f}\t\t{y_list[j]*pix*img_sizeY/1000:3.3f}\n"
+                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i] * pix * img_sizeX / 1000:3.3f}\t\t{y_list[j] * pix * img_sizeY / 1000:3.3f}\n"
             )
             index = index + 1
-            print(i,j, index)
-    s_patch = img_patch.shape # (1, 3060, 3072)
+            print(i, j, index)
+    s_patch = img_patch.shape  # (1, 3060, 3072)
     try:
-        s_bin = (s_patch[0], s_patch[1]//binning*binning, s_patch[2]//binning*binning)
+        s_bin = (
+            s_patch[0],
+            s_patch[1] // binning * binning,
+            s_patch[2] // binning * binning,
+        )
         img_patch_bin = bin_ndarray(
-            img_patch[:, :int(s_bin[1]), :int(s_bin[2])], new_shape=(s_bin[0], int(s_bin[1]//binning), int(s_bin[2]//binning))
+            img_patch[:, : int(s_bin[1]), : int(s_bin[2])],
+            new_shape=(s_bin[0], int(s_bin[1] // binning), int(s_bin[2] // binning)),
         )
     except:
         img_patch_bin = img_patch
@@ -1546,26 +1584,25 @@ def export_multipos_2D_xanes_scan2(h, fpath=None):
     img_xanes = img_xanes[:id_end]
     eng_list = eng_list[:id_end]
 
-
     for j in range(num_pos):
         img = img_xanes[j::num_pos]
         img_n = (img - img_dark) / (img_bkg - img_dark)
         fn = fpath
-        fname = (f"{fn}{scan_type}_id_{scan_id}_pos_{j:02d}.h5")
+        fname = f"{fn}{scan_type}_id_{scan_id}_pos_{j:02d}.h5"
 
         try:
             print(f"saving {fname}")
             with h5py.File(fname, "w") as hf:
-                    hf.create_dataset("uid", data=uid)
-                    hf.create_dataset("scan_id", data=scan_id)
-                    hf.create_dataset("note", data=str(note))
-                    hf.create_dataset("scan_time", data=scan_time)
-                    hf.create_dataset("X_eng", data=eng_list)
-                    hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
-                    hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
-                    hf.create_dataset("img_xanes", data=np.array(img_n, dtype=np.float32))
-                    hf.create_dataset("Magnification", data=M)
-                    hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+                hf.create_dataset("uid", data=uid)
+                hf.create_dataset("scan_id", data=scan_id)
+                hf.create_dataset("note", data=str(note))
+                hf.create_dataset("scan_time", data=scan_time)
+                hf.create_dataset("X_eng", data=eng_list)
+                hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
+                hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
+                hf.create_dataset("img_xanes", data=np.array(img_n, dtype=np.float32))
+                hf.create_dataset("Magnification", data=M)
+                hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
         except Exception as err:
             print(err)
     del img_xanes
@@ -1816,16 +1853,16 @@ def batch_export_flyscan(sid1, sid2):
     n = sid2 - sid1
     k = 0
     while True:
-        sid_last = db[-2].start['scan_id']
+        sid_last = db[-2].start["scan_id"]
         if sid_last == sid2 or k >= n:
             break
         else:
-            for sid in range(sid1, sid2+1):
+            for sid in range(sid1, sid2 + 1):
                 if sid > sid_last:
                     break
                 else:
                     file_exist = 0
-                    fn_fly = np.sort(glob.glob('fly*.h5'))
+                    fn_fly = np.sort(glob.glob("fly*.h5"))
                     for fn in fn_fly:
                         if str(sid) in fn:
                             file_exist = 1
@@ -1999,12 +2036,11 @@ def export_moving_x_scan(h, fpath=None):
         print("fails to write lakeshore info into {fname}")
     """
     plt.figure()
-    plt.plot(stage_x_pos, '.')
-    plt.title('motor position (um)')
+    plt.plot(stage_x_pos, ".")
+    plt.title("motor position (um)")
     del img
     del img_dark
     del img_bkg
-
 
 
 def get_moving_x_scan_position(scan_id):
@@ -2021,7 +2057,6 @@ def get_moving_x_scan_position(scan_id):
 
     n = len(timestamp_mot)
 
-
     img_time = timestamp_img - img_ini_timestamp
     mot_time = timestamp_mot - mot_ini_timestamp
 
@@ -2029,7 +2064,7 @@ def get_moving_x_scan_position(scan_id):
     n = len(mot_pos)
     idx = 1
     for i in range(1, n):
-        if mot_pos[i] - mot_pos[i-1] > 0.1:
+        if mot_pos[i] - mot_pos[i - 1] > 0.1:
             break
         else:
             idx += 1
@@ -2040,26 +2075,6 @@ def get_moving_x_scan_position(scan_id):
 
     img_pos = mot_pos_interp
     return img_pos
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #

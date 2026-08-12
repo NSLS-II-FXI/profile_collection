@@ -64,29 +64,36 @@ if not is_re_worker_active():
 
 from bluesky.preprocessors import stage_decorator, run_decorator
 
-tiled_writing_client = from_profile("nsls2", api_key=os.getenv("TILED_BLUESKY_WRITING_API_KEY_FXI", ""))["fxi"]["raw"]
-tiled_writing_client.context.http_client.headers['tiled-qos'] = 'acquisition'
+tiled_writing_client = from_profile(
+    "nsls2", api_key=os.getenv("TILED_BLUESKY_WRITING_API_KEY_FXI", "")
+)["fxi"]["raw"]
+tiled_writing_client.context.http_client.headers["tiled-qos"] = "acquisition"
+
 
 class TiledInserter:
-    name = 'fxi'
+    name = "fxi"
 
     def insert(self, name, doc):
         tiled_writing_client.post_document(name, doc)
 
+
 tiled_inserter = TiledInserter()
 
 if not is_re_worker_active():
-    db = tiled_reading_client = from_profile("nsls2", include_data_sources=True)["fxi"]["raw"]
-    db.context.http_client.headers['tiled-qos'] = 'acquisition'
+    db = tiled_reading_client = from_profile("nsls2", include_data_sources=True)["fxi"][
+        "raw"
+    ]
+    db.context.http_client.headers["tiled-qos"] = "acquisition"
 
-nslsii.configure_base(get_ipython().user_ns,
-                      tiled_inserter,
-                      bec=True,
-                      publish_documents_with_kafka=True,
-                      redis_url='xf18id1-fxi-redis1.nsls2.bnl.gov',
-                      redis_port=6380,
-                      redis_ssl=True
-                      )
+nslsii.configure_base(
+    get_ipython().user_ns,
+    tiled_inserter,
+    bec=True,
+    publish_documents_with_kafka=True,
+    redis_url="xf18id1-fxi-redis1.nsls2.bnl.gov",
+    redis_port=6380,
+    redis_ssl=True,
+)
 
 
 # The following plan stubs should not be imported directly in the global namespace.
@@ -120,7 +127,6 @@ publisher = Publisher("xf18id-srv1:5577")
 RE.subscribe(publisher)
 
 # nslsii.configure_base(get_ipython().user_ns, 'fxi', bec=False)
-
 
 
 ## HACK HACK
@@ -214,17 +220,21 @@ def rd(obj, *, default_value=0):
     else:
         return data["value"]
 
+
 # monkey batch bluesky.plans_stubs to fix bug.
 bps.rd = rd
 
 
 def get_proposal_type(proposal_id=None):
     import httpx
+
     nslsii_api_client = httpx.Client(base_url="https://api.nsls2.bnl.gov")
-    if (proposal_id is None):
+    if proposal_id is None:
         proposal_id = RE.md["proposal"]["proposal_id"]
 
-    proposal_response = nslsii_api_client.get(f"/v1/proposal/{RE.md['proposal']['proposal_id']}")
+    proposal_response = nslsii_api_client.get(
+        f"/v1/proposal/{RE.md['proposal']['proposal_id']}"
+    )
     proposal_response.raise_for_status()
     proposal = proposal_response.json()["proposal"]
 

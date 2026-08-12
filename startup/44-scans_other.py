@@ -21,12 +21,11 @@ def test_scan(
     period=0.1,
     num_img=10,
     num_bkg=10,
-    relative_move_flag=False,    
-    sleep_time=0, 
-    rot_first_flag=1, 
+    relative_move_flag=False,
+    sleep_time=0,
+    rot_first_flag=1,
     close_shutter_in_scan=False,
     note="",
-
     simu=False,
     md=None,
 ):
@@ -70,7 +69,7 @@ def test_scan(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-    '''
+    """
     y_ini = zps.sy.position
     y_out = y_ini + out_y if not (out_y is None) else y_ini
     x_ini = zps.sx.position
@@ -79,7 +78,7 @@ def test_scan(
     z_out = z_ini + out_z if not (out_z is None) else z_ini
     r_ini = zps.pi_r.position
     r_out = r_ini + out_r if not (out_r is None) else r_ini
-    '''
+    """
 
     _md = {
         "detectors": ["KinetixU"],
@@ -93,8 +92,8 @@ def test_scan(
             "num_img": num_img,
             "num_bkg": num_bkg,
             "relative_move_flag": relative_move_flag,
-            "close_shutter_in_scan":close_shutter_in_scan,
-            "sleep_time":sleep_time,
+            "close_shutter_in_scan": close_shutter_in_scan,
+            "sleep_time": sleep_time,
             "note": note if note else "None",
         },
         "plan_name": "test_scan",
@@ -117,44 +116,46 @@ def test_scan(
             yield from trigger_and_read(list(detectors))
             if close_shutter_in_scan:
                 yield from _close_shutter(simu=simu)
-            print(f'sleep for {sleep_time} sec...')
+            print(f"sleep for {sleep_time} sec...")
             yield from bps.sleep(sleep_time)
             if close_shutter_in_scan:
                 yield from _open_shutter(simu=simu)
 
         # taking out sample and take background image
-        print(f'\nmove sample out and take {num_bkg} backgound image')
+        print(f"\nmove sample out and take {num_bkg} backgound image")
         yield from _take_bkg_image(
-                motor_x_out,
-                motor_y_out,
-                motor_z_out,
-                motor_r_out,
-                detectors,
-                [],
-                num=1,
-                chunk_size=num_bkg,
-                rot_first_flag=rot_first_flag,
-                stream_name="flat",
-                simu=simu,
-                )
-        '''
+            motor_x_out,
+            motor_y_out,
+            motor_z_out,
+            motor_r_out,
+            detectors,
+            [],
+            num=1,
+            chunk_size=num_bkg,
+            rot_first_flag=rot_first_flag,
+            stream_name="flat",
+            simu=simu,
+        )
+        """
         yield from mv(zps.pi_r, r_out)
         yield from mv(zps.sz, z_out)
         yield from mv(zps.sx, x_out, zps.sy, y_out)
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
-        '''
+        """
 
-        print(f'\nclose shutter and take {num_bkg} dark image')
-        yield from _take_dark_image(detectors, motors, num=1, chunk_size=num_bkg, stream_name="dark", simu=simu)
-        '''
+        print(f"\nclose shutter and take {num_bkg} dark image")
+        yield from _take_dark_image(
+            detectors, motors, num=1, chunk_size=num_bkg, stream_name="dark", simu=simu
+        )
+        """
         for i in range(num_bkg):
             yield from trigger_and_read(list(detectors))
         # close shutter, taking dark image
         yield from _close_shutter(simu=simu)
-        '''
+        """
 
-        print('move sample back to initial position')
+        print("move sample back to initial position")
         yield from _move_sample_in(
             motor_x_ini,
             motor_y_ini,
@@ -163,12 +164,12 @@ def test_scan(
             trans_first_flag=rot_first_flag,
             repeat=3,
         )
-        '''
+        """
         yield from mv(zps.sz, z_ini)
         yield from mv(zps.pi_r, r_ini)
 
         yield from mv(zps.sx, x_ini, zps.sy, y_ini)
-        '''
+        """
         # yield from abs_set(shutter_open, 1, wait=True)
 
     uid = yield from inner_scan()
@@ -180,6 +181,7 @@ def test_scan(
     #    print('loading test_scan and save file to current directory')
     #    load_test_scan(db[-1])
     return uid
+
 
 def test_scan2(
     exposure_time=0.1,
@@ -235,7 +237,6 @@ def test_scan2(
         motor_z_out = out_z if not (out_z is None) else motor_z_ini
         motor_r_out = out_r if not (out_r is None) else motor_r_ini
 
-
     motors = [zps.sx, zps.sy, zps.sz, zps.pi_r]
 
     _md = {
@@ -270,12 +271,14 @@ def test_scan2(
         # close shutter, dark images: numer=chunk_size (e.g.20)
         if take_dark_img:
             print("\nshutter closed, taking dark images...")
-            yield from _take_dark_image(detectors, motors, num=1, chunk_size=20, stream_name="dark", simu=simu)
+            yield from _take_dark_image(
+                detectors, motors, num=1, chunk_size=20, stream_name="dark", simu=simu
+            )
 
         yield from _open_shutter(simu=simu)
         yield from _set_cam_chunk_size(detectors, chunk_size=num_img)
-        #yield from mv(detectors[0].cam.num_images, num_img)
-        #yield from _set_cam_param(exposure_time, period_time, num_img)
+        # yield from mv(detectors[0].cam.num_images, num_img)
+        # yield from _set_cam_param(exposure_time, period_time, num_img)
         yield from _take_image(detectors, motors, num=1, stream_name="primary")
         if close_shutter_at_end:
             yield from _close_shutter(simu=simu)
@@ -373,22 +376,19 @@ def z_scan(
         y_out = out_y if not (out_y is None) else y_ini
         z_out = out_z if not (out_z is None) else z_ini
 
-
-    if scan_motor == 'zp_x':
+    if scan_motor == "zp_x":
         zp_ini = zp.x.position  # zp.x intial position
         real_motor = zp.x
-    if scan_motor == 'zp_y':
+    if scan_motor == "zp_y":
         real_motor = zp.y
         zp_ini = zp.y.position  # zp.y intial position
     else:
         zp_ini = zp.z.position  # zp.z intial position
         real_motor = zp.z
 
-
-
     zp_start = zp_ini + start
     zp_stop = zp_ini + stop
-    '''
+    """
     #    detectors = [KinetixU]
     y_ini = zps.sy.position  # sample y position (initial)
     y_out = (
@@ -398,7 +398,7 @@ def z_scan(
     x_out = x_ini + out_x if not (out_x is None) else x_ini
     z_ini = zps.sz.position
     z_out = z_ini if not (out_z is None) else z_ini
-    '''
+    """
 
     period = max(exposure_time + 0.01, 0.05)
 
@@ -527,9 +527,7 @@ def z_scan2(
     z_out = z_ini if not (out_z is None) else z_ini
     period = max(exposure_time + 0.01, 0.05)
 
-    yield from _set_cam_param(
-        exposure_time=exposure_time, period=period, chunk_size=20
-    )
+    yield from _set_cam_param(exposure_time=exposure_time, period=period, chunk_size=20)
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -649,9 +647,7 @@ def z_scan3(
     z_start = z_ini + start
     z_stop = z_ini + stop
 
-    yield from _set_cam_param(
-        exposure_time=exposure_time, period=period, chunk_size=20
-    )
+    yield from _set_cam_param(exposure_time=exposure_time, period=period, chunk_size=20)
 
     _md = {
         "detectors": [det.name for det in detectors],
@@ -780,8 +776,8 @@ def cond_scan(detectors=[detA1], *, md=None):
     return (yield from cond_inner_scan())
 
 
-#from bluesky.callbacks.mpl_plotting import QtAwareCallback
-#from bluesky.preprocessors import subs_wrapper
+# from bluesky.callbacks.mpl_plotting import QtAwareCallback
+# from bluesky.preprocessors import subs_wrapper
 
 
 class LoadCellScanPlot(QtAwareCallback):
@@ -871,16 +867,12 @@ class LoadCellScanPlot(QtAwareCallback):
             if h.start["plan_name"] == "delay_scan":
                 self._ax1.title.set_text(
                     "scan_id: {}-{}, {}".format(
-                        self._scan_id_start,
-                        self._scan_id_end,
-                        Vout1.name
+                        self._scan_id_start, self._scan_id_end, Vout1.name
                     )
                 )
                 self._ax2.title.set_text(
                     "scan_id: {}-{}, {}".format(
-                        self._scan_id_start,
-                        self._scan_id_end,
-                        ic3.name
+                        self._scan_id_start, self._scan_id_end, ic3.name
                     )
                 )
                 self._fig.subplots_adjust(hspace=0.5)
@@ -976,7 +968,6 @@ def load_cell_scan(
         for pbsl_pos in pos_list:
             yield from mv(pbsl.y_ctr, pbsl_pos)
             for i in range(num):
-
                 # If the scan is the last in the series, display axes titles and align the plot
                 if (pbsl_pos == pbsl_y_pos_list[-1]) and (i == num - 1):
                     lcs_plot.show_axes_titles(
@@ -1099,11 +1090,7 @@ def load_cell_scan_original(
     insert_text(txt_finish)
 
 
-
-
-def beam_profile_scan(
-    dir, start, end, steps, delay_time=0.1, mv_back=False
-):
+def beam_profile_scan(dir, start, end, steps, delay_time=0.1, mv_back=False):
     """
     At every position in the pzt_cm_bender_pos_list, scan the pbsl.y_ctr under diffenent energies
     Use as:
@@ -1132,10 +1119,10 @@ def beam_profile_scan(
     txt = f"## beam profile scan, dir={dir}, start={start}, end={end}, steps={steps}, delay_time={delay_time})"
     insert_text(txt)
 
-    if dir == 'y':
+    if dir == "y":
         pbsl_ctr_ini = pbsl.y_ctr.position
         mot = pbsl.y_ctr
-    elif dir == 'x':
+    elif dir == "x":
         pbsl_ctr_ini = pbsl.x_ctr.position
         mot = pbsl.x_ctr
 
@@ -1148,27 +1135,27 @@ def beam_profile_scan(
 
     # If the scan is the last in the series, display axes titles and align the plot
     lcs_plot.show_axes_titles(
-        load_cell_force=f"beam profile scan on {dir}", bender_pos=''
+        load_cell_force=f"beam profile scan on {dir}", bender_pos=""
     )
 
     profile_scan_with_plot = subs_wrapper(
         delay_scan(
-        [ic3, ic4, Vout1],
-        mot,
-        start,
-        end,
-        steps,
-        sleep_time=delay_time,
-        md=None,
-        mv_back=mv_back
-    ),
+            [ic3, ic4, Vout1],
+            mot,
+            start,
+            end,
+            steps,
+            sleep_time=delay_time,
+            md=None,
+            mv_back=mv_back,
+        ),
         [lcs_plot],
     )
 
     yield from profile_scan_with_plot
 
     yield from _close_shutter(simu=False)
-    #yield from mv(mot, pbsl_ctr_ini)
+    # yield from mv(mot, pbsl_ctr_ini)
     txt_finish = '## "beam_profile_scan()" finished'
     insert_text(txt_finish)
 
@@ -1239,7 +1226,9 @@ def tm_pitch_scan(tm_pitch_list, ssa_h_start, ssa_h_end, steps, delay_time=0.5):
 
 
 ###########################
-def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps, mv_back=False):
+def ssa_scan_tm_bender(
+    bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps, mv_back=False
+):
     """
     scanning ssa, with different pzt_tm_bender position
 
@@ -1281,7 +1270,7 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
             ssa_steps,
             sleep_time=0.2,
             md=None,
-            mv_back=mv_back
+            mv_back=mv_back,
         )
         h = db[-1]
         y0 = np.abs(np.array(list(h.data(ic3.name))))
@@ -1297,7 +1286,7 @@ def ssa_scan_tm_bender(bender_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps
         )
         ax3.title.set_text("Vout2")
         fig.subplots_adjust(hspace=0.5)
-        #plt.show()
+        # plt.show()
     txt_finish = '## "ssa_scan_tm_bender()" finished'
     insert_text(txt_finish)
 
@@ -1319,7 +1308,7 @@ def ssa_scan_tm_yaw(tm_yaw_pos_list, ssa_motor, ssa_start, ssa_end, ssa_steps):
 
     ssa_steps: int, number of ssa_motor movement
     """
-    txt1 = f"ssa_scan_tm_yaw(tm_yaw_pos_list=tm_yaw_pos_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})"
+    txt1 = f"ssa_scan_tm_yaw(tm_yaw_pos_list=tm_yaw_pos_list, ssa_motor={ssa_motor.name}, ssa_start={ssa - start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})"
     txt2 = f"tm_yaw_pos_list = {tm_yaw_pos_list}"
     txt = "## " + txt1 + "\n" + txt2 + "\n  Consisting of:\n"
     insert_text(txt)
@@ -1368,7 +1357,7 @@ def ssa_scan_pbsl_x_gap(pbsl_x_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     scanning ssa, with different pbsl.x_gap position
     """
 
-    txt1 = f"ssa_scan_pbsl_x_gap(pbsl_x_gap_list=pbsl_x_gap_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})"
+    txt1 = f"ssa_scan_pbsl_x_gap(pbsl_x_gap_list=pbsl_x_gap_list, ssa_motor={ssa_motor.name}, ssa_start={ssa - start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})"
     txt2 = f"pbsl_x_gap_list = {pbsl_x_gap_list}"
     txt = "## " + txt1 + "\n" + txt2 + "\n  Consisting of:\n"
     insert_text(txt)
@@ -1417,7 +1406,7 @@ def ssa_scan_pbsl_y_gap(pbsl_y_gap_list, ssa_motor, ssa_start, ssa_end, ssa_step
     """
     scanning ssa, with different pbsl.y_gap position
     """
-    txt1 = f"ssa_scan_pbsl_y_gap(pbsl_y_gap_list=pbsl_y_gap_list, ssa_motor={ssa_motor.name}, ssa_start={ssa-start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})"
+    txt1 = f"ssa_scan_pbsl_y_gap(pbsl_y_gap_list=pbsl_y_gap_list, ssa_motor={ssa_motor.name}, ssa_start={ssa - start}, ssa_end={ssa_end}, ssa_steps={ssa_steps})"
     txt2 = f"pbsl_y_gap_list = {pbsl_y_gap_list}"
     txt = "## " + txt1 + "\n" + txt2 + "\n  Consisting of:\n"
     insert_text(txt)

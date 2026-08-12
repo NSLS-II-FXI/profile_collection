@@ -1,8 +1,14 @@
 [workspace]
 channels = ["conda-forge"]
 name = "fxi-profile-collection"
-platforms = [{ platform = "linux-64", glibc = "2.17" }]
+platforms = [{ name = "linux-64-glibc", platform = "linux-64", glibc = "2.17" }, "osx-arm64"]
 version = "2026.2.0"
+
+[feature.profile]
+platforms = ["linux-64-glibc"]
+
+[feature.qs]
+platforms = ["linux-64-glibc"]
 
 [feature.profile.dependencies]
 bluesky-base = ">=1.15.1,<2"
@@ -46,6 +52,13 @@ bluesky-widgets = { git = "https://github.com/bluesky/bluesky-widgets", branch =
 nslsii-hotfix = "python -m pip install git+https://github.com/nsls-ii/nslsii --no-build-isolation --no-deps"
 # nslsii =  { git = "https://github.com/nsls-ii/nslsii", branch="master"}
 
+[feature.dev.dependencies]
+ruff = "*"
+pre-commit = "*"
+
+[feature.dev.tasks]
+format = "ruff format ."
+
 [feature.qs.dependencies]
 bluesky-queueserver = ">=0.0.25,<0.0.26"
 bluesky-httpserver = "*"
@@ -72,3 +85,4 @@ pvs = "ipython --profile-dir=. -c 'get_pv_types(); exit()'"
 [environments]
 terminal = {features=["profile", "terminal"], solve-group="profile"}
 qs = {features=["profile", "qs"], solve-group="profile"}
+dev = {features=["dev"]}

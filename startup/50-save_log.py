@@ -149,15 +149,7 @@ def wh_pos(comment="", print_on_screen=1):
                 motor_unit = p.motor_egu.value
 
             except Exception as exc:
-                encoder = (
-                    counts
-                ) = (
-                    motor_res
-                ) = (
-                    encoder_res
-                ) = (
-                    motor_velocity
-                ) = (
+                encoder = counts = motor_res = encoder_res = motor_velocity = (
                     motor_stat
                 ) = motor_stat = offset_dir = motor_unit = exc.__class__.__name__
             else:
@@ -170,11 +162,9 @@ def wh_pos(comment="", print_on_screen=1):
 
         else:
             value = v.__class__.__name__  # e.g. 'DisconnectedError'
-            low_limit = (
-                high_limit
-            ) = (
-                offset
-            ) = encoder = counts = motor_res = encoder_res = motor_velocity = ""
+            low_limit = high_limit = offset = encoder = counts = motor_res = (
+                encoder_res
+            ) = motor_velocity = ""
 
         #       encoder, counts = get_encoder(p.prefix)
 

@@ -268,8 +268,7 @@ class TiledRefAssetResolver:
         for i in range(count):
             data = {key: values[i] for key, values in doc["data"].items()}
             timestamps = {
-                key: values[i]
-                for key, values in doc.get("timestamps", {}).items()
+                key: values[i] for key, values in doc.get("timestamps", {}).items()
             }
 
             events.append(
@@ -295,8 +294,7 @@ class TiledRefAssetResolver:
 
         for i in range(count):
             datum_kwargs = {
-                key: values[i]
-                for key, values in doc.get("datum_kwargs", {}).items()
+                key: values[i] for key, values in doc.get("datum_kwargs", {}).items()
             }
 
             datums.append(
@@ -308,10 +306,10 @@ class TiledRefAssetResolver:
             )
 
         return datums
-    
+
 
 resolver = TiledRefAssetResolver(
-    image_key='KinetixU_image',     
+    image_key="KinetixU_image",
     streams=("flat", "dark"),
     verbose=False,
 )

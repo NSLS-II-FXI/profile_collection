@@ -10,8 +10,8 @@ from nslsii.ophyd_async.providers import NSLS2PathProvider
 
 RUNNING_IN_NSLS2_CI = False
 
-class FXIADHDFWriter(ADHDFWriter):
 
+class FXIADHDFWriter(ADHDFWriter):
     async def begin_capture(self):
         await super().begin_capture()
         await self.fileio.swmr_mode.set(False)
@@ -35,7 +35,7 @@ def connect_to_kinetix():
 
     print(f"Connecting to kinetix...")
     with init_devices(mock=RUNNING_IN_NSLS2_CI):
-        kinetix_path_provider = NSLS2PathProvider(RE.md, tla_suffix = "-new")
+        kinetix_path_provider = NSLS2PathProvider(RE.md, tla_suffix="-new")
         prefix = "XF:18ID1-ES{Kinetix-Det:1}"
         kinetix = FXIKinetixDetector(
             prefix,

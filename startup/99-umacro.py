@@ -11,11 +11,12 @@ from skimage import io
 
 global img_handler
 
-def extract_1st_proj(scan_list=[], fn_save='', clim=[0, 0.5], rot_angle=0):
+
+def extract_1st_proj(scan_list=[], fn_save="", clim=[0, 0.5], rot_angle=0):
     global img_handler
     img_handler = []
-    if fn_save == '' and len(scan_list) >=2:
-        fn_save = f'proj_1st_{scan_list[0]}_{scan_list[-1]}_angle_{rot_angle}.tiff'
+    if fn_save == "" and len(scan_list) >= 2:
+        fn_save = f"proj_1st_{scan_list[0]}_{scan_list[-1]}_angle_{rot_angle}.tiff"
     n = len(scan_list)
     img = []
     scan_failed = []
@@ -23,7 +24,7 @@ def extract_1st_proj(scan_list=[], fn_save='', clim=[0, 0.5], rot_angle=0):
     tmp = list(h1.data("Andor_image", stream_name="primary"))[0]
     n_angle = len(tmp)
 
-    ang_idx = int(rot_angle / 180. * n_angle)
+    ang_idx = int(rot_angle / 180.0 * n_angle)
     for i, sid in tqdm.tqdm(enumerate(scan_list), total=n):
         try:
             h = db[int(sid)]
@@ -32,28 +33,37 @@ def extract_1st_proj(scan_list=[], fn_save='', clim=[0, 0.5], rot_angle=0):
             if i == 0:
                 img = np.zeros((n, *img_tomo.shape))
             try:
-                img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0][0:4]
+                img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0][
+                    0:4
+                ]
                 img_dark = np.median(img_dark, axis=0)
             except:
-                img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0][0]
+                img_dark = np.array(list(h.data("Andor_image", stream_name="dark")))[0][
+                    0
+                ]
             try:
-                img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0][0:4]            
+                img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0][
+                    0:4
+                ]
                 img_bkg = np.median(img_bkg, axis=0)
             except:
-                img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0][0]
-            img_norm = (img_tomo-img_dark)/(img_bkg-img_dark)
+                img_bkg = np.array(list(h.data("Andor_image", stream_name="flat")))[0][
+                    0
+                ]
+            img_norm = (img_tomo - img_dark) / (img_bkg - img_dark)
             img[i] = img_norm
         except:
             scan_failed.append(sid)
-            print(f'fail to extract scan {sid}')
+            print(f"fail to extract scan {sid}")
     img = np.array(img)
-    
+
     if len(fn_save):
-        print(f'save to {fn_save}')
+        print(f"save to {fn_save}")
         io.imsave(fn_save, img)
-    #tracker = image_scrubber(img, clim)
+    # tracker = image_scrubber(img, clim)
     img_handler.append(plot3D(img))
     return img_handler, img
+
 
 def load_xanes_ref(*arg):
     """
@@ -312,7 +322,7 @@ def multipos_tomo(
     insert_text(txt)
     for rep in range(repeat):
         for i in range(n):
-            txt = f"\n################\nrepeat #{rep+1}:\nmoving to the {i+1} position: x={x_list[i]}, y={y_list[i]}, z={z_list[i]}"
+            txt = f"\n################\nrepeat #{rep + 1}:\nmoving to the {i + 1} position: x={x_list[i]}, y={y_list[i]}, z={z_list[i]}"
             print(txt)
             insert_text(txt)
             yield from mv(zps.sx, x_list[i], zps.sy, y_list[i], zps.sz, z_list[i])
@@ -380,7 +390,7 @@ def fan_scan(
     export_pdf(1)
     insert_text("start multiposition 2D xanes and 3D xanes")
     for i in range(repeat):
-        print(f"\nrepeat # {i+1}")
+        print(f"\nrepeat # {i + 1}")
         # print(f'start xanes 2D scan:')
         # yield from multipos_2D_xanes_scan2(eng_list, x_list_2d, y_list_2d, z_list_2d, r_list_2d, out_x, out_y, out_z, out_r, repeat_num=1, exposure_time=exposure_time,  sleep_time=1, chunk_size=chunk_size, simu=False, relative_move_flag=relative_move_flag, note=note, md=None)
 
@@ -552,49 +562,49 @@ def mono_scan_repeatibility_test(
         )
 
 
-
 def test_Andor_stage_unstage(n=500):
     global TimeStampRecord
     from bluesky import RunEngine
     from bluesky.utils import ts_msg_hook
+
     RE.msg_hook = ts_msg_hook
-    #RE_test = RunEngine()
-    
+    # RE_test = RunEngine()
+
     TimeStampRecord = []
-    #fsave_root = '/nsls2/data/fxi-new/legacy/users/2023Q1/commission/20230106'
+    # fsave_root = '/nsls2/data/fxi-new/legacy/users/2023Q1/commission/20230106'
     # set andor exposure time = 0.02
     # set andor acquire period = 0.05
     # set andor num image = 1000
-    fsave_root = '/tmp/Andor_test'
-    fsave_ts = fsave_root + '/ts_20230308.txt'
-    fsave_sid = fsave_root + '/scan_id_list_20230308.txt'
+    fsave_root = "/tmp/Andor_test"
+    fsave_ts = fsave_root + "/ts_20230308.txt"
+    fsave_sid = fsave_root + "/scan_id_list_20230308.txt"
     uid_list = []
     for i in range(n):
-        print(f'i = {i}')
-        #Andor.stage()
-        #Andor.unstage()
-        #uid = RE_test(count([Andor], 1))[0]
+        print(f"i = {i}")
+        # Andor.stage()
+        # Andor.unstage()
+        # uid = RE_test(count([Andor], 1))[0]
         uid = RE(count([KinetixU], 5))[0]
-        sid = db[-1].start['scan_id']
+        sid = db[-1].start["scan_id"]
         uid_list.append(sid)
-        print(f'save {fsave_ts}')
+        print(f"save {fsave_ts}")
         np.savetxt(fsave_ts, TimeStampRecord)
-        np.savetxt(fsave_sid, uid_list, fmt='%5d')
+        np.savetxt(fsave_sid, uid_list, fmt="%5d")
 
 
 def Read_timestampRecord(return_flag=0):
-    fsave_root = '/tmp/Andor_test'
-    fn_ts = fsave_root + '/ts_20230308.txt'
-    fn_sid = fsave_root + '/scan_id_list_20230308.txt'
+    fsave_root = "/tmp/Andor_test"
+    fn_ts = fsave_root + "/ts_20230308.txt"
+    fn_sid = fsave_root + "/scan_id_list_20230308.txt"
     ts = np.loadtxt(fn_ts)
     sid = np.loadtxt(fn_sid)
     ts_stage = ts[::2]
     ts_unstage = ts[1::2]
-    #n_scan = len(sid)
-    fig, ax = plt.subplots(1,2)
-    ax[0].plot(sid, ts_stage[:], '.', label='Andor stage')
+    # n_scan = len(sid)
+    fig, ax = plt.subplots(1, 2)
+    ax[0].plot(sid, ts_stage[:], ".", label="Andor stage")
     ax[0].legend()
-    ax[1].plot(sid, ts_unstage[:], '+', label='Andor unstage')
+    ax[1].plot(sid, ts_unstage[:], "+", label="Andor unstage")
     ax[1].legend()
     if return_flag:
         return ts_stage, ts_unstage
@@ -607,8 +617,9 @@ def test_plan(**kwargs):
     x_out = zps.sx.position + 10
     detectors = [ic3]
     motor = [zps.sx]
-    _md={"plan_name": "fly_scan"}
+    _md = {"plan_name": "fly_scan"}
     _md.update(_md)
+
     @stage_decorator(list(detectors) + motor)
     @run_decorator(md=_md)
     def test_inner_scan():

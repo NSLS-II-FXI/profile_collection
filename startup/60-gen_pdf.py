@@ -5,12 +5,14 @@ import matplotlib.pyplot as plt
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.units import inch
+
 # from PyPDF2 import PdfFileMerger, PdfFileReader, PdfMerger, PdfReader
 from PyPDF2 import PdfMerger, PdfReader
 import shutil
 import os
 import skimage.io
 import glob
+
 # from PyQt5.QtWidgets import QApplication
 # from PyQt5.QtGui import QPixmap
 from datetime import datetime
@@ -24,9 +26,9 @@ PDF_ARGS = {}
 
 def reset_pdf():
     _, _, PDF_ARGS["year"], PDF_ARGS["month"], PDF_ARGS["day"] = get_current_date()
-    PDF_ARGS[
-        "fn_log"
-    ] = f'/nsls2/data/fxi-new/legacy/log/TXM_log_test_{PDF_ARGS["year"]}{PDF_ARGS["month"]}{PDF_ARGS["day"]}.pdf'
+    PDF_ARGS["fn_log"] = (
+        f"/nsls2/data/fxi-new/legacy/log/TXM_log_test_{PDF_ARGS['year']}{PDF_ARGS['month']}{PDF_ARGS['day']}.pdf"
+    )
     # PDF_ARGS["temp_folder"] = "/home/xf18id/.ipython/profile_collection/startup/temp"
     PDF_ARGS["temp_folder"] = "/nsls2/data/fxi-new/legacy/log/temp"
     PDF_ARGS["temp_img_folder"] = PDF_ARGS["temp_folder"] + "/img"
@@ -76,6 +78,7 @@ def check_page_is_full():
 
 def get_current_date():
     from datetime import datetime
+
     now = datetime.now()
     year = str(now.year)
     mon = "{:02d}".format(now.month)
@@ -103,7 +106,7 @@ def obtain_image_file_name():
     current_date, current_time, _, _, _ = get_current_date()
     current_date = "".join(current_date.split("-"))
     current_time = "".join(current_time.split(":"))
-    fn = f'{PDF_ARGS["temp_img_folder"]}/{current_date}_{current_time}.png'
+    fn = f"{PDF_ARGS['temp_img_folder']}/{current_date}_{current_time}.png"
     return fn
 
 
@@ -223,7 +226,6 @@ def export_pdf(merge_flag=0):
         print(err)
 
 
-
 def merge_log():
     """
     merge "current_log.txt" to "/nsls2/data/fxi-new/legacy/log/TXM_log_{year}{month}{day}.pdf"
@@ -267,12 +269,12 @@ def merge_pdf(fn1, fn2, fout):
     if fn1 does not exist, it will copy fn2 to fout
     """
     if os.path.exists(fn1):
-        #merger = PdfFileMerger()
+        # merger = PdfFileMerger()
         merger = PdfMerger()
         flag1 = 0
         flag2 = 0
         try:
-            #f1 = PdfFileReader(fn1, "rb")
+            # f1 = PdfFileReader(fn1, "rb")
             f1 = PdfReader(fn1, "rb")
             flag1 = 1
         except:
@@ -284,7 +286,7 @@ def merge_pdf(fn1, fn2, fout):
                 print(f'file: crashed.\nGenerate new file "{fout}"')
                 flag1 = 0
         try:
-            #f2 = PdfFileReader(fn2, "rb")
+            # f2 = PdfFileReader(fn2, "rb")
             f2 = PdfReader(fn2, "rb")
             flag2 = 1
         except:
