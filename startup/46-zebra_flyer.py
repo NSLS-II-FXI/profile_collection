@@ -165,6 +165,7 @@ def tomo_zfly(
                 )
                 print(f"{resolver.latest_dark()['file_reference']}")
                 
+                yield from bps.sleep(0.5)
                 print(f"taking flat images at {ttime.asctime()}")
                 yield from _take_ref_image(
                     flyer.detectors,

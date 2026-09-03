@@ -1262,74 +1262,74 @@ def _mk_eng_list(elem, bulk=False):
         if bulk:
             eng_list = np.genfromtxt(
                 "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                + elem.split("_")[0]
+                + elem.split("_")[0].capitalize()
                 + "/eng_list_"
-                + elem.split("_")[0]
+                + elem.split("_")[0].capitalize()
                 + "_xanes_standard_dense.txt"
             )
         else:
             if elem.split("_")[-1] == "21":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xanes_standard_21pnt.txt"
                 )
             elif elem.split("_")[-1] == "31":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xanes_standard_31pnt.txt"
                 )
             elif elem.split("_")[-1] == "41":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xanes_standard_41pnt.txt"
                 )
             elif elem.split("_")[-1] == "83":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xanes_standard_83pnt.txt"
                 )
             elif elem.split("_")[-1] == "101":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xanes_standard_101pnt.txt"
                 )
             elif elem.split("_")[-1] == "300":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xafs_standard_300pnt.txt"
                 )
             elif elem.split("_")[-1] == "63":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xanes_standard_63pnt.txt"
                 )
             elif elem.split("_")[-1] == "diff":
                 eng_list = np.genfromtxt(
                     "/nsls2/data/fxi-new/shared/config/xanes_ref/"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "/eng_list_"
-                    + elem.split("_")[0]
+                    + elem.split("_")[0].capitalize()
                     + "_xanes_standard_diff.txt"
                 )
         if eng_list[0] < eng_list[-1]:
@@ -3028,27 +3028,45 @@ def cal_calib_pos_xh():
     return calib_pos
 
 
+# def _update_th2_xh():
+#     calib = trans_calib_xh()
+#     cur_eng = round(XEng.position, 4)
+#     # print(f"{cur_eng=}")
+#     cur_th2 = dcm.th2.position
+#     # print(f"{cur_th2=}")
+
+#     calib_eng = np.array(list(calib.keys()), dtype=float)
+#     above = sorted(list(calib_eng[calib_eng > cur_eng]), reverse=True)
+#     below = sorted(list(calib_eng[calib_eng <= cur_eng]), reverse=True)
+#     # print(f"{above=}, {below=}")
+#     if len(above) == 0:
+#         eng1 = float(below[0])
+#         eng2 = float(below[1])
+#     elif len(below) == 0:
+#         eng1 = float(above[-1])
+#         eng2 = float(above[-2])
+#     else:
+#         eng1 = float(above[-1])
+#         eng2 = float(below[0])
+#     # print(f"{eng1=}, {eng2=}")
+#     old_th2 = (cur_eng - eng2) * (
+#         calib[eng1]["th2_motor"] - calib[eng2]["th2_motor"]
+#     ) / (eng1 - eng2) + calib[eng2]["th2_motor"]
+#     # print(f"{cur_eng=}, {eng2=}")
+#     # print(f'"{eng1}": {calib[eng1]["th2_motor"]}')
+#     # print(f'"{eng2}": {calib[eng2]["th2_motor"]}')
+#     # print(f"{old_th2=}")
+#     delta_th2 = cur_th2 - old_th2
+#     # print(f"{delta_th2=}")
+#     for key in calib.keys():
+#         calib[key]["th2_motor"] += delta_th2
+#     return calib
+
+
 def _update_th2_xh():
     calib = trans_calib_xh()
     cur_eng = round(XEng.position, 4)
-    cur_th2 = dcm.th2.position
-
-    calib_eng = np.array(list(calib.keys()))
-    above = sorted(list(calib_eng[calib_eng > cur_eng]), reverse=True)
-    below = sorted(list(calib_eng[calib_eng <= cur_eng]), reverse=True)
-    if len(above) == 0:
-        eng1 = below[0]
-        eng2 = below[1]
-    elif len(below) == 0:
-        eng1 = above[-1]
-        eng2 = above[-2]
-    else:
-        eng1 = above[-1]
-        eng2 = below[0]
-    old_th2 = (cur_eng - eng2) * (
-        calib[eng1]["th2_motor"] - calib[eng2]["th2_motor"]
-    ) / (eng1 - eng2) + calib[eng2]["th2_motor"]
-    delta_th2 = cur_th2 - old_th2
+    delta_th2 = dcm.th2.position - calib[cur_eng]["th2_motor"]
     for key in calib.keys():
         calib[key]["th2_motor"] += delta_th2
     return calib
@@ -3060,26 +3078,19 @@ def _update_CALIBER_th2_xh(msg=""):
     _calib_th2 = _update_th2_xh()
     for key in _calib.keys():
         CALIBER[f"th2_motor_{_calib[key]['pos']}"] = _calib_th2[key]["th2_motor"]
-    # if msg:
-    #     print(msg)
-    # else:
-    #     print("th2 new calibration sync has been done!")
-    # yield from bps.sleep(1)
 
 
 def update_CALIBER_th2_and_lock_xh(msg=""):
-    # global CALIBER
-    # _calib = trans_calib()
-    # _calib_th2 = update_th2()
-    # for key in _calib.keys():
-    #     CALIBER[f"th2_motor_{_calib[key]['pos']}"] = _calib_th2[key]["th2_motor"]
-    _update_CALIBER_th2_xh()
-    cur_eng = XEng.user_readback.value
-    yield from move_zp_ccd_xh(cur_eng)
-    if msg:
-        print(msg)
+    if str(round(XEng.position, 4)) not in [str(ii) for ii in list(trans_calib_xh().keys())]:
+        print("Please update_CALIBER_th2_and_lock at a calibrated energy!")
     else:
-        print("th2 new calibration sync has been done!")
+        _update_CALIBER_th2_xh()
+        cur_eng = XEng.user_readback.value
+        yield from move_zp_ccd_xh(cur_eng)
+        if msg:
+            print(msg)
+        else:
+            print("th2 new calibration sync has been done!")
 
 
 
@@ -3105,9 +3116,18 @@ def trans_calib_xh():
 
 
 def show_calib_eng():
-    calib_dict = trans_calib_xh()
-    for key in calib_dict.keys():
-        print(f"{key}: {calib_dict[key]['pos']}")
+    print(sorted(trans_calib_xh().keys(),reverse=True))
+    yield from bps.sleep(0.5)
+
+
+def show_calib(eng):
+    if str(eng) in [str(ii) for ii in list(trans_calib_xh().keys())]:
+        print(f"calibration at {eng} keV:")
+        for key, item in trans_calib_xh()[eng].items():
+            print(f"\t{key}: {item}")
+    else:
+        print(f"There is not a calibration at energy {eng}keV")
+    yield from bps.sleep(0.5)
 
 
 def cal_zp_ccd_xh(eng, mag, zp_cfg=None, show=True):
@@ -3221,13 +3241,13 @@ def move_zp_ccd_xh(
     zp_final, det_final, _, _, _ = cal_zp_ccd_xh(
         eng_new, mag1 / GLOBAL_VLM_MAG, zp_cfg=zp_cfg, show=False
     )
-    _, det_final_bl, _, _, _ = cal_zp_ccd_xh(
-        eng_new+0.1, mag1 / GLOBAL_VLM_MAG, zp_cfg=zp_cfg, show=False
-    )
+    # _, det_final_bl, _, _, _ = cal_zp_ccd_xh(
+    #     eng_new+0.1, mag1 / GLOBAL_VLM_MAG, zp_cfg=zp_cfg, show=False
+    # )
     zp_delta = zp_final - zp_ini
     det_delta = det_final - det_ini
 
-    if (det_final < det.z.low_limit.value) or (det_final_bl > det.z.high_limit.value):
+    if (det_final < det.z.low_limit.value) or (det_final > det.z.high_limit.value):
         print(
             "Trying to move DetU to {0:2.2f}. Movement is out of travel range ({1:2.2f}, {2:2.2f})\nTry to move the bottom stage manually.".format(
                 det_final, det.z.low_limit.value, det.z.high_limit.value
@@ -3390,6 +3410,18 @@ def move_zp_ccd_xh(
         if move_flag:  # move stages
             print("Now moving stages ....")
 
+            # yield from mv(dcm_th2.feedback_enable, 0)
+            # yield from mv(dcm_th2.feedback, th2_motor_target)
+            # yield from mv(dcm_th2.feedback_enable, 1)
+
+            # yield from mv(zp.x, zp_x_target, zp.y, zp_y_target, wait=False)
+            # yield from mv(aper.x, aper_x_target, aper.y, aper_y_target, wait=False)
+            # yield from mv(zp.z, zp_final, det.z, det_final, wait=False)
+            # if eng_new > eng_ini:
+            #     yield from mv(XEng, eng_new+0.1)
+            #     yield from bps.sleep(2)
+            # yield from mv(XEng, eng_new)
+
             yield from mv(dcm_th2.feedback_enable, 0)
             yield from mv(dcm_th2.feedback, th2_motor_target)
             yield from mv(dcm_th2.feedback_enable, 1)
@@ -3398,9 +3430,37 @@ def move_zp_ccd_xh(
             yield from mv(aper.x, aper_x_target, aper.y, aper_y_target, wait=False)
             yield from mv(zp.z, zp_final, det.z, det_final, wait=False)
             if eng_new > eng_ini:
-                yield from mv(XEng, eng_new+0.1)
+                yield from mv(dcm_th2.feedback_enable, 0)
+                yield from mv(dcm_th2.feedback, th2_motor_target)
+                yield from mv(dcm_th2.feedback_enable, 1)
+            
+                yield from mv(
+                    zp.x, zp_x_target, 
+                    zp.y, zp_y_target,
+                    aper.x, aper_x_target, 
+                    aper.y, aper_y_target,
+                    zp.z, zp_final, 
+                    det.z, det_final, 
+                    XEng, eng_new+0.1,
+                    wait=False,
+                )
                 yield from bps.sleep(2)
-            yield from mv(XEng, eng_new)
+                yield from mv(XEng, eng_new)
+            else:
+                yield from mv(dcm_th2.feedback_enable, 0)
+                yield from mv(dcm_th2.feedback, th2_motor_target)
+                yield from mv(dcm_th2.feedback_enable, 1)
+            
+                yield from mv(
+                    zp.x, zp_x_target, 
+                    zp.y, zp_y_target,
+                    aper.x, aper_x_target, 
+                    aper.y, aper_y_target,
+                    zp.z, zp_final, 
+                    det.z, det_final, 
+                    XEng, eng_new,
+                    wait=False,
+                )
 
             if move_clens_flag:
                 yield from mv(
@@ -3410,11 +3470,15 @@ def move_zp_ccd_xh(
                     clens_y1_target,
                     clens.y2,
                     clens_y2_target,
+                    wait=False,
                 )
                 yield from mv(clens.p, clens_p_target)
             if move_det_flag:
-                yield from mv(DetU.x, DetU_x_target)
-                yield from mv(DetU.y, DetU_y_target)
+                yield from mv(
+                    DetU.x, DetU_x_target,
+                    DetU.y, DetU_y_target,
+                    wait=False,
+                )
 
             yield from bps.sleep(0.5)
             if abs(eng_new - eng_ini) >= 0.005:
@@ -4853,6 +4917,7 @@ def z_scan_xh(
             stream_name="dark",
             simu=simu,
         )
+        yield from mv(zp.z, zp_ini)
 
     yield from z_inner_scan()
     yield from FXITomoFlyer.set_cam_mode(cam, stage="post-scan")

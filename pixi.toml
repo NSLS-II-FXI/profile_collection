@@ -14,7 +14,7 @@ bluesky-kafka = ">=0.10.0,<0.11"
 ophyd = ">=1.11.2,<2"
 ophyd-async = ">=0.13.7,<0.14"
 databroker = "==2.0.0"
-tiled-client = ">=0.2.14,<0.3"
+tiled-client = ">=0.2.18,<0.3"
 nslsii = ">=0.11.9,<0.12"
 
 matplotlib-base= ">=3.10"
