@@ -267,7 +267,13 @@ def test_scan2(
     @stage_decorator(list(detectors) + motors)
     @run_decorator(md=_md)
     def inner_scan():
-        # close shutter, dark images: numer=chunk_size (e.g.20)
+        # Order matters: dark → primary → background.
+        # bps.configure (inside _set_cam_chunk_size) re-prepares stream descriptors using
+        # _current_stream_cache. The background ("flat") stream reads NO motors, so after
+        # it runs _current_stream_cache has no motors. Calling bps.configure afterwards
+        # would try to re-prepare the "dark" descriptor (which has motors) against that
+        # motors-free cache → KeyError. Primary must come before background so that motors
+        # remain in _current_stream_cache when bps.configure runs before the flat stream.
         if take_dark_img:
             print("\nshutter closed, taking dark images...")
             yield from _take_dark_image(detectors, motors, num=1, chunk_size=20, stream_name="dark", simu=simu)
