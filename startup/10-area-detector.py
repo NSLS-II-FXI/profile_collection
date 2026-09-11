@@ -1,6 +1,7 @@
 print(f"Loading {__file__}...")
 
 import itertools
+import numpy as np
 
 from ophyd import Component as Cpt, Signal
 from ophyd.areadetector.filestore_mixins import (
@@ -16,23 +17,16 @@ from ophyd import (
     HDF5Plugin,
     ProcessPlugin,
 )
-from nslsii.ophyd_async.providers import NSLS2PathProvider
 from ophyd.areadetector.trigger_mixins import SingleTrigger
 
 from ophyd.areadetector.cam import AreaDetectorCam
 from ophyd.areadetector.detectors import DetectorBase
-from nslsii.ad33 import StatsPluginV33, CamV33Mixin
+from ophyd_async.epics import adcore, advimba
+from ophyd_async.core import init_devices, UUIDFilenameProvider, YMDPathProvider
 
-
-from nslsii.ad33 import SingleTriggerV33
-
-
-from ophyd.areadetector.trigger_mixins import TriggerBase, ADTriggerStatus
-from ophyd.device import Staged
-from ophyd.status import SubscriptionStatus
+from nslsii.ad33 import StatsPluginV33, CamV33Mixin, SingleTriggerV33
 
 from bluesky.plan_stubs import abs_set
-import numpy as np
 
 global TimeStampRecord
 TimeStampRecord = []
@@ -600,6 +594,16 @@ detA1.read_attrs = ["hdf5", "stats1"]
 detA1.stats1.read_attrs = ["total"]
 # detA1.stats5.read_attrs = ['total']
 detA1.hdf5.read_attrs = []
+
+filename_provider = UUIDFilenameProvider()
+path_provider = YMDPathProvider(filename_provider)
+
+with init_devices():
+    mako = advimba.VimbaDetector(
+        "XF:18IDB-BI{Det:Mako}",
+        path_provider,
+        writer_cls=adcore.ADHDFWriter
+    )
 
 """
 # return to old version of Andor
